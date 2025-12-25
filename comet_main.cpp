@@ -755,29 +755,6 @@ void on_view_high_scores(GtkWidget *widget, gpointer data) {
 // END HIGH SCORE VIEW DIALOG FUNCTIONS
 // ============================================================
 
-gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gboolean on_button_release(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gboolean on_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpointer data);
-gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data);
-gboolean on_key_release(GtkWidget *widget, GdkEventKey *event, gpointer data);
-void update_status_text(CometGUI *gui);
-gboolean game_update_timer(gpointer data);
-void init_comet_buster_system_with_difficulty(Visualizer *visualizer, int difficulty);
-void on_new_game(GtkWidget *widget, gpointer data);
-void on_new_game_easy(GtkWidget *widget, gpointer data);
-void on_new_game_medium(GtkWidget *widget, gpointer data);
-void on_new_game_hard(GtkWidget *widget, gpointer data);
-void on_toggle_pause(GtkWidget *widget, gpointer data);
-void on_toggle_fullscreen(GtkWidget *widget, gpointer data);
-void on_volume_dialog_open(GtkWidget *widget, gpointer data);
-void on_music_volume_changed(GtkRange *range, gpointer data);
-void on_sfx_volume_changed(GtkRange *range, gpointer data);
-gboolean on_volume_dialog_delete(GtkWidget *widget, GdkEvent *event, gpointer data);
-void update_volume_labels(CometGUI *gui);
-void on_joystick_test(GtkWidget *widget, gpointer data);
-gboolean on_joystick_draw(GtkWidget *widget, cairo_t *cr, gpointer data);
-gboolean joystick_update_timer(gpointer data);
-gboolean on_joystick_dialog_delete(GtkWidget *widget, GdkEvent *event, gpointer data);
 
 // Volume control dialog functions
 void update_volume_labels(CometGUI *gui) {

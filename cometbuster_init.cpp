@@ -146,10 +146,22 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->last_boss_wave = 0;  // Track which wave had the boss
     
     // PHASE 3: Initialize splash screen only if requested
+    // Save difficulty-based settings before splash init (in case splash resets them)
+    int saved_difficulty = game->difficulty;
+    int saved_lives = game->ship_lives;
+    int saved_shield = game->shield_health;
+    int saved_max_shield = game->max_shield_health;
+    
     if (show_splash) {
 #ifdef ExternalSound
         comet_buster_init_splash_screen(game, 1920, 1080);
 #endif
     }
+    
+    // Restore difficulty-based settings after splash screen initialization
+    game->difficulty = saved_difficulty;
+    game->ship_lives = saved_lives;
+    game->shield_health = saved_shield;
+    game->max_shield_health = saved_shield;
     
 }

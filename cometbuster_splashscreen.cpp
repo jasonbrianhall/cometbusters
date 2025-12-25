@@ -373,11 +373,11 @@ void comet_buster_exit_splash_screen(CometBusterGame *game) {
     game->ship_vy = 0;
     game->ship_angle = 0;
     game->ship_speed = 0;
-    game->ship_lives = 3;
+//    game->ship_lives = 3;
     game->invulnerability_time = 0;
     
-    game->shield_health = 3;
-    game->max_shield_health = 3;
+/*    game->shield_health = 3;
+    game->max_shield_health = 3; */
     game->shield_regen_timer = 0;
     game->shield_regen_delay = 3.0;
     game->shield_regen_rate = 0.5;
