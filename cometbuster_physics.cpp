@@ -1375,7 +1375,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             double dist = sqrt(dx*dx + dy*dy);
             
             if (dist < 15.0) {
-                ship->shield_health -= 3;
+                ship->shield_health -= 6;  // Missiles do 3x damage (was 2)
                 comet_buster_spawn_explosion(game, missile->x, missile->y, 1, 8);
                 missile->active = false;
                 
@@ -2122,13 +2122,37 @@ void comet_buster_update_canisters(CometBusterGame *game, double dt) {
 // MISSILE SYSTEM FUNCTIONS
 // ============================================================================
 
-// Find the nearest enemy ship to a given position
-EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, double y) {
-    if (!game || game->enemy_ship_count == 0) return NULL;
+// Find best target for missile (Priority tiers: Boss > Ships > Comets, with distance as a factor)
+// Uses weighted distance: lower score = better target
+// Boss: distance * 1.0 (highest priority)
+// Ship: distance * 3.0 (medium priority)
+// Comet: distance * 10.0 (lowest priority, needs to be very close to win)
+struct MissileTarget {
+    double score;      // Weighted distance (lower is better)
+    int type;          // 1=boss, 2=ship, 3=comet, 0=none
+    int index;         // Index in respective array
+};
+
+MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, double x, double y) {
+    MissileTarget best = {999999.0, 0, -1};
     
-    EnemyShip *nearest = NULL;
-    double min_dist = 999999.0;
+    if (!game) return best;
     
+    // Check boss (highest priority - lowest weight multiplier)
+    if (game->boss_active && game->boss.active) {
+        double dx = game->boss.x - x;
+        double dy = game->boss.y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        double weighted_dist = dist * 1.0;  // Boss weight = 1.0
+        
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 1;
+            best.index = 0;
+        }
+    }
+    
+    // Check enemy ships (medium priority)
     for (int i = 0; i < game->enemy_ship_count; i++) {
         EnemyShip *ship = &game->enemy_ships[i];
         if (!ship->active) continue;
@@ -2136,14 +2160,33 @@ EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, doub
         double dx = ship->x - x;
         double dy = ship->y - y;
         double dist = sqrt(dx*dx + dy*dy);
+        double weighted_dist = dist * 3.0;  // Ship weight = 3.0
         
-        if (dist < min_dist) {
-            min_dist = dist;
-            nearest = ship;
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 2;
+            best.index = i;
         }
     }
     
-    return nearest;
+    // Check comets (lowest priority)
+    for (int i = 0; i < game->comet_count; i++) {
+        Comet *comet = &game->comets[i];
+        if (!comet->active) continue;
+        
+        double dx = comet->x - x;
+        double dy = comet->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        double weighted_dist = dist * 10.0;  // Comet weight = 10.0
+        
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 3;
+            best.index = i;
+        }
+    }
+    
+    return best;
 }
 
 // Fire a heat-seeking missile from the ship
@@ -2166,14 +2209,31 @@ void comet_buster_fire_missile(CometBusterGame *game) {
     missile->vx = cos(game->ship_angle * M_PI / 180.0) * speed;
     missile->vy = sin(game->ship_angle * M_PI / 180.0) * speed;
     
-    // Find target
-    EnemyShip *target = comet_buster_find_nearest_enemy(game, game->ship_x, game->ship_y);
-    if (target) {
-        missile->target_x = target->x;
-        missile->target_y = target->y;
-        missile->target_id = (target - game->enemy_ships);
+    // Find best target (Boss > Ships > Comets, with distance as a factor)
+    MissileTarget target = comet_buster_find_best_missile_target(game, game->ship_x, game->ship_y);
+    
+    if (target.type == 1) {
+        // Boss target
+        missile->target_x = game->boss.x;
+        missile->target_y = game->boss.y;
+        missile->target_id = -1;  // -1 means boss
+        missile->has_target = true;
+    } else if (target.type == 2) {
+        // Enemy ship target
+        EnemyShip *ship = &game->enemy_ships[target.index];
+        missile->target_x = ship->x;
+        missile->target_y = ship->y;
+        missile->target_id = target.index;
+        missile->has_target = true;
+    } else if (target.type == 3) {
+        // Comet target
+        Comet *comet = &game->comets[target.index];
+        missile->target_x = comet->x;
+        missile->target_y = comet->y;
+        missile->target_id = target.index + 1000;  // +1000 to distinguish from ships
         missile->has_target = true;
     } else {
+        // No target
         missile->has_target = false;
     }
     
@@ -2207,15 +2267,44 @@ void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, i
         }
         
         // Track target
-        if (missile->has_target && missile->target_id >= 0 && missile->target_id < game->enemy_ship_count) {
-            EnemyShip *target = &game->enemy_ships[missile->target_id];
+        if (missile->has_target) {
+            bool target_valid = false;
+            double target_x = 0, target_y = 0;
             
-            if (target->active) {
-                missile->target_x = target->x;
-                missile->target_y = target->y;
-                
-                double dx = missile->target_x - missile->x;
-                double dy = missile->target_y - missile->y;
+            if (missile->target_id == -1) {
+                // Boss target
+                if (game->boss_active && game->boss.active) {
+                    target_x = game->boss.x;
+                    target_y = game->boss.y;
+                    target_valid = true;
+                }
+            } else if (missile->target_id < 1000) {
+                // Enemy ship target
+                if (missile->target_id >= 0 && missile->target_id < game->enemy_ship_count) {
+                    EnemyShip *ship = &game->enemy_ships[missile->target_id];
+                    if (ship->active) {
+                        target_x = ship->x;
+                        target_y = ship->y;
+                        target_valid = true;
+                    }
+                }
+            } else {
+                // Comet target (target_id - 1000 = comet index)
+                int comet_index = missile->target_id - 1000;
+                if (comet_index >= 0 && comet_index < game->comet_count) {
+                    Comet *comet = &game->comets[comet_index];
+                    if (comet->active) {
+                        target_x = comet->x;
+                        target_y = comet->y;
+                        target_valid = true;
+                    }
+                }
+            }
+            
+            if (target_valid) {
+                // Update target position and turn toward it
+                double dx = target_x - missile->x;
+                double dy = target_y - missile->y;
                 double target_angle = atan2(dy, dx) * 180.0 / M_PI;
                 
                 double current = missile->angle;
@@ -2233,22 +2322,35 @@ void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, i
                 if (missile->angle < 0) missile->angle += 360.0;
                 if (missile->angle >= 360.0) missile->angle -= 360.0;
             } else {
-                EnemyShip *new_target = comet_buster_find_nearest_enemy(game, missile->x, missile->y);
-                if (new_target) {
-                    missile->target_id = (new_target - game->enemy_ships);
-                    missile->target_x = new_target->x;
-                    missile->target_y = new_target->y;
+                // Current target is dead, find new target
+                MissileTarget new_target = comet_buster_find_best_missile_target(game, missile->x, missile->y);
+                
+                if (new_target.type == 1) {
+                    missile->target_id = -1;
+                    missile->has_target = true;
+                } else if (new_target.type == 2) {
+                    missile->target_id = new_target.index;
+                    missile->has_target = true;
+                } else if (new_target.type == 3) {
+                    missile->target_id = new_target.index + 1000;
+                    missile->has_target = true;
                 } else {
                     missile->has_target = false;
                 }
             }
         } else {
-            EnemyShip *target = comet_buster_find_nearest_enemy(game, missile->x, missile->y);
-            if (target) {
+            // No target, find one
+            MissileTarget target = comet_buster_find_best_missile_target(game, missile->x, missile->y);
+            
+            if (target.type == 1) {
+                missile->target_id = -1;
                 missile->has_target = true;
-                missile->target_id = (target - game->enemy_ships);
-                missile->target_x = target->x;
-                missile->target_y = target->y;
+            } else if (target.type == 2) {
+                missile->target_id = target.index;
+                missile->has_target = true;
+            } else if (target.type == 3) {
+                missile->target_id = target.index + 1000;
+                missile->has_target = true;
             }
         }
         
