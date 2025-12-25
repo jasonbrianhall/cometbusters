@@ -1283,6 +1283,7 @@ void on_new_game(GtkWidget *widget, gpointer data) {
     gui->visualizer.key_x_pressed = false;
     gui->visualizer.key_space_pressed = false;
     gui->visualizer.key_ctrl_pressed = false;
+    gui->visualizer.key_q_pressed = false;  // Weapon toggle
     
     // Reset game state
     init_comet_buster_system(&gui->visualizer);
@@ -1728,6 +1729,11 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
             gui->visualizer.key_ctrl_pressed = true;
             gui->visualizer.mouse_just_moved = false;  // Disable mouse when keyboard is used
             break;
+        case GDK_KEY_q:
+        case GDK_KEY_Q:
+            gui->visualizer.key_q_pressed = true;
+            gui->visualizer.mouse_just_moved = false;  // Disable mouse when keyboard is used
+            break;
         case GDK_KEY_v:
         case GDK_KEY_V:
             on_volume_dialog_open(NULL, gui);
@@ -1792,6 +1798,10 @@ gboolean on_key_release(GtkWidget *widget, GdkEventKey *event, gpointer data) {
         case GDK_KEY_Control_L:
         case GDK_KEY_Control_R:
             gui->visualizer.key_ctrl_pressed = false;
+            break;
+        case GDK_KEY_q:
+        case GDK_KEY_Q:
+            gui->visualizer.key_q_pressed = false;
             break;
     }
     
@@ -1859,6 +1869,7 @@ int main(int argc, char *argv[]) {
     gui.visualizer.key_x_pressed = false;
     gui.visualizer.key_space_pressed = false;
     gui.visualizer.key_ctrl_pressed = false;
+    gui.visualizer.key_q_pressed = false;  // Weapon toggle
     
     // Initialize joystick manager
     joystick_manager_init(&gui.visualizer.joystick_manager);

@@ -99,6 +99,7 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     // Weapon system (missile ammo)
     game->missile_ammo = 0;             // Start with no missiles
     game->using_missiles = false;       // Start with normal bullets
+    game->missile_generation_timer = 0; // No passive missile generation yet
     
     // PHASE 2: Clear object arrays
     // IMPORTANT: Do this BEFORE splash screen spawning so we have a clean slate

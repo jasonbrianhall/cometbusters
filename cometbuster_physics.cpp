@@ -1216,6 +1216,29 @@ void comet_buster_update_fuel(CometBusterGame *game, double dt) {
             }
         }
     }
+    
+    // Passive missile generation when energy is at max (5 missiles per second)
+    if (game->energy_amount >= game->max_energy) {
+        game->missile_generation_timer += dt;
+        
+        // 5 missiles per second = 1 missile every 0.2 seconds
+        while (game->missile_generation_timer >= 0.2 && game->missile_ammo < 100) {
+            // Check if we're going from 0 to 1 missile
+            if (game->missile_ammo == 0) {
+                game->using_missiles = true;  // Auto-toggle when you get first missile
+            }
+            game->missile_ammo++;
+            game->missile_generation_timer -= 0.2;
+        }
+        
+        // Stop accumulating timer if at max missiles
+        if (game->missile_ammo >= 100) {
+            game->missile_generation_timer = 0;
+        }
+    } else {
+        // Reset timer if energy drops below max
+        game->missile_generation_timer = 0;
+    }
 }
 
 void update_comet_buster(Visualizer *visualizer, double dt) {
@@ -1270,6 +1293,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     game->keyboard.key_x_pressed = visualizer->key_x_pressed;
     game->keyboard.key_space_pressed = visualizer->key_space_pressed;
     game->keyboard.key_ctrl_pressed = visualizer->key_ctrl_pressed;
+    game->keyboard.key_q_pressed = visualizer->key_q_pressed;  // Weapon toggle
     
     // ========== JOYSTICK INPUT ==========
     // Get joystick state
@@ -1516,8 +1540,20 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check ship-missile pickup collisions
     for (int i = 0; i < game->missile_pickup_count; i++) {
         if (comet_buster_check_ship_missile_pickup(game, &game->missile_pickups[i])) {
+            // Auto-toggle to missiles if you had 0 before
+            bool had_zero_missiles = (game->missile_ammo == 0);
+            
             game->missile_ammo += 20;  // Add 20 missiles (cumulative, not reset)
-            game->using_missiles = true;
+            
+            // Cap at 100 missiles maximum
+            if (game->missile_ammo > 100) {
+                game->missile_ammo = 100;
+            }
+            
+            // Only auto-toggle if you just went from 0 to having missiles
+            if (had_zero_missiles) {
+                game->using_missiles = true;
+            }
             
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
                                            "+20 MISSILES", 1.0, 0.8, 0.0);
@@ -2222,8 +2258,8 @@ void comet_buster_fire_missile(CometBusterGame *game) {
     // Initial velocity in ship's facing direction
     missile->angle = game->ship_angle;
     double speed = 250.0;
-    missile->vx = cos(game->ship_angle * M_PI / 180.0) * speed;
-    missile->vy = sin(game->ship_angle * M_PI / 180.0) * speed;
+    missile->vx = cos(game->ship_angle) * speed;  // ship_angle is in radians, not degrees!
+    missile->vy = sin(game->ship_angle) * speed;
     
     // Find best target (Boss > Ships > Comets, with distance as a factor)
     MissileTarget target = comet_buster_find_best_missile_target(game, game->ship_x, game->ship_y);
@@ -2321,22 +2357,25 @@ void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, i
                 // Update target position and turn toward it
                 double dx = target_x - missile->x;
                 double dy = target_y - missile->y;
-                double target_angle = atan2(dy, dx) * 180.0 / M_PI;
+                double target_angle = atan2(dy, dx);  // atan2 returns radians!
                 
-                double current = missile->angle;
-                double target = target_angle;
+                double current = missile->angle;  // In radians
+                double target = target_angle;     // In radians
                 
+                // Find shortest angular distance (in radians)
                 double diff = target - current;
-                while (diff > 180.0) diff -= 360.0;
-                while (diff < -180.0) diff += 360.0;
+                while (diff > M_PI) diff -= 2.0 * M_PI;
+                while (diff < -M_PI) diff += 2.0 * M_PI;
                 
-                double max_turn = missile->turn_speed * dt;
+                // Limit turn speed (convert turn_speed from degrees/sec to radians/sec)
+                double max_turn = (missile->turn_speed * M_PI / 180.0) * dt;
                 if (diff > max_turn) diff = max_turn;
                 if (diff < -max_turn) diff = -max_turn;
                 
                 missile->angle += diff;
-                if (missile->angle < 0) missile->angle += 360.0;
-                if (missile->angle >= 360.0) missile->angle -= 360.0;
+                // Normalize to 0 to 2π
+                while (missile->angle < 0) missile->angle += 2.0 * M_PI;
+                while (missile->angle >= 2.0 * M_PI) missile->angle -= 2.0 * M_PI;
             } else {
                 // Current target is dead, find new target
                 MissileTarget new_target = comet_buster_find_best_missile_target(game, missile->x, missile->y);
@@ -2370,8 +2409,8 @@ void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, i
             }
         }
         
-        missile->vx = cos(missile->angle * M_PI / 180.0) * missile->speed;
-        missile->vy = sin(missile->angle * M_PI / 180.0) * missile->speed;
+        missile->vx = cos(missile->angle) * missile->speed;  // missile->angle is in radians!
+        missile->vy = sin(missile->angle) * missile->speed;
         
         missile->x += missile->vx * dt;
         missile->y += missile->vy * dt;

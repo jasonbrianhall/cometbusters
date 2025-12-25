@@ -300,8 +300,9 @@ typedef struct {
     int missile_pickup_count;
     
     // Weapon system
-    int missile_ammo;           // How many missiles player has (0-10)
-    bool using_missiles;        // Currently in missile mode?
+    int missile_ammo;                // How many missiles player has (max 100)
+    bool using_missiles;             // Currently in missile mode?
+    double missile_generation_timer; // Accumulates missiles when energy is full (5 per second)
     
     EnemyShip enemy_ships[MAX_ENEMY_SHIPS];
     int enemy_ship_count;

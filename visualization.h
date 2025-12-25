@@ -120,6 +120,7 @@ typedef struct {
     bool key_x_pressed;
     bool key_space_pressed;
     bool key_ctrl_pressed;
+    bool key_q_pressed;         // Q key - toggle weapons/missiles
     
     // Joystick manager
     JoystickManager joystick_manager;

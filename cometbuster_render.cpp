@@ -845,14 +845,14 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
         char missile_text[32];
         sprintf(missile_text, "MISSILES: %d", game->missile_ammo);
         
-        cairo_move_to(cr, 20, height - 70);
+        cairo_move_to(cr, 20, height - 110);  // Moved higher (was -70)
         cairo_show_text(cr, missile_text);
         
         // Draw missile bar
         double missile_bar_width = 150;
         double missile_bar_height = 12;
         double missile_bar_x = 20;
-        double missile_bar_y = height - 55;
+        double missile_bar_y = height - 95;  // Moved higher (was -55)
         
         // Background
         cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
@@ -943,7 +943,7 @@ void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, i
         
         cairo_save(cr);
         cairo_translate(cr, missile->x, missile->y);
-        cairo_rotate(cr, missile->angle * M_PI / 180.0);
+        cairo_rotate(cr, missile->angle);  // missile->angle is in radians!
         
         cairo_set_line_width(cr, 1.5);
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
