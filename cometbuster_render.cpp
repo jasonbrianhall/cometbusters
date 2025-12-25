@@ -68,6 +68,7 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
     }
     
     draw_comet_buster_enemy_bullets(game, cr, width, height);
+    draw_comet_buster_canisters(game, cr, width, height);
     draw_comet_buster_particles(game, cr, width, height);
     draw_comet_buster_ship(game, cr, width, height);
     
@@ -509,6 +510,95 @@ void draw_comet_buster_particles(CometBusterGame *game, cairo_t *cr, int width, 
         cairo_fill(cr);
     }
 }
+
+void draw_comet_buster_canisters(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game) return;
+    (void)width;    // Suppress unused parameter warning
+    (void)height;   // Suppress unused parameter warning
+    
+    for (int i = 0; i < game->canister_count; i++) {
+        Canister *c = &game->canisters[i];
+        if (!c->active) continue;
+        
+        // Alpha based on remaining lifetime (fade out near end)
+        double alpha = 1.0;
+        if (c->lifetime < 2.0) {
+            alpha = c->lifetime / 2.0;  // Fade out in last 2 seconds
+        }
+        
+        cairo_save(cr);
+        cairo_translate(cr, c->x, c->y);
+        cairo_rotate(cr, c->rotation * M_PI / 180.0);
+        
+        // Draw canister as a proper shield shape (like in the image)
+        cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, alpha);  // Cyan color
+        
+        double shield_width = 16.0;
+        double shield_height = 20.0;
+        
+        // Begin shield path
+        cairo_new_path(cr);
+        
+        // Draw shield outline
+        // Top-left corner (rounded)
+        cairo_move_to(cr, -shield_width * 0.5 + 3.0, -shield_height * 0.4);
+        cairo_curve_to(cr, -shield_width * 0.5, -shield_height * 0.4,
+                          -shield_width * 0.5, -shield_height * 0.3,
+                          -shield_width * 0.5, -shield_height * 0.2);
+        
+        // Left edge going down
+        cairo_line_to(cr, -shield_width * 0.5, shield_height * 0.2);
+        
+        // Bottom point (sharp)
+        cairo_line_to(cr, 0, shield_height * 0.5);
+        
+        // Right edge coming up
+        cairo_line_to(cr, shield_width * 0.5, shield_height * 0.2);
+        
+        // Top-right corner (rounded)
+        cairo_line_to(cr, shield_width * 0.5, -shield_height * 0.2);
+        cairo_curve_to(cr, shield_width * 0.5, -shield_height * 0.3,
+                          shield_width * 0.5, -shield_height * 0.4,
+                          shield_width * 0.5 - 3.0, -shield_height * 0.4);
+        
+        // Top edge (curved)
+        cairo_curve_to(cr, shield_width * 0.3, -shield_height * 0.45,
+                          -shield_width * 0.3, -shield_height * 0.45,
+                          -shield_width * 0.5 + 3.0, -shield_height * 0.4);
+        
+        cairo_close_path(cr);
+        
+        // Fill the shield with semi-transparent color
+        cairo_set_line_width(cr, 2.0);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        
+        // Fill with darker cyan
+        cairo_set_source_rgba(cr, 0.0, 0.8, 0.8, alpha * 0.3);
+        cairo_fill_preserve(cr);
+        
+        // Outline in bright cyan
+        cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, alpha);
+        cairo_stroke(cr);
+        
+        // Draw a medical cross/plus symbol in the center (smaller than before)
+        cairo_set_line_width(cr, 2.0);
+        double cross_size = 6.0;
+        
+        // Vertical bar of cross
+        cairo_move_to(cr, 0, -cross_size);
+        cairo_line_to(cr, 0, cross_size);
+        cairo_stroke(cr);
+        
+        // Horizontal bar of cross
+        cairo_move_to(cr, -cross_size, 0);
+        cairo_line_to(cr, cross_size, 0);
+        cairo_stroke(cr);
+        
+        cairo_restore(cr);
+    }
+}
+
 
 void draw_comet_buster_ship(CometBusterGame *game, cairo_t *cr, int width, int height) {
     if (!game) return;

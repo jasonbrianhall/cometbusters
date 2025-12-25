@@ -11,6 +11,7 @@
 #define MAX_BULLETS 128
 #define MAX_PARTICLES 512
 #define MAX_FLOATING_TEXT 32
+#define MAX_CANISTERS 32
 #define MAX_HIGH_SCORES 25
 
 typedef enum {
@@ -63,6 +64,16 @@ typedef struct {
     double color[3];            // RGB
     bool active;
 } FloatingText;
+
+typedef struct {
+    double x, y;                // Position
+    double vx, vy;              // Velocity (drifts slowly)
+    double lifetime;            // Seconds remaining
+    double max_lifetime;        // Total lifetime (20 seconds)
+    double rotation;            // Visual rotation (in degrees)
+    double rotation_speed;      // Rotation speed
+    bool active;
+} Canister;
 
 typedef struct {
     int score;
@@ -252,6 +263,8 @@ typedef struct {
     int particle_count;
     FloatingText floating_texts[MAX_FLOATING_TEXT];
     int floating_text_count;
+    Canister canisters[MAX_CANISTERS];
+    int canister_count;
     EnemyShip enemy_ships[MAX_ENEMY_SHIPS];
     int enemy_ship_count;
     Bullet enemy_bullets[MAX_ENEMY_BULLETS];
@@ -355,6 +368,11 @@ void comet_buster_spawn_enemy_ship(CometBusterGame *game, int screen_width, int 
 void comet_buster_spawn_enemy_bullet(CometBusterGame *game, double x, double y, double vx, double vy);
 void comet_buster_spawn_enemy_bullet_from_ship(CometBusterGame *game, double x, double y, double vx, double vy, int owner_ship_id);
 
+// Canister functions
+void comet_buster_spawn_canister(CometBusterGame *game, double x, double y);
+void comet_buster_update_canisters(CometBusterGame *game, double dt);
+void draw_comet_buster_canisters(CometBusterGame *game, cairo_t *cr, int width, int height);
+bool comet_buster_check_ship_canister(CometBusterGame *game, Canister *c);
 
 // Boss functions
 void comet_buster_spawn_boss(CometBusterGame *game, int screen_width, int screen_height);

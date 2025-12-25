@@ -340,6 +340,11 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
         if (game->score_multiplier > 5.0) game->score_multiplier = 5.0;
     }
     
+    // 20% chance to spawn a shield canister
+    if ((rand() % 100) < 200) {
+        comet_buster_spawn_canister(game, ship->x, ship->y);
+    }
+    
     // Swap with last and remove
     if (ship_index != game->enemy_ship_count - 1) {
         game->enemy_ships[ship_index] = game->enemy_ships[game->enemy_ship_count - 1];
@@ -515,4 +520,18 @@ bool comet_buster_hit_enemy_ship_provoke(CometBusterGame *game, int ship_index) 
     }
     
     return false;  // Already aggressive or different type
+}
+
+// ============================================================================
+// CANISTER COLLISION - Check if ship collides with canister
+// ============================================================================
+
+bool comet_buster_check_ship_canister(CometBusterGame *game, Canister *c) {
+    if (!c->active) return false;
+    
+    double dx = game->ship_x - c->x;
+    double dy = game->ship_y - c->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    return dist < 20.0;  // Canister collision radius is 20 pixels
 }

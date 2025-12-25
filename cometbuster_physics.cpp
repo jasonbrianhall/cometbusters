@@ -1334,6 +1334,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     comet_buster_update_bullets(game, dt, width, height, visualizer);
     comet_buster_update_particles(game, dt);
     comet_buster_update_floating_text(game, dt);  // Update floating text popups
+    comet_buster_update_canisters(game, dt);  // Update shield canisters
     comet_buster_update_fuel(game, dt);  // Update fuel system
     
     // Update shield regeneration
@@ -1418,6 +1419,35 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             // Damage the ship
             comet_buster_on_ship_hit(game, visualizer);
             break;  // Exit loop since we just modified comet_count
+        }
+    }
+    
+    // Check ship-canister collisions
+    for (int i = 0; i < game->canister_count; i++) {
+        if (comet_buster_check_ship_canister(game, &game->canisters[i])) {
+            // Collect canister - gain extra shield
+            game->shield_health++;
+            if (game->shield_health > game->max_shield_health) {
+                game->shield_health = game->max_shield_health;  // Cap at max
+            }
+            
+            // Also refill energy
+            game->energy_amount = game->max_energy;  // Fill energy to max
+            
+            // Floating text
+            comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
+                                           "+SHIELD", 0.0, 1.0, 1.0);  // Cyan
+            
+            // Play a positive sound effect (reuse shield sound or other happy sound)
+#ifdef ExternalSound
+            if (visualizer && visualizer->audio.sfx_hit) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+            }
+#endif
+            
+            // Remove canister
+            game->canisters[i].active = false;
+            break;  // Exit loop
         }
     }
     
@@ -1975,4 +2005,49 @@ void comet_buster_brown_coat_fire_burst(CometBusterGame *game, int ship_index) {
     #ifdef ExternalSound
     // Burst sound would play here
     #endif
+}
+
+// ============================================================================
+// CANISTER UPDATE
+// ============================================================================
+
+void comet_buster_update_canisters(CometBusterGame *game, double dt) {
+    if (!game) return;
+    
+    for (int i = 0; i < game->canister_count; i++) {
+        Canister *c = &game->canisters[i];
+        
+        if (!c->active) continue;
+        
+        // Update lifetime
+        c->lifetime -= dt;
+        if (c->lifetime <= 0) {
+            c->active = false;
+            continue;
+        }
+        
+        // Update position (drift effect)
+        c->x += c->vx * dt;
+        c->y += c->vy * dt;
+        
+        // Update rotation for visual effect
+        c->rotation += c->rotation_speed * dt;
+        if (c->rotation >= 360.0) {
+            c->rotation -= 360.0;
+        }
+    }
+    
+    // Remove inactive canisters by swapping with last
+    int i = 0;
+    while (i < game->canister_count) {
+        if (!game->canisters[i].active) {
+            // Swap with last
+            if (i != game->canister_count - 1) {
+                game->canisters[i] = game->canisters[game->canister_count - 1];
+            }
+            game->canister_count--;
+        } else {
+            i++;
+        }
+    }
 }

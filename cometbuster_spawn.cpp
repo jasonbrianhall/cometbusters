@@ -645,3 +645,36 @@ void comet_buster_spawn_floating_text(CometBusterGame *game, double x, double y,
     
     game->floating_text_count++;
 }
+
+void comet_buster_spawn_canister(CometBusterGame *game, double x, double y) {
+    if (!game) return;
+    
+    if (game->canister_count >= MAX_CANISTERS) {
+        return;
+    }
+    
+    int slot = game->canister_count;
+    Canister *canister = &game->canisters[slot];
+    
+    memset(canister, 0, sizeof(Canister));
+    
+    // Position canister at the given location
+    canister->x = x;
+    canister->y = y;
+    
+    // Give it a small drift velocity for visual interest
+    canister->vx = (rand() % 100 - 50) * 0.5;  // Random drift -25 to 25 pixels/sec
+    canister->vy = (rand() % 100 - 50) * 0.5;
+    
+    // Canister lasts 7 seconds
+    canister->lifetime = 7.0;
+    canister->max_lifetime = 7.0;
+    
+    // Spin animation
+    canister->rotation = 0;
+    canister->rotation_speed = 180.0 + (rand() % 180);  // 180-360 degrees per second
+    
+    canister->active = true;
+    
+    game->canister_count++;
+}
