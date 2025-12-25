@@ -400,7 +400,7 @@ void comet_buster_spawn_random_comets(CometBusterGame *game, int count, int scre
 void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen_height);
 int comet_buster_get_wave_comet_count(int wave);
 double comet_buster_get_wave_speed_multiplier(int wave);
-void comet_buster_spawn_bullet(CometBusterGame *game);
+void comet_buster_spawn_bullet(CometBusterGame *game, void *vis);
 void comet_buster_spawn_omnidirectional_fire(CometBusterGame *game);
 void comet_buster_spawn_explosion(CometBusterGame *game, double x, double y, int frequency_band, int particle_count);
 void comet_buster_spawn_floating_text(CometBusterGame *game, double x, double y, const char *text, double r, double g, double b);
@@ -419,7 +419,7 @@ void comet_buster_spawn_missile_pickup(CometBusterGame *game, double x, double y
 void comet_buster_update_missile_pickups(CometBusterGame *game, double dt);
 void draw_comet_buster_missile_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
 bool comet_buster_check_ship_missile_pickup(CometBusterGame *game, MissilePickup *p);
-void comet_buster_fire_missile(CometBusterGame *game);
+void comet_buster_fire_missile(CometBusterGame *game, void *vis);
 void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, int height);
 void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, int height);
 EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, double y);

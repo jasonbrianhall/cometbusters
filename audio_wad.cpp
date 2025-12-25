@@ -99,6 +99,7 @@ bool audio_init(AudioManager *audio) {
     audio->sfx_boost = NULL;
     audio->sfx_game_over = NULL;
     audio->sfx_wave_complete = NULL;
+    audio->sfx_missile = NULL;
     
     memset(&audio->wad, 0, sizeof(WadArchive));
     
@@ -138,6 +139,7 @@ bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
     audio->sfx_boost = load_sound_from_wad(&audio->wad, "sounds/boost.mp3");
     audio->sfx_game_over = load_sound_from_wad(&audio->wad, "sounds/game_over.mp3");
     audio->sfx_wave_complete = load_sound_from_wad(&audio->wad, "sounds/wave_complete.mp3");
+    audio->sfx_missile = load_sound_from_wad(&audio->wad, "sounds/missile.mp3");
     
     int loaded = 0;
     if (audio->sfx_fire) loaded++;
@@ -178,6 +180,7 @@ void audio_cleanup(AudioManager *audio) {
     if (audio->sfx_boost) Mix_FreeChunk(audio->sfx_boost);
     if (audio->sfx_game_over) Mix_FreeChunk(audio->sfx_game_over);
     if (audio->sfx_wave_complete) Mix_FreeChunk(audio->sfx_wave_complete);
+    if (audio->sfx_missile) Mix_FreeChunk(audio->sfx_missile);
     
     // Close WAD
     wad_close(&audio->wad);

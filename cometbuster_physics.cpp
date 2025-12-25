@@ -1108,17 +1108,20 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         if (game->mouse_fire_cooldown <= 0) {
             // Normal fire costs 0.25 fuel per bullet
             if (game->energy_amount >= 0.25) {
-                comet_buster_spawn_bullet(game);
+                bool was_using_missiles = game->using_missiles;
+                comet_buster_spawn_bullet(game, vis);
                 game->energy_amount -= 0.25;  // Consume 0.25 fuel
                 game->mouse_fire_cooldown = 0.05;  // ~20 bullets per second
                 
-                // Play fire sound
+                // Play fire sound (only for bullets, not missiles - missiles have their own sound)
+                if (!was_using_missiles) {
 #ifdef ExternalSound
-                Visualizer *visualizer = (Visualizer *)vis;
-                if (visualizer && visualizer->audio.sfx_fire) {
-                    audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
-                }
+                    Visualizer *visualizer = (Visualizer *)vis;
+                    if (visualizer && visualizer->audio.sfx_fire) {
+                        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
+                    }
 #endif
+                }
             }
         }
     }
@@ -1128,17 +1131,20 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         if (game->mouse_fire_cooldown <= 0) {
             // Normal fire costs 0.25 fuel per bullet
             if (game->energy_amount >= 0.25) {
-                comet_buster_spawn_bullet(game);
+                bool was_using_missiles = game->using_missiles;
+                comet_buster_spawn_bullet(game, vis);
                 game->energy_amount -= 0.25;  // Consume 0.25 fuel
                 game->mouse_fire_cooldown = 0.05;  // ~20 bullets per second
                 
-                // Play fire sound
+                // Play fire sound (only for bullets, not missiles - missiles have their own sound)
+                if (!was_using_missiles) {
 #ifdef ExternalSound
-                Visualizer *visualizer = (Visualizer *)vis;
-                if (visualizer && visualizer->audio.sfx_fire) {
-                    audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
-                }
+                    Visualizer *visualizer = (Visualizer *)vis;
+                    if (visualizer && visualizer->audio.sfx_fire) {
+                        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
+                    }
 #endif
+                }
             }
         }
     }
@@ -1938,6 +1944,46 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 }
             }
             
+            // Check missile-boss collisions
+            for (int j = 0; j < game->missile_count; j++) {
+                if (comet_buster_check_missile_boss(&game->missiles[j], &game->boss)) {
+                    game->missiles[j].active = false;
+                    
+                    bool shield_active = (game->boss.shield_active && game->boss.shield_health > 0);
+                    
+                    if (shield_active) {
+                        game->boss.shield_health -= 2;
+                        game->boss.shield_impact_timer = 0.2;
+                        game->boss.shield_impact_angle = atan2(game->boss.y - game->missiles[j].y,
+                                                               game->boss.x - game->missiles[j].x);
+                        game->boss.health -= 2;
+                        game->boss.damage_flash_timer = 0.1;
+                        game->consecutive_hits++;
+                        
+#ifdef ExternalSound
+                        if (visualizer && visualizer->audio.sfx_hit) {
+                            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+                        }
+#endif
+                    } else {
+                        game->boss.health -= 4;
+                        game->boss.damage_flash_timer = 0.1;
+                        game->consecutive_hits++;
+                        
+#ifdef ExternalSound
+                        if (visualizer && visualizer->audio.sfx_hit) {
+                            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+                        }
+#endif
+                    }
+                    
+                    if (game->boss.health <= 0) {
+                        comet_buster_destroy_boss(game, width, height, visualizer);
+                    }
+                    break;
+                }
+            }
+            
             // Check boss-player ship collisions
             double dx = game->ship_x - game->boss.x;
             double dy = game->ship_y - game->boss.y;
@@ -2242,7 +2288,7 @@ MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, doubl
 }
 
 // Fire a heat-seeking missile from the ship
-void comet_buster_fire_missile(CometBusterGame *game) {
+void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
     if (!game || game->missile_count >= MAX_MISSILES) return;
     if (game->missile_ammo <= 0) return;
     
@@ -2297,6 +2343,16 @@ void comet_buster_fire_missile(CometBusterGame *game) {
     
     game->missile_count++;
     game->missile_ammo--;
+    
+    // Play missile fire sound
+#ifdef ExternalSound
+    if (vis) {
+        Visualizer *visualizer = (Visualizer *)vis;
+        if (visualizer && visualizer->audio.sfx_missile) {
+            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_missile);
+        }
+    }
+#endif
     
     if (game->missile_ammo <= 0) {
         game->using_missiles = false;

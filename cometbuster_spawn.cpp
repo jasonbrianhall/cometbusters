@@ -204,12 +204,12 @@ double comet_buster_get_wave_speed_multiplier(int wave) {
     }
 }
 
-void comet_buster_spawn_bullet(CometBusterGame *game) {
+void comet_buster_spawn_bullet(CometBusterGame *game, void *vis) {
     if (!game) return;
     
     // Check if we should fire a missile instead
     if (game->using_missiles && game->missile_ammo > 0) {
-        comet_buster_fire_missile(game);
+        comet_buster_fire_missile(game, vis);
         return;
     }
     

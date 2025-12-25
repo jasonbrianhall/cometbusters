@@ -28,6 +28,7 @@ typedef struct {
     Mix_Chunk *sfx_boost;
     Mix_Chunk *sfx_game_over;
     Mix_Chunk *sfx_wave_complete;
+    Mix_Chunk *sfx_missile;
     
     WadArchive wad;          // WAD file archive
     int master_volume;       // Overall master volume (kept for compatibility)
