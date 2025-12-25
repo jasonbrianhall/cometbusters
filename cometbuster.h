@@ -24,6 +24,12 @@ typedef enum {
     COMET_MEGA = 4
 } CometSize;
 
+typedef enum {
+    EASY = 0,
+    MEDIUM = 1,
+    HARD = 2,
+} CometDifficulty;
+
 typedef struct {
     double x, y;                // Position
     double vx, vy;              // Velocity

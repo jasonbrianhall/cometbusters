@@ -1238,7 +1238,7 @@ void comet_buster_update_fuel(CometBusterGame *game, double dt) {
         game->missile_generation_timer += dt;
         
         // 5 missiles per second = 1 missile every 0.2 seconds
-        while (game->missile_generation_timer >= 0.2 && game->missile_ammo < 100) {
+        while (game->missile_generation_timer >= 0.2 && game->missile_ammo < 200) {
             // Check if we're going from 0 to 1 missile
             if (game->missile_ammo == 0) {
                 game->using_missiles = true;  // Auto-toggle when you get first missile
@@ -1248,9 +1248,13 @@ void comet_buster_update_fuel(CometBusterGame *game, double dt) {
         }
         
         // Stop accumulating timer if at max missiles
-        if (game->missile_ammo >= 100) {
+        if (game->difficulty == HARD && game->missile_ammo >= 25) {
+             game->missile_generation_timer = 0;
+        } else if (game->difficulty == MEDIUM && game->missile_ammo >= 100) {
             game->missile_generation_timer = 0;
-        }
+        } else if (game->difficulty == EASY && game->missile_ammo >= 200) {
+            game->missile_generation_timer = 0;
+        }        
     } else {
         // Reset timer if energy drops below max
         game->missile_generation_timer = 0;
