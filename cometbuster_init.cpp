@@ -95,6 +95,10 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->is_boosting = false;
     game->boost_thrust_timer = 0.0;
     
+    // Weapon system (missile ammo)
+    game->missile_ammo = 0;             // Start with no missiles
+    game->using_missiles = false;       // Start with normal bullets
+    
     // PHASE 2: Clear object arrays
     // IMPORTANT: Do this BEFORE splash screen spawning so we have a clean slate
     game->comet_count = 0;
@@ -102,6 +106,8 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->particle_count = 0;
     game->floating_text_count = 0;
     game->canister_count = 0;
+    game->missile_count = 0;
+    game->missile_pickup_count = 0;
     // NOTE: high_score_count is NOT reset - high scores persist from disk load
     game->enemy_ship_count = 0;
     game->enemy_bullet_count = 0;

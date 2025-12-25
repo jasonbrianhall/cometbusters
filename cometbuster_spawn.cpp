@@ -207,6 +207,13 @@ double comet_buster_get_wave_speed_multiplier(int wave) {
 void comet_buster_spawn_bullet(CometBusterGame *game) {
     if (!game) return;
     
+    // Check if we should fire a missile instead
+    if (game->using_missiles && game->missile_ammo > 0) {
+        comet_buster_fire_missile(game);
+        return;
+    }
+    
+    // Otherwise, fire a normal bullet
     if (game->bullet_count >= MAX_BULLETS) {
         return;
     }
@@ -677,4 +684,37 @@ void comet_buster_spawn_canister(CometBusterGame *game, double x, double y) {
     canister->active = true;
     
     game->canister_count++;
+}
+
+void comet_buster_spawn_missile_pickup(CometBusterGame *game, double x, double y) {
+    if (!game) return;
+    
+    if (game->missile_pickup_count >= MAX_MISSILE_PICKUPS) {
+        return;
+    }
+    
+    int slot = game->missile_pickup_count;
+    MissilePickup *pickup = &game->missile_pickups[slot];
+    
+    memset(pickup, 0, sizeof(MissilePickup));
+    
+    // Position missile pickup at the given location
+    pickup->x = x;
+    pickup->y = y;
+    
+    // Give it a small drift velocity for visual interest
+    pickup->vx = (rand() % 100 - 50) * 0.5;  // Random drift
+    pickup->vy = (rand() % 100 - 50) * 0.5;
+    
+    // Missile pickup lasts 10 seconds (longer than canister)
+    pickup->lifetime = 10.0;
+    pickup->max_lifetime = 10.0;
+    
+    // Spin animation
+    pickup->rotation = 0;
+    pickup->rotation_speed = 200.0 + (rand() % 160);  // 200-360 degrees per second (faster than canister)
+    
+    pickup->active = true;
+    
+    game->missile_pickup_count++;
 }

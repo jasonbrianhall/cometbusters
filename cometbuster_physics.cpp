@@ -1335,6 +1335,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     comet_buster_update_particles(game, dt);
     comet_buster_update_floating_text(game, dt);  // Update floating text popups
     comet_buster_update_canisters(game, dt);  // Update shield canisters
+    comet_buster_update_missile_pickups(game, dt);  // Update missile pickups
+    comet_buster_update_missiles(game, dt, width, height);  // Update missiles
     comet_buster_update_fuel(game, dt);  // Update fuel system
     
     // Update shield regeneration
@@ -1357,6 +1359,35 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     
     comet_buster_update_enemy_ships(game, dt, width, height, visualizer);  // Update enemy ships
     comet_buster_update_enemy_bullets(game, dt, width, height, visualizer);  // Update enemy bullets
+
+    // Check missiles hitting enemy ships
+    for (int i = 0; i < game->missile_count; i++) {
+        if (!game->missiles[i].active) continue;
+        
+        Missile *missile = &game->missiles[i];
+        
+        for (int j = 0; j < game->enemy_ship_count; j++) {
+            EnemyShip *ship = &game->enemy_ships[j];
+            if (!ship->active) continue;
+            
+            double dx = ship->x - missile->x;
+            double dy = ship->y - missile->y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            if (dist < 15.0) {
+                ship->shield_health -= 2;
+                comet_buster_spawn_explosion(game, missile->x, missile->y, 1, 8);
+                missile->active = false;
+                
+                if (ship->shield_health <= 0) {
+                    comet_buster_destroy_enemy_ship(game, j, width, height, visualizer);
+                }
+                
+                break;
+            }
+        }
+    }
+    
     
     // Update boss if active
     if (game->boss_active && game->spawn_queen.active && game->spawn_queen.is_spawn_queen && game->current_wave % 20 == 10) {
@@ -1428,11 +1459,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             // Collect canister - gain extra shield
             game->shield_health++;
             if (game->shield_health > game->max_shield_health) {
-                game->shield_health = game->max_shield_health;  // Cap at max
+                game->shield_health = game->max_shield_health + 1;  // Can go one over max
             }
-            
-            // Also refill energy
-            game->energy_amount = game->max_energy;  // Fill energy to max
             
             // Floating text
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
@@ -1448,6 +1476,26 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             // Remove canister
             game->canisters[i].active = false;
             break;  // Exit loop
+        }
+    }
+    
+    // Check ship-missile pickup collisions
+    for (int i = 0; i < game->missile_pickup_count; i++) {
+        if (comet_buster_check_ship_missile_pickup(game, &game->missile_pickups[i])) {
+            game->missile_ammo = 10;
+            game->using_missiles = true;
+            
+            comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
+                                           "+MISSILES", 1.0, 0.8, 0.0);
+            
+#ifdef ExternalSound
+            if (visualizer && visualizer->audio.sfx_hit) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+            }
+#endif
+            
+            game->missile_pickups[i].active = false;
+            break;
         }
     }
     
@@ -2048,6 +2096,195 @@ void comet_buster_update_canisters(CometBusterGame *game, double dt) {
             game->canister_count--;
         } else {
             i++;
+        }
+    }
+}
+
+// ============================================================================
+// MISSILE SYSTEM FUNCTIONS
+// ============================================================================
+
+// Find the nearest enemy ship to a given position
+EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, double y) {
+    if (!game || game->enemy_ship_count == 0) return NULL;
+    
+    EnemyShip *nearest = NULL;
+    double min_dist = 999999.0;
+    
+    for (int i = 0; i < game->enemy_ship_count; i++) {
+        EnemyShip *ship = &game->enemy_ships[i];
+        if (!ship->active) continue;
+        
+        double dx = ship->x - x;
+        double dy = ship->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        if (dist < min_dist) {
+            min_dist = dist;
+            nearest = ship;
+        }
+    }
+    
+    return nearest;
+}
+
+// Fire a heat-seeking missile from the ship
+void comet_buster_fire_missile(CometBusterGame *game) {
+    if (!game || game->missile_count >= MAX_MISSILES) return;
+    if (game->missile_ammo <= 0) return;
+    
+    int slot = game->missile_count;
+    Missile *missile = &game->missiles[slot];
+    
+    memset(missile, 0, sizeof(Missile));
+    
+    // Spawn at ship position
+    missile->x = game->ship_x;
+    missile->y = game->ship_y;
+    
+    // Initial velocity in ship's facing direction
+    missile->angle = game->ship_angle;
+    double speed = 250.0;
+    missile->vx = cos(game->ship_angle * M_PI / 180.0) * speed;
+    missile->vy = sin(game->ship_angle * M_PI / 180.0) * speed;
+    
+    // Find target
+    EnemyShip *target = comet_buster_find_nearest_enemy(game, game->ship_x, game->ship_y);
+    if (target) {
+        missile->target_x = target->x;
+        missile->target_y = target->y;
+        missile->target_id = (target - game->enemy_ships);
+        missile->has_target = true;
+    } else {
+        missile->has_target = false;
+    }
+    
+    missile->lifetime = 5.0;
+    missile->max_lifetime = 5.0;
+    missile->turn_speed = 120.0;
+    missile->speed = 250.0;
+    missile->active = true;
+    
+    game->missile_count++;
+    game->missile_ammo--;
+    
+    if (game->missile_ammo <= 0) {
+        game->using_missiles = false;
+        game->missile_ammo = 0;
+    }
+}
+
+// Update all missiles
+void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, int height) {
+    if (!game) return;
+    
+    for (int i = 0; i < game->missile_count; i++) {
+        Missile *missile = &game->missiles[i];
+        if (!missile->active) continue;
+        
+        missile->lifetime -= dt;
+        if (missile->lifetime <= 0) {
+            missile->active = false;
+            continue;
+        }
+        
+        // Track target
+        if (missile->has_target && missile->target_id >= 0 && missile->target_id < game->enemy_ship_count) {
+            EnemyShip *target = &game->enemy_ships[missile->target_id];
+            
+            if (target->active) {
+                missile->target_x = target->x;
+                missile->target_y = target->y;
+                
+                double dx = missile->target_x - missile->x;
+                double dy = missile->target_y - missile->y;
+                double target_angle = atan2(dy, dx) * 180.0 / M_PI;
+                
+                double current = missile->angle;
+                double target = target_angle;
+                
+                double diff = target - current;
+                while (diff > 180.0) diff -= 360.0;
+                while (diff < -180.0) diff += 360.0;
+                
+                double max_turn = missile->turn_speed * dt;
+                if (diff > max_turn) diff = max_turn;
+                if (diff < -max_turn) diff = -max_turn;
+                
+                missile->angle += diff;
+                if (missile->angle < 0) missile->angle += 360.0;
+                if (missile->angle >= 360.0) missile->angle -= 360.0;
+            } else {
+                EnemyShip *new_target = comet_buster_find_nearest_enemy(game, missile->x, missile->y);
+                if (new_target) {
+                    missile->target_id = (new_target - game->enemy_ships);
+                    missile->target_x = new_target->x;
+                    missile->target_y = new_target->y;
+                } else {
+                    missile->has_target = false;
+                }
+            }
+        } else {
+            EnemyShip *target = comet_buster_find_nearest_enemy(game, missile->x, missile->y);
+            if (target) {
+                missile->has_target = true;
+                missile->target_id = (target - game->enemy_ships);
+                missile->target_x = target->x;
+                missile->target_y = target->y;
+            }
+        }
+        
+        missile->vx = cos(missile->angle * M_PI / 180.0) * missile->speed;
+        missile->vy = sin(missile->angle * M_PI / 180.0) * missile->speed;
+        
+        missile->x += missile->vx * dt;
+        missile->y += missile->vy * dt;
+        
+        if (missile->x < 0) missile->x += width;
+        if (missile->x > width) missile->x -= width;
+        if (missile->y < 0) missile->y += height;
+        if (missile->y > height) missile->y -= height;
+    }
+    
+    for (int i = game->missile_count - 1; i >= 0; i--) {
+        if (!game->missiles[i].active) {
+            if (i != game->missile_count - 1) {
+                game->missiles[i] = game->missiles[game->missile_count - 1];
+            }
+            game->missile_count--;
+        }
+    }
+}
+
+// Update missile pickups
+void comet_buster_update_missile_pickups(CometBusterGame *game, double dt) {
+    if (!game) return;
+    
+    for (int i = 0; i < game->missile_pickup_count; i++) {
+        MissilePickup *pickup = &game->missile_pickups[i];
+        if (!pickup->active) continue;
+        
+        pickup->x += pickup->vx * dt;
+        pickup->y += pickup->vy * dt;
+        
+        pickup->lifetime -= dt;
+        if (pickup->lifetime <= 0) {
+            pickup->active = false;
+            continue;
+        }
+        
+        pickup->rotation += pickup->rotation_speed * dt;
+        while (pickup->rotation >= 360.0) {
+            pickup->rotation -= 360.0;
+        }
+    }
+    
+    for (int i = game->missile_pickup_count - 1; i >= 0; i--) {
+        if (!game->missile_pickups[i].active) {
+            if (i != game->missile_pickup_count - 1) {
+                game->missile_pickups[i] = game->missile_pickups[game->missile_pickup_count - 1];
+            }
+            game->missile_pickup_count--;
         }
     }
 }

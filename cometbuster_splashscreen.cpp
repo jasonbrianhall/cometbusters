@@ -352,7 +352,9 @@ void comet_buster_exit_splash_screen(CometBusterGame *game) {
     game->bullet_count = 0;
     game->particle_count = 0;
     game->floating_text_count = 0;
-    game->canister_count = 0;  // Clear canisters too
+    game->canister_count = 0;
+    game->missile_count = 0;
+    game->missile_pickup_count = 0;
     // NOTE: high_score_count is NOT reset - high scores persist from disk load
     game->enemy_ship_count = 0;
     game->enemy_bullet_count = 0;

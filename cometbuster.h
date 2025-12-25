@@ -12,6 +12,8 @@
 #define MAX_PARTICLES 512
 #define MAX_FLOATING_TEXT 32
 #define MAX_CANISTERS 32
+#define MAX_MISSILES 64
+#define MAX_MISSILE_PICKUPS 16
 #define MAX_HIGH_SCORES 25
 
 typedef enum {
@@ -69,11 +71,35 @@ typedef struct {
     double x, y;                // Position
     double vx, vy;              // Velocity (drifts slowly)
     double lifetime;            // Seconds remaining
-    double max_lifetime;        // Total lifetime (20 seconds)
+    double max_lifetime;        // Total lifetime (7 seconds)
     double rotation;            // Visual rotation (in degrees)
     double rotation_speed;      // Rotation speed
     bool active;
 } Canister;
+
+typedef struct {
+    double x, y;                // Position
+    double vx, vy;              // Velocity
+    double angle;               // Direction
+    double lifetime;            // Seconds remaining
+    double max_lifetime;
+    double target_x, target_y;  // Target position (for tracking)
+    int target_id;              // ID of target (-1 = no target)
+    bool active;
+    bool has_target;            // Is tracking a target?
+    double turn_speed;          // How fast missile can turn (degrees/sec)
+    double speed;               // Missile speed (faster than bullets)
+} Missile;
+
+typedef struct {
+    double x, y;                // Position
+    double vx, vy;              // Velocity (drifts slowly)
+    double lifetime;            // Seconds remaining
+    double max_lifetime;        // Total lifetime
+    double rotation;            // Visual rotation
+    double rotation_speed;      // Rotation speed
+    bool active;
+} MissilePickup;
 
 typedef struct {
     int score;
@@ -265,6 +291,17 @@ typedef struct {
     int floating_text_count;
     Canister canisters[MAX_CANISTERS];
     int canister_count;
+    
+    Missile missiles[MAX_MISSILES];
+    int missile_count;
+    
+    MissilePickup missile_pickups[MAX_MISSILE_PICKUPS];
+    int missile_pickup_count;
+    
+    // Weapon system
+    int missile_ammo;           // How many missiles player has (0-10)
+    bool using_missiles;        // Currently in missile mode?
+    
     EnemyShip enemy_ships[MAX_ENEMY_SHIPS];
     int enemy_ship_count;
     Bullet enemy_bullets[MAX_ENEMY_BULLETS];
@@ -373,6 +410,16 @@ void comet_buster_spawn_canister(CometBusterGame *game, double x, double y);
 void comet_buster_update_canisters(CometBusterGame *game, double dt);
 void draw_comet_buster_canisters(CometBusterGame *game, cairo_t *cr, int width, int height);
 bool comet_buster_check_ship_canister(CometBusterGame *game, Canister *c);
+
+// Missile functions
+void comet_buster_spawn_missile_pickup(CometBusterGame *game, double x, double y);
+void comet_buster_update_missile_pickups(CometBusterGame *game, double dt);
+void draw_comet_buster_missile_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
+bool comet_buster_check_ship_missile_pickup(CometBusterGame *game, MissilePickup *p);
+void comet_buster_fire_missile(CometBusterGame *game);
+void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, int height);
+void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, int height);
+EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, double y);
 
 // Boss functions
 void comet_buster_spawn_boss(CometBusterGame *game, int screen_width, int screen_height);

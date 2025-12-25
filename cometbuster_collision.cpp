@@ -340,10 +340,16 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
         if (game->score_multiplier > 5.0) game->score_multiplier = 5.0;
     }
     
-    // 20% chance to spawn a shield canister
-    if ((rand() % 100) < 200) {
+    // Weapon/Pickup drop chances
+    int drop_roll = rand() % 100;
+    if (drop_roll < 500) {
+        // 5% chance to spawn missile pickup
+        comet_buster_spawn_missile_pickup(game, ship->x, ship->y);
+    } else if (drop_roll < 15) {
+        // 10% chance to spawn shield canister (5-14 range = 10%)
         comet_buster_spawn_canister(game, ship->x, ship->y);
     }
+    // 85% chance to drop nothing
     
     // Swap with last and remove
     if (ship_index != game->enemy_ship_count - 1) {
@@ -534,4 +540,18 @@ bool comet_buster_check_ship_canister(CometBusterGame *game, Canister *c) {
     double dist = sqrt(dx*dx + dy*dy);
     
     return dist < 20.0;  // Canister collision radius is 20 pixels
+}
+
+// ============================================================================
+// MISSILE PICKUP COLLISION - Check if ship collides with missile pickup
+// ============================================================================
+
+bool comet_buster_check_ship_missile_pickup(CometBusterGame *game, MissilePickup *p) {
+    if (!p->active) return false;
+    
+    double dx = game->ship_x - p->x;
+    double dy = game->ship_y - p->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    return dist < 20.0;  // Missile pickup collision radius is 20 pixels
 }

@@ -69,6 +69,8 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
     
     draw_comet_buster_enemy_bullets(game, cr, width, height);
     draw_comet_buster_canisters(game, cr, width, height);
+    draw_comet_buster_missile_pickups(game, cr, width, height);
+    draw_comet_buster_missiles(game, cr, width, height);
     draw_comet_buster_particles(game, cr, width, height);
     draw_comet_buster_ship(game, cr, width, height);
     
@@ -836,6 +838,103 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
         cairo_show_text(cr, "⚡ BOOST ⚡");
     }
 }
+
+// ============================================================================
+// MISSILE PICKUP RENDERING
+// ============================================================================
+
+void draw_comet_buster_missile_pickups(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game) return;
+    (void)width;
+    (void)height;
+    
+    for (int i = 0; i < game->missile_pickup_count; i++) {
+        MissilePickup *pickup = &game->missile_pickups[i];
+        if (!pickup->active) continue;
+        
+        double alpha = 1.0;
+        if (pickup->lifetime < 2.0) {
+            alpha = pickup->lifetime / 2.0;
+        }
+        
+        cairo_save(cr);
+        cairo_translate(cr, pickup->x, pickup->y);
+        cairo_rotate(cr, pickup->rotation * M_PI / 180.0);
+        
+        cairo_set_line_width(cr, 2.5);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        
+        double size = 10.0;
+        
+        cairo_set_source_rgba(cr, 1.0, 0.65, 0.0, alpha);
+        
+        cairo_move_to(cr, -size, -size);
+        cairo_line_to(cr, size, size);
+        cairo_stroke(cr);
+        
+        cairo_move_to(cr, size, -size);
+        cairo_line_to(cr, -size, size);
+        cairo_stroke(cr);
+        
+        cairo_arc(cr, 0, 0, size + 4.0, 0, 2.0 * M_PI);
+        cairo_set_line_width(cr, 1.5);
+        cairo_stroke(cr);
+        
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, alpha);
+        cairo_arc(cr, 0, 0, 2.5, 0, 2.0 * M_PI);
+        cairo_fill(cr);
+        
+        cairo_restore(cr);
+    }
+}
+
+// ============================================================================
+// MISSILE RENDERING
+// ============================================================================
+
+void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game) return;
+    (void)width;
+    (void)height;
+    
+    for (int i = 0; i < game->missile_count; i++) {
+        Missile *missile = &game->missiles[i];
+        if (!missile->active) continue;
+        
+        double alpha = 1.0;
+        if (missile->lifetime < 0.5) {
+            alpha = missile->lifetime / 0.5;
+        }
+        
+        cairo_save(cr);
+        cairo_translate(cr, missile->x, missile->y);
+        cairo_rotate(cr, missile->angle * M_PI / 180.0);
+        
+        cairo_set_line_width(cr, 1.5);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.2, alpha);
+        cairo_move_to(cr, 8.0, 0);
+        cairo_line_to(cr, -4.0, 3.0);
+        cairo_line_to(cr, -2.0, 0);
+        cairo_line_to(cr, -4.0, -3.0);
+        cairo_close_path(cr);
+        cairo_fill(cr);
+        
+        cairo_set_source_rgba(cr, 1.0, 0.8, 0.0, alpha);
+        cairo_move_to(cr, 8.0, 0);
+        cairo_line_to(cr, -4.0, 3.0);
+        cairo_line_to(cr, -2.0, 0);
+        cairo_line_to(cr, -4.0, -3.0);
+        cairo_close_path(cr);
+        cairo_stroke(cr);
+        
+        cairo_restore(cr);
+    }
+}
+
 
 void draw_comet_buster_game_over(CometBusterGame *game, cairo_t *cr, int width, int height) {
     if (!game || !game->game_over) return;
