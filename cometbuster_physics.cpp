@@ -1526,6 +1526,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 game->shield_health = game->max_shield_health + 1;  // Can go one over max
             }
             
+            // Grant brief invulnerability period when picking up shield
+            game->invulnerability_time = 0.3;
+            
             // Floating text
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
                                            "+SHIELD", 0.0, 1.0, 1.0);  // Cyan
@@ -1560,6 +1563,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             if (had_zero_missiles) {
                 game->using_missiles = true;
             }
+            
+            // Grant brief invulnerability period when picking up missiles
+            game->invulnerability_time = 0.3;
             
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
                                            "+20 MISSILES", 1.0, 0.8, 0.0);
@@ -2315,7 +2321,222 @@ MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, doubl
     return best;
 }
 
+// Find best target for ANTI-ASTEROID missiles (Priority: Comets > Ships > Boss)
+// Useful for clearing asteroid fields while still hitting ships if needed
+MissileTarget comet_buster_find_best_anti_asteroid_target(CometBusterGame *game, double x, double y) {
+    MissileTarget best = {999999.0, 0, -1};
+    
+    if (!game) return best;
+    
+    double ship_angle = game->ship_angle;
+    
+    auto get_angle_penalty = [](double ship_angle, double target_dx, double target_dy) -> double {
+        double target_angle = atan2(target_dy, target_dx);
+        double angle_diff = target_angle - ship_angle;
+        
+        while (angle_diff > M_PI) angle_diff -= 2.0 * M_PI;
+        while (angle_diff < -M_PI) angle_diff += 2.0 * M_PI;
+        
+        double abs_diff = fabs(angle_diff);
+        return (abs_diff / M_PI);
+    };
+    
+    // Check comets FIRST (highest priority for anti-asteroid)
+    for (int i = 0; i < game->comet_count; i++) {
+        Comet *comet = &game->comets[i];
+        if (!comet->active) continue;
+        
+        double dx = comet->x - x;
+        double dy = comet->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 1.0 + (angle_penalty * 50.0);  // Comet weight = 1.0 (high priority)
+        
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 3;
+            best.index = i;
+        }
+    }
+    
+    // Check enemy ships (medium priority)
+    for (int i = 0; i < game->enemy_ship_count; i++) {
+        EnemyShip *ship = &game->enemy_ships[i];
+        if (!ship->active) continue;
+        
+        double dx = ship->x - x;
+        double dy = ship->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 3.0 + (angle_penalty * 50.0);  // Ship weight = 3.0
+        
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 2;
+            best.index = i;
+        }
+    }
+    
+    // Check boss (lowest priority for anti-asteroid)
+    if (game->boss_active && game->boss.active) {
+        double dx = game->boss.x - x;
+        double dy = game->boss.y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 10.0 + (angle_penalty * 50.0);  // Boss weight = 10.0 (low priority)
+        
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 1;
+            best.index = 0;
+        }
+    }
+    
+    return best;
+}
+
+// Find furthest comet within range (for special third missile type)
+MissileTarget comet_buster_find_furthest_comet_in_range(CometBusterGame *game, double x, double y) {
+    MissileTarget best = {-1.0, 0, -1};  // Use -1 for furthest (we want largest distance)
+    
+    if (!game) return best;
+    
+    double max_range = 800.0;  // Max range to consider comets
+    
+    // Find furthest active comet within range
+    for (int i = 0; i < game->comet_count; i++) {
+        Comet *comet = &game->comets[i];
+        if (!comet->active) continue;
+        
+        double dx = comet->x - x;
+        double dy = comet->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        // Only consider comets within max range
+        if (dist > max_range) continue;
+        
+        // Update if this is further than our current best (or it's the first one)
+        if (dist > best.score) {
+            best.score = dist;
+            best.type = 3;
+            best.index = i;
+        }
+    }
+    
+    return best;
+}
+
+// Find comet at preferred distance (400px away) - spreads missiles to mid-range targets
+MissileTarget comet_buster_find_comet_at_preferred_distance(CometBusterGame *game, double x, double y) {
+    MissileTarget best = {999999.0, 0, -1};
+    
+    if (!game) return best;
+    
+    double preferred_dist = 400.0;
+    double tolerance = 150.0;  // Allow ±150px from preferred distance
+    double min_range = preferred_dist - tolerance;
+    double max_range = preferred_dist + tolerance;
+    
+    // Find comet closest to preferred distance
+    for (int i = 0; i < game->comet_count; i++) {
+        Comet *comet = &game->comets[i];
+        if (!comet->active) continue;
+        
+        double dx = comet->x - x;
+        double dy = comet->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        // Only consider comets in preferred range
+        if (dist < min_range || dist > max_range) continue;
+        
+        // Distance from preferred distance (lower is better)
+        double distance_error = fabs(dist - preferred_dist);
+        
+        if (distance_error < best.score) {
+            best.score = distance_error;
+            best.type = 3;
+            best.index = i;
+        }
+    }
+    
+    // If no comet in preferred range, find any comet
+    if (best.index == -1) {
+        for (int i = 0; i < game->comet_count; i++) {
+            Comet *comet = &game->comets[i];
+            if (!comet->active) continue;
+            
+            double dx = comet->x - x;
+            double dy = comet->y - y;
+            double dist = sqrt(dx*dx + dy*dy);
+            double distance_error = fabs(dist - preferred_dist);
+            
+            if (distance_error < best.score) {
+                best.score = distance_error;
+                best.type = 3;
+                best.index = i;
+            }
+        }
+    }
+    
+    return best;
+}
+
+// Find comet in preferred distance range (200-600px) - wide scatter pattern
+MissileTarget comet_buster_find_comet_in_distance_range(CometBusterGame *game, double x, double y) {
+    MissileTarget best = {999999.0, 0, -1};
+    
+    if (!game) return best;
+    
+    double min_range = 200.0;
+    double max_range = 600.0;
+    
+    // Find closest comet within the preferred range
+    for (int i = 0; i < game->comet_count; i++) {
+        Comet *comet = &game->comets[i];
+        if (!comet->active) continue;
+        
+        double dx = comet->x - x;
+        double dy = comet->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        // Only consider comets in range
+        if (dist < min_range || dist > max_range) continue;
+        
+        if (dist < best.score) {
+            best.score = dist;
+            best.type = 3;
+            best.index = i;
+        }
+    }
+    
+    // If no comet in preferred range, fall back to any comet
+    if (best.index == -1) {
+        for (int i = 0; i < game->comet_count; i++) {
+            Comet *comet = &game->comets[i];
+            if (!comet->active) continue;
+            
+            double dx = comet->x - x;
+            double dy = comet->y - y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            if (dist < best.score) {
+                best.score = dist;
+                best.type = 3;
+                best.index = i;
+            }
+        }
+    }
+    
+    return best;
+}
+
 // Fire a heat-seeking missile from the ship
+// Missiles cycle through five targeting types based on fire order:
+//   % 5 == 1: Ship/Boss priority (closest enemy ship or boss)
+//   % 5 == 2: Comet priority (closest comet)
+//   % 5 == 3: Preferred distance (comets ~400px away)
+//   % 5 == 4: Distance range (comets 200-600px away)
+//   % 5 == 0: Furthest comet within range
 void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
     if (!game || game->missile_count >= MAX_MISSILES) return;
     if (game->missile_ammo <= 0) return;
@@ -2332,11 +2553,29 @@ void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
     // Initial velocity in ship's facing direction
     missile->angle = game->ship_angle;
     double speed = 250.0;
-    missile->vx = cos(game->ship_angle) * speed;  // ship_angle is in radians, not degrees!
+    missile->vx = cos(game->ship_angle) * speed;
     missile->vy = sin(game->ship_angle) * speed;
     
-    // Find best target (Boss > Ships > Comets, with distance as a factor)
-    MissileTarget target = comet_buster_find_best_missile_target(game, game->ship_x, game->ship_y);
+    // Determine targeting based on missile count (modulo 5)
+    MissileTarget target;
+    int mod_type = game->missile_count % 5;
+    
+    if (mod_type == 1) {
+        // Missiles 1, 6, 11, 16... - target ships and boss (priority: Boss > Ships > Comets)
+        target = comet_buster_find_best_missile_target(game, game->ship_x, game->ship_y);
+    } else if (mod_type == 2) {
+        // Missiles 2, 7, 12, 17... - target closest comets (priority: Comets > Ships > Boss)
+        target = comet_buster_find_best_anti_asteroid_target(game, game->ship_x, game->ship_y);
+    } else if (mod_type == 3) {
+        // Missiles 3, 8, 13, 18... - target comets ~400px away
+        target = comet_buster_find_comet_at_preferred_distance(game, game->ship_x, game->ship_y);
+    } else if (mod_type == 4) {
+        // Missiles 4, 9, 14, 19... - target comets 200-600px away
+        target = comet_buster_find_comet_in_distance_range(game, game->ship_x, game->ship_y);
+    } else {
+        // Missiles 0, 5, 10, 15... - target furthest comet within range
+        target = comet_buster_find_furthest_comet_in_range(game, game->ship_x, game->ship_y);
+    }
     
     if (target.type == 1) {
         // Boss target
