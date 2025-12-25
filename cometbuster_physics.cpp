@@ -1375,7 +1375,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             double dist = sqrt(dx*dx + dy*dy);
             
             if (dist < 15.0) {
-                ship->shield_health -= 2;
+                ship->shield_health -= 3;
                 comet_buster_spawn_explosion(game, missile->x, missile->y, 1, 8);
                 missile->active = false;
                 
@@ -1388,6 +1388,24 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         }
     }
     
+    // Check missiles hitting comets
+    for (int i = 0; i < game->missile_count; i++) {
+        if (!game->missiles[i].active) continue;
+        
+        Missile *missile = &game->missiles[i];
+        
+        for (int j = 0; j < game->comet_count; j++) {
+            Comet *comet = &game->comets[j];
+            if (!comet->active) continue;
+            
+            if (comet_buster_check_missile_comet(missile, comet)) {
+                comet_buster_destroy_comet(game, j, width, height, visualizer);
+                comet_buster_spawn_explosion(game, missile->x, missile->y, 1, 6);
+                missile->active = false;
+                break;
+            }
+        }
+    }
     
     // Update boss if active
     if (game->boss_active && game->spawn_queen.active && game->spawn_queen.is_spawn_queen && game->current_wave % 20 == 10) {

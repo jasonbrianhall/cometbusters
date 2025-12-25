@@ -68,6 +68,16 @@ bool comet_buster_check_bullet_comet(Bullet *b, Comet *c) {
     return dist < (c->radius + 2.0);
 }
 
+bool comet_buster_check_missile_comet(Missile *m, Comet *c) {
+    if (!m->active || !c->active) return false;
+    
+    double dx = m->x - c->x;
+    double dy = m->y - c->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    return dist < (c->radius + 8.0);  // Missiles have larger collision radius
+}
+
 bool comet_buster_check_ship_comet(CometBusterGame *game, Comet *c) {
     if (!c->active) return false;
     

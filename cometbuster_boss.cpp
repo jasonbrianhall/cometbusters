@@ -439,6 +439,17 @@ bool comet_buster_check_bullet_boss(Bullet *b, BossShip *boss) {
     return (dist < collision_dist);
 }
 
+bool comet_buster_check_missile_boss(Missile *m, BossShip *boss) {
+    if (!m || !m->active || !boss || !boss->active) return false;
+    
+    double dx = boss->x - m->x;
+    double dy = boss->y - m->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    double collision_dist = 35.0;  // Boss collision radius (same as bullets)
+    
+    return (dist < collision_dist);
+}
+
 void comet_buster_spawn_spawn_queen(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game) return;
     

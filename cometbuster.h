@@ -439,7 +439,9 @@ void comet_buster_destroy_spawn_queen(CometBusterGame *game, int width, int heig
 void draw_spawn_queen_boss(SpawnQueenBoss *queen, cairo_t *cr, int width, int height);
 
 bool comet_buster_check_bullet_comet(Bullet *b, Comet *c);
+bool comet_buster_check_missile_comet(Missile *m, Comet *c);
 bool comet_buster_check_ship_comet(CometBusterGame *game, Comet *c);
+bool comet_buster_check_missile_boss(Missile *m, BossShip *boss);
 void comet_buster_handle_comet_collision(Comet *c1, Comet *c2, double dx, double dy, 
                                          double dist, double min_dist);
 void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int width, int height, void *vis);
