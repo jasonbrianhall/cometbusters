@@ -1017,7 +1017,17 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
             if (game->enemy_ship_count < MAX_ENEMY_SHIPS) {
                 comet_buster_spawn_enemy_ship(game, width, height);
             }
-            game->enemy_ship_spawn_timer = game->enemy_ship_spawn_rate + (rand() % 300) / 100.0;
+            
+            // Difficulty-based spawn rate adjustments
+            double difficulty_multiplier = 1.0;
+            if (game->difficulty == 0) {
+                difficulty_multiplier = 1.5;  // Easy: 1.5x slower (fewer aliens)
+            } else if (game->difficulty == 2) {
+                difficulty_multiplier = 0.65;  // Hard: 0.65x faster (more aliens)
+            }
+            // Medium (difficulty == 1): multiplier stays 1.0 (normal rate)
+            
+            game->enemy_ship_spawn_timer = (game->enemy_ship_spawn_rate * difficulty_multiplier) + (rand() % 300) / 100.0;
         }
     }
 }

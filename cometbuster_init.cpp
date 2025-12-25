@@ -16,6 +16,10 @@ void init_comet_buster_system(Visualizer *visualizer) {
     comet_buster_reset_game(&visualizer->comet_buster);    
 }
 
+void init_comet_buster_system_with_difficulty(Visualizer *visualizer, int difficulty) {
+    comet_buster_reset_game_with_splash(&visualizer->comet_buster, true, difficulty);
+}
+
 void comet_buster_cleanup(CometBusterGame *game) {
     if (!game) return;
     
@@ -23,10 +27,10 @@ void comet_buster_cleanup(CometBusterGame *game) {
 }
 
 void comet_buster_reset_game(CometBusterGame *game) {
-    comet_buster_reset_game_with_splash(game, true);
+    comet_buster_reset_game_with_splash(game, true, 1);  // Default to medium difficulty
 }
 
-void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash) {
+void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash, int difficulty) {
     if (!game) return;
     
     // PHASE 1: Initialize all game state variables FIRST
@@ -40,9 +44,28 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->ship_lives = 3;
     game->invulnerability_time = 0;
     
+    // Difficulty-based shield and life settings
+    int initial_shield = 3;
+    int initial_lives = 3;
+    
+    // Apply difficulty settings (0=easy, 1=medium, 2=hard)
+    if (difficulty == 0) {
+        // Easy: 6 shield, 4 lives
+        initial_shield = 6;
+        initial_lives = 4;
+    } else if (difficulty == 2) {
+        // Hard: 1 shield, 3 lives
+        initial_shield = 1;
+        initial_lives = 3;
+    }
+    // Medium (difficulty == 1): defaults above (3, 3)
+    
+    game->ship_lives = initial_lives;
+    game->difficulty = difficulty;
+    
     // Shield system
-    game->shield_health = 3;           // Start with 3 shield points
-    game->max_shield_health = 3;       // Maximum 3 shield points
+    game->shield_health = initial_shield;
+    game->max_shield_health = initial_shield;
     game->shield_regen_timer = 0;      // No regeneration timer at start
     game->shield_regen_delay = 3.0;    // 3 seconds before shield starts regenerating
     game->shield_regen_rate = 0.5;     // 0.5 shield points per second

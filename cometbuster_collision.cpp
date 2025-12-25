@@ -350,16 +350,32 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
         if (game->score_multiplier > 5.0) game->score_multiplier = 5.0;
     }
     
-    // Weapon/Pickup drop chances
+    // Weapon/Pickup drop chances (difficulty-based)
     int drop_roll = rand() % 100;
-    if (drop_roll < 10) {
-        // 10% chance to spawn missile pickup
+    int missile_chance, shield_chance;
+    
+    if (game->difficulty == 0) {
+        // Easy: 20% missile, 20% shield, 60% nothing
+        missile_chance = 20;
+        shield_chance = 40;
+    } else if (game->difficulty == 2) {
+        // Hard: 5% missile, 5% shield, 90% nothing
+        missile_chance = 5;
+        shield_chance = 10;
+    } else {
+        // Medium: 10% missile, 10% shield, 80% nothing
+        missile_chance = 10;
+        shield_chance = 20;
+    }
+    
+    if (drop_roll < missile_chance) {
+        // Chance to spawn missile pickup
         comet_buster_spawn_missile_pickup(game, ship->x, ship->y);
-    } else if (drop_roll < 20) {
-        // 10% chance to spawn shield canister (10-20 range = 10%)
+    } else if (drop_roll < shield_chance) {
+        // Chance to spawn shield canister
         comet_buster_spawn_canister(game, ship->x, ship->y);
     }
-    // 85% chance to drop nothing
+    // Remainder: drop nothing
     
     // Swap with last and remove
     if (ship_index != game->enemy_ship_count - 1) {
@@ -472,8 +488,20 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     game->score_multiplier = 1.0;
     game->shield_regen_timer = 0;  // Reset shield regen after taking life damage
     
-    // Reset shield to full when taking life damage
-    game->shield_health = game->max_shield_health;
+    // Reset shield to full when taking life damage (amount depends on difficulty)
+    if (game->difficulty == 0) {
+        // Easy: restore 6 shield on new life
+        game->shield_health = 6;
+        game->max_shield_health = 6;
+    } else if (game->difficulty == 2) {
+        // Hard: restore 1 shield on new life
+        game->shield_health = 1;
+        game->max_shield_health = 1;
+    } else {
+        // Medium: restore 3 shield on new life
+        game->shield_health = 3;
+        game->max_shield_health = 3;
+    }
     game->shield_impact_timer = 0;
     
     if (game->ship_lives <= 0) {
@@ -517,6 +545,11 @@ bool comet_buster_hit_enemy_ship_provoke(CometBusterGame *game, int ship_index) 
     }
     
     EnemyShip *ship = &game->enemy_ships[ship_index];
+    
+    // On easy difficulty, blue ships don't get provoked
+    if (game->difficulty == 0) {
+        return false;  // No provocation on easy
+    }
     
     // If this is a patrol (blue) ship, convert it to aggressive
     if (ship->ship_type == 0) {

@@ -227,6 +227,7 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
 void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width, int height, Visualizer *visualizer);
 void comet_buster_brown_coat_standard_fire(CometBusterGame *game, int ship_index, Visualizer *visualizer);
 void comet_buster_update_brown_coat_ship(CometBusterGame *game, int ship_index, double dt, Visualizer *visualizer);
+void init_comet_buster_system_with_difficulty(Visualizer *visualizer, int difficulty);
 
 
 #endif

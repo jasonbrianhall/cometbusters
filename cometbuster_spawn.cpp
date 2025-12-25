@@ -495,6 +495,18 @@ void comet_buster_spawn_enemy_ship(CometBusterGame *game, int screen_width, int 
         blue_ship_chance = 40;
     }
     
+    // Difficulty-based adjustments
+    if (game->difficulty == 0) {
+        // Easy: more blue ships (safer), fewer aggressive ships
+        blue_ship_chance += 20;  // Increase blue ships by 20%
+        if (blue_ship_chance > 85) blue_ship_chance = 85;
+    } else if (game->difficulty == 2) {
+        // Hard: fewer blue ships, more aggressive/dangerous ships
+        blue_ship_chance -= 15;  // Decrease blue ships by 15%
+        if (blue_ship_chance < 25) blue_ship_chance = 25;
+    }
+    // Medium (difficulty == 1): no adjustment to blue_ship_chance
+    
     // Calculate wave-based difficulty increase (blue reduction distributed to other ships)
     // Each wave, 2% taken from blue is distributed proportionally to other ship types
     int wave_difficulty_bonus = (70 - blue_ship_chance) / 5;  // Distribute to 5 ship types (red, green, brown, sentinel, and buffer)
@@ -503,6 +515,7 @@ void comet_buster_spawn_enemy_ship(CometBusterGame *game, int screen_width, int 
     int green_ship_chance = 10 + wave_difficulty_bonus;
     int brown_ship_chance = 3 + (wave_difficulty_bonus / 2);
     int sentinel_ship_chance = 7 + (wave_difficulty_bonus / 2);
+    (void)sentinel_ship_chance;  // Used in future expansion
     
     // Randomly decide ship type:
     // 10% → 20% (increases with waves) chance of aggressive red ship (attacks player)

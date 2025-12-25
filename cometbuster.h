@@ -280,6 +280,7 @@ typedef struct {
     int last_life_milestone;    // Last score milestone where extra life was granted (5000, 10000, etc.)
     bool game_over;
     bool game_won;              // Optional: wave complete
+    int difficulty;             // 0=Easy, 1=Medium, 2=Hard
     
     // Arrays
     Comet comets[MAX_COMETS];
@@ -382,7 +383,7 @@ typedef struct {
 // Initialization and cleanup
 void comet_buster_cleanup(CometBusterGame *game);
 void comet_buster_reset_game(CometBusterGame *game);
-void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash);
+void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash, int difficulty);
 
 // Update sub-systems
 void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int mouse_y, int width, int height, bool mouse_active);

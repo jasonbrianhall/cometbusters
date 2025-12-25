@@ -762,7 +762,11 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data);
 gboolean on_key_release(GtkWidget *widget, GdkEventKey *event, gpointer data);
 void update_status_text(CometGUI *gui);
 gboolean game_update_timer(gpointer data);
+void init_comet_buster_system_with_difficulty(Visualizer *visualizer, int difficulty);
 void on_new_game(GtkWidget *widget, gpointer data);
+void on_new_game_easy(GtkWidget *widget, gpointer data);
+void on_new_game_medium(GtkWidget *widget, gpointer data);
+void on_new_game_hard(GtkWidget *widget, gpointer data);
 void on_toggle_pause(GtkWidget *widget, gpointer data);
 void on_toggle_fullscreen(GtkWidget *widget, gpointer data);
 void on_volume_dialog_open(GtkWidget *widget, gpointer data);
@@ -1249,7 +1253,8 @@ void on_joystick_test(GtkWidget *widget, gpointer data) {
     gui->joystick_update_timer = g_timeout_add(50, joystick_update_timer, gui);  // 20 FPS
 }
 
-void on_new_game(GtkWidget *widget, gpointer data) {
+void on_new_game_easy(GtkWidget *widget, gpointer data) {
+    (void)widget;  // Unused parameter
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return;
     
@@ -1263,7 +1268,7 @@ void on_new_game(GtkWidget *widget, gpointer data) {
     gui->high_score_dialog_shown = false;
     gui->game_paused = false;
     
-    // Reset mouse state to prevent wild mouse behavior on restart
+    // Reset mouse state
     gui->visualizer.mouse_x = gui->visualizer.width / 2;
     gui->visualizer.mouse_y = gui->visualizer.height / 2;
     gui->visualizer.last_mouse_x = gui->visualizer.width / 2;
@@ -1274,7 +1279,7 @@ void on_new_game(GtkWidget *widget, gpointer data) {
     gui->visualizer.mouse_right_pressed = false;
     gui->visualizer.mouse_middle_pressed = false;
     
-    // Reset keyboard state to prevent stuck keys on restart
+    // Reset keyboard state
     gui->visualizer.key_a_pressed = false;
     gui->visualizer.key_d_pressed = false;
     gui->visualizer.key_w_pressed = false;
@@ -1283,11 +1288,96 @@ void on_new_game(GtkWidget *widget, gpointer data) {
     gui->visualizer.key_x_pressed = false;
     gui->visualizer.key_space_pressed = false;
     gui->visualizer.key_ctrl_pressed = false;
-    gui->visualizer.key_q_pressed = false;  // Weapon toggle
+    gui->visualizer.key_q_pressed = false;
     
-    // Reset game state
-    init_comet_buster_system(&gui->visualizer);
-    fprintf(stdout, "[GAME] New Game Started\n");
+    init_comet_buster_system_with_difficulty(&gui->visualizer, 0);
+    fprintf(stdout, "[GAME] New Game Started - Difficulty: EASY\n");
+}
+
+void on_new_game_medium(GtkWidget *widget, gpointer data) {
+    (void)widget;  // Unused parameter
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // Close high score dialog if open
+    if (gui->high_score_dialog) {
+        gtk_widget_destroy(gui->high_score_dialog);
+        gui->high_score_dialog = NULL;
+    }
+    
+    // Reset high score dialog flag
+    gui->high_score_dialog_shown = false;
+    gui->game_paused = false;
+    
+    // Reset mouse state
+    gui->visualizer.mouse_x = gui->visualizer.width / 2;
+    gui->visualizer.mouse_y = gui->visualizer.height / 2;
+    gui->visualizer.last_mouse_x = gui->visualizer.width / 2;
+    gui->visualizer.last_mouse_y = gui->visualizer.height / 2;
+    gui->visualizer.mouse_just_moved = false;
+    gui->visualizer.mouse_movement_timer = 0;
+    gui->visualizer.mouse_left_pressed = false;
+    gui->visualizer.mouse_right_pressed = false;
+    gui->visualizer.mouse_middle_pressed = false;
+    
+    // Reset keyboard state
+    gui->visualizer.key_a_pressed = false;
+    gui->visualizer.key_d_pressed = false;
+    gui->visualizer.key_w_pressed = false;
+    gui->visualizer.key_s_pressed = false;
+    gui->visualizer.key_z_pressed = false;
+    gui->visualizer.key_x_pressed = false;
+    gui->visualizer.key_space_pressed = false;
+    gui->visualizer.key_ctrl_pressed = false;
+    gui->visualizer.key_q_pressed = false;
+    
+    init_comet_buster_system_with_difficulty(&gui->visualizer, 1);
+    fprintf(stdout, "[GAME] New Game Started - Difficulty: MEDIUM\n");
+}
+
+void on_new_game_hard(GtkWidget *widget, gpointer data) {
+    (void)widget;  // Unused parameter
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // Close high score dialog if open
+    if (gui->high_score_dialog) {
+        gtk_widget_destroy(gui->high_score_dialog);
+        gui->high_score_dialog = NULL;
+    }
+    
+    // Reset high score dialog flag
+    gui->high_score_dialog_shown = false;
+    gui->game_paused = false;
+    
+    // Reset mouse state
+    gui->visualizer.mouse_x = gui->visualizer.width / 2;
+    gui->visualizer.mouse_y = gui->visualizer.height / 2;
+    gui->visualizer.last_mouse_x = gui->visualizer.width / 2;
+    gui->visualizer.last_mouse_y = gui->visualizer.height / 2;
+    gui->visualizer.mouse_just_moved = false;
+    gui->visualizer.mouse_movement_timer = 0;
+    gui->visualizer.mouse_left_pressed = false;
+    gui->visualizer.mouse_right_pressed = false;
+    gui->visualizer.mouse_middle_pressed = false;
+    
+    // Reset keyboard state
+    gui->visualizer.key_a_pressed = false;
+    gui->visualizer.key_d_pressed = false;
+    gui->visualizer.key_w_pressed = false;
+    gui->visualizer.key_s_pressed = false;
+    gui->visualizer.key_z_pressed = false;
+    gui->visualizer.key_x_pressed = false;
+    gui->visualizer.key_space_pressed = false;
+    gui->visualizer.key_ctrl_pressed = false;
+    gui->visualizer.key_q_pressed = false;
+    
+    init_comet_buster_system_with_difficulty(&gui->visualizer, 2);
+    fprintf(stdout, "[GAME] New Game Started - Difficulty: HARD\n");
+}
+
+void on_new_game(GtkWidget *widget, gpointer data) {
+    // This is now just a placeholder - use the specific difficulty handlers instead
 }
 
 void on_toggle_pause(GtkWidget *widget, gpointer data) {
@@ -1332,7 +1422,7 @@ void on_debug_wave_selected(GtkComboBox *widget, gpointer data) {
     gui->game_paused = false;
     
     // Initialize game WITHOUT splash screen
-    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, false);
+    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, false, 1);  // Medium difficulty
     
     // Jump to selected wave
     CometBusterGame *game = &gui->visualizer.comet_buster;
@@ -1960,9 +2050,27 @@ int main(int argc, char *argv[]) {
     GtkWidget *file_menu = gtk_menu_new();
     GtkWidget *file_item = gtk_menu_item_new_with_label("Game");
     
+    // New Game submenu
+    GtkWidget *new_game_submenu = gtk_menu_new();
     GtkWidget *new_game_item = gtk_menu_item_new_with_label("New Game");
-    g_signal_connect(new_game_item, "activate", G_CALLBACK(on_new_game), &gui);
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(new_game_item), new_game_submenu);
     gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), new_game_item);
+    
+    // Difficulty options
+    GtkWidget *new_game_easy_item = gtk_menu_item_new_with_label("Easy");
+    g_signal_connect(new_game_easy_item, "activate", G_CALLBACK(on_new_game_easy), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(new_game_submenu), new_game_easy_item);
+    
+    GtkWidget *new_game_medium_item = gtk_menu_item_new_with_label("Medium");
+    g_signal_connect(new_game_medium_item, "activate", G_CALLBACK(on_new_game_medium), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(new_game_submenu), new_game_medium_item);
+    
+    GtkWidget *new_game_hard_item = gtk_menu_item_new_with_label("Hard");
+    g_signal_connect(new_game_hard_item, "activate", G_CALLBACK(on_new_game_hard), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(new_game_submenu), new_game_hard_item);
+    
+    GtkWidget *separator1 = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), separator1);
     
     GtkWidget *view_scores_item = gtk_menu_item_new_with_label("View High Scores");
     g_signal_connect(view_scores_item, "activate", G_CALLBACK(on_view_high_scores), &gui);
