@@ -132,7 +132,7 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
         "• Gamepad and keyboard support\n"
         "• Seamless audio integration with visualization\n"
         "• Smooth 60 FPS gameplay performance\n"
-        "• Cross-platform compatibility (Windows, Linux, and theoretically macOS [I don't have a mac to test it on so if you want to buy me one, I will port it])");
+        "• Cross-platform compatibility (Windows, Linux, and theoretically macOS [untested])");
     gtk_label_set_justify(GTK_LABEL(features_label), GTK_JUSTIFY_LEFT);
     gtk_label_set_line_wrap(GTK_LABEL(features_label), TRUE);
     gtk_widget_set_margin_start(features_label, 15);
