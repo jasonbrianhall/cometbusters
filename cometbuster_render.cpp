@@ -837,6 +837,40 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
         cairo_move_to(cr, bar_x + bar_width + 20, height - 25);
         cairo_show_text(cr, "⚡ BOOST ⚡");
     }
+    
+    // Missile ammo display (bottom left, above Energy)
+    if (game->missile_ammo > 0 || game->using_missiles) {
+        cairo_set_font_size(cr, 14);
+        cairo_set_source_rgb(cr, 1.0, 0.8, 0.0);  // Yellow/orange
+        char missile_text[32];
+        sprintf(missile_text, "MISSILES: %d", game->missile_ammo);
+        
+        cairo_move_to(cr, 20, height - 70);
+        cairo_show_text(cr, missile_text);
+        
+        // Draw missile bar
+        double missile_bar_width = 150;
+        double missile_bar_height = 12;
+        double missile_bar_x = 20;
+        double missile_bar_y = height - 55;
+        
+        // Background
+        cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
+        cairo_rectangle(cr, missile_bar_x, missile_bar_y, missile_bar_width, missile_bar_height);
+        cairo_fill(cr);
+        
+        // Missile bar (assume max 100 for display, each pickup adds 20)
+        double missile_percent = (game->missile_ammo > 100) ? 1.0 : (game->missile_ammo / 100.0);
+        cairo_set_source_rgb(cr, 1.0, 0.8, 0.0);  // Yellow
+        cairo_rectangle(cr, missile_bar_x, missile_bar_y, missile_bar_width * missile_percent, missile_bar_height);
+        cairo_fill(cr);
+        
+        // Border
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        cairo_set_line_width(cr, 1.0);
+        cairo_rectangle(cr, missile_bar_x, missile_bar_y, missile_bar_width, missile_bar_height);
+        cairo_stroke(cr);
+    }
 }
 
 // ============================================================================

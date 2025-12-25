@@ -75,6 +75,7 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->mouse_right_pressed = false;
     game->mouse_middle_pressed = false;
     game->omni_fire_cooldown = 0;
+    game->weapon_toggle_cooldown = 0;  // Initialize weapon toggle cooldown
     
     // Keyboard state
     game->keyboard.key_a_pressed = false;

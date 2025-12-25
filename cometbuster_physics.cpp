@@ -1097,6 +1097,11 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
     if (game->omni_fire_cooldown > 0) {
         game->omni_fire_cooldown -= dt;
     }
+    
+    // Update weapon toggle cooldown
+    if (game->weapon_toggle_cooldown > 0) {
+        game->weapon_toggle_cooldown -= dt;
+    }
         
     // If left mouse button is held down, fire continuously (costs fuel)
     if (game->mouse_left_pressed) {
@@ -1156,7 +1161,18 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         }
     }
     
-    // If middle mouse button is pressed, fire omnidirectionally (Last Starfighter style)
+    // Q key to toggle between missiles and bullets
+    if (game->keyboard.key_q_pressed) {
+        if (game->weapon_toggle_cooldown <= 0) {
+            if (game->missile_ammo > 0) {
+                // Toggle between missiles and bullets
+                game->using_missiles = !game->using_missiles;
+                game->weapon_toggle_cooldown = 0.3;  // Prevent rapid toggling
+            }
+        }
+    }
+    
+    // Update weapon toggle cooldown
     if (game->mouse_middle_pressed) {
         if (game->omni_fire_cooldown <= 0) {
             if (game->energy_amount >= 30) {
@@ -1500,11 +1516,11 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check ship-missile pickup collisions
     for (int i = 0; i < game->missile_pickup_count; i++) {
         if (comet_buster_check_ship_missile_pickup(game, &game->missile_pickups[i])) {
-            game->missile_ammo = 10;
+            game->missile_ammo += 20;  // Add 20 missiles (cumulative, not reset)
             game->using_missiles = true;
             
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
-                                           "+MISSILES", 1.0, 0.8, 0.0);
+                                           "+20 MISSILES", 1.0, 0.8, 0.0);
             
 #ifdef ExternalSound
             if (visualizer && visualizer->audio.sfx_hit) {

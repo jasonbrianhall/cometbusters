@@ -118,6 +118,7 @@ typedef struct {
     bool key_x_pressed;         // X key - boost
     bool key_space_pressed;     // SPACE key - boost
     bool key_ctrl_pressed;      // CTRL key - fire
+    bool key_q_pressed;         // Q key - toggle missiles/bullets
 } KeyboardInput;
 
 typedef struct {
@@ -344,6 +345,7 @@ typedef struct {
     bool mouse_right_pressed;      // Right mouse button state
     bool mouse_middle_pressed;     // Middle mouse button state (omnidirectional fire)
     double omni_fire_cooldown;     // Cooldown for omnidirectional fire
+    double weapon_toggle_cooldown; // Cooldown for weapon switching (Q key)
     double energy_amount;          // Current energy [0.0 - 100.0]
     double max_energy;             // Maximum energy capacity
     double energy_burn_rate;        // Energy burned per second at max thrust
