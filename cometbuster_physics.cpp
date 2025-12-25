@@ -2236,12 +2236,38 @@ MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, doubl
     
     if (!game) return best;
     
+    double ship_angle = game->ship_angle;  // Get ship's facing direction
+    
+    // Helper function to calculate directional bonus
+    // Returns value between 0 (dead ahead) and 1 (to the side)
+    auto get_angle_penalty = [](double ship_angle, double target_dx, double target_dy) -> double {
+        // Calculate angle to target
+        double target_angle = atan2(target_dy, target_dx);
+        
+        // Calculate difference between ship angle and target angle
+        double angle_diff = target_angle - ship_angle;
+        
+        // Normalize to -PI to PI
+        while (angle_diff > M_PI) angle_diff -= 2.0 * M_PI;
+        while (angle_diff < -M_PI) angle_diff += 2.0 * M_PI;
+        
+        // Get absolute angle difference (0 = directly ahead, PI/2 = to the side)
+        double abs_diff = fabs(angle_diff);
+        
+        // Convert to penalty: 0 at center, increases toward sides
+        // At 0 degrees (dead ahead): 0.0 bonus
+        // At 90 degrees (perpendicular): 1.0 penalty
+        // At 180 degrees (behind): 1.0 penalty
+        return (abs_diff / M_PI);  // Maps 0->PI to 0->1
+    };
+    
     // Check boss (highest priority - lowest weight multiplier)
     if (game->boss_active && game->boss.active) {
         double dx = game->boss.x - x;
         double dy = game->boss.y - y;
         double dist = sqrt(dx*dx + dy*dy);
-        double weighted_dist = dist * 1.0;  // Boss weight = 1.0
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 1.0 + (angle_penalty * 50.0);  // Add directional bonus
         
         if (weighted_dist < best.score) {
             best.score = weighted_dist;
@@ -2258,7 +2284,8 @@ MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, doubl
         double dx = ship->x - x;
         double dy = ship->y - y;
         double dist = sqrt(dx*dx + dy*dy);
-        double weighted_dist = dist * 3.0;  // Ship weight = 3.0
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 3.0 + (angle_penalty * 50.0);  // Add directional bonus
         
         if (weighted_dist < best.score) {
             best.score = weighted_dist;
@@ -2275,7 +2302,8 @@ MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, doubl
         double dx = comet->x - x;
         double dy = comet->y - y;
         double dist = sqrt(dx*dx + dy*dy);
-        double weighted_dist = dist * 10.0;  // Comet weight = 10.0
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 10.0 + (angle_penalty * 50.0);  // Add directional bonus
         
         if (weighted_dist < best.score) {
             best.score = weighted_dist;

@@ -352,11 +352,11 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
     
     // Weapon/Pickup drop chances
     int drop_roll = rand() % 100;
-    if (drop_roll < 5) {
-        // 5% chance to spawn missile pickup
+    if (drop_roll < 10) {
+        // 10% chance to spawn missile pickup
         comet_buster_spawn_missile_pickup(game, ship->x, ship->y);
-    } else if (drop_roll < 15) {
-        // 10% chance to spawn shield canister (5-14 range = 10%)
+    } else if (drop_roll < 20) {
+        // 10% chance to spawn shield canister (10-20 range = 10%)
         comet_buster_spawn_canister(game, ship->x, ship->y);
     }
     // 85% chance to drop nothing
