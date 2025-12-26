@@ -1521,21 +1521,28 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 comet_buster_spawn_explosion(game, missile->x, missile->y, 1, 8);
                 missile->active = false;
                 
-                // Missiles do 3 damage to shields first
-                if (ship->shield_health > 0) {
-                    ship->shield_health -= 3;
-                    if (ship->shield_health < 0) {
-                        ship->shield_health = 0;
-                    }
-                } else {
-                    // Shields depleted - damage health instead
-                    ship->health -= 1;
-                }
+                // Check if this is a blue (patrol) ship that hasn't been provoked yet
+                bool was_provoked = comet_buster_hit_enemy_ship_provoke(game, j);
                 
-                // Only destroy if health reaches 0
-                if (ship->health <= 0) {
-                    comet_buster_destroy_enemy_ship(game, j, width, height, visualizer);
+                if (!was_provoked) {
+                    // Not a blue ship, or already provoked - normal damage system
+                    // Missiles do 3 damage to shields first
+                    if (ship->shield_health > 0) {
+                        ship->shield_health -= 3;
+                        if (ship->shield_health < 0) {
+                            ship->shield_health = 0;
+                        }
+                    } else {
+                        // Shields depleted - damage health instead
+                        ship->health -= 2;
+                    }
+                    
+                    // Only destroy if health reaches 0
+                    if (ship->health <= 0) {
+                        comet_buster_destroy_enemy_ship(game, j, width, height, visualizer);
+                    }
                 }
+                // If it was provoked, the missile just triggers the provocation but doesn't damage it
                 
                 break;
             }

@@ -158,7 +158,7 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
     }
     
     // Spawn Juggernaut with 1/10 chance at the start of ANY wave (but not on first wave)
-    if (game->current_wave > 1 && (rand() % 10 == 0)) {
+    if (game->current_wave > 1 && (rand() % 4 == 0)) {
         int random_edge = rand() % 8;  // Random spawn edge (0-7)
         double juggernaut_speed = 80.0;  // Slower than normal ships
         comet_buster_spawn_enemy_ship_internal(game, screen_width, screen_height,
