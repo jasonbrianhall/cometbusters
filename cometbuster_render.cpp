@@ -377,6 +377,9 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width
         } else if (ship->ship_type == 4) {
             // BROWN COAT ELITE BLUE SHIP - bright cyan, more saturated
             cairo_set_source_rgb(cr, 0.0, 0.9, 1.0);  // Bright cyan (more saturated than patrol blue)
+        } else if (ship->ship_type == 5) {
+            // JUGGERNAUT - massive golden ship
+            cairo_set_source_rgb(cr, 1.0, 0.84, 0.0);  // Gold
         } else {
             // Patrol blue ship (type 0)
             cairo_set_source_rgb(cr, 0.2, 0.6, 1.0);  // Standard blue
@@ -384,8 +387,17 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width
         
         cairo_set_line_width(cr, 1.5);
         
-        // Draw ship body as triangle (slightly larger for brown coat)
-        double ship_size = (ship->ship_type == 4) ? 18 : 12;  // Brown coats are slightly bigger
+        // Draw ship body as triangle (size varies by type)
+        // Juggernaut is 3x, brown coats are 1.5x, others are 1x
+        double ship_size;
+        if (ship->ship_type == 5) {
+            ship_size = 36;  // Juggernaut: 3x normal size
+        } else if (ship->ship_type == 4) {
+            ship_size = 18;  // Brown coat: 1.5x normal size
+        } else {
+            ship_size = 12;  // All others: normal size
+        }
+        
         cairo_move_to(cr, ship_size, 0);              // Front point
         cairo_line_to(cr, -ship_size, -ship_size/1.5);  // Back left
         cairo_line_to(cr, -ship_size, ship_size/1.5);   // Back right
@@ -401,6 +413,42 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width
         cairo_stroke(cr);
         
         cairo_restore(cr);
+        
+        // For Juggernaut, draw a detailed health bar below the ship (in screen coordinates, not rotated)
+        if (ship->ship_type == 5) {
+            cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);  // Dark gray background
+            cairo_set_line_width(cr, 1.0);
+            double bar_width = 60.0;
+            double bar_height = 8.0;
+            double bar_x = ship->x - bar_width/2;
+            double bar_y = ship->y + 50;  // Always below the ship
+            
+            cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
+            cairo_fill_preserve(cr);
+            cairo_stroke(cr);
+            
+            // Health bar (green to yellow to red as health decreases)
+            double health_ratio = (double)ship->health / 120.0;  // 120 is max health
+            if (health_ratio < 0) health_ratio = 0;
+            
+            // Color changes: green -> yellow -> red
+            double bar_r, bar_g, bar_b;
+            if (health_ratio > 0.5) {
+                // Green to yellow
+                bar_r = (1.0 - health_ratio) * 2;
+                bar_g = 1.0;
+                bar_b = 0.0;
+            } else {
+                // Yellow to red
+                bar_r = 1.0;
+                bar_g = health_ratio * 2;
+                bar_b = 0.0;
+            }
+            
+            cairo_set_source_rgb(cr, bar_r, bar_g, bar_b);
+            cairo_rectangle(cr, bar_x + 1, bar_y + 1, (bar_width - 2) * health_ratio, bar_height - 2);
+            cairo_fill(cr);
+        }
         
         // Draw shield circle around enemy ship if it has shields
         if (ship->shield_health > 0) {
@@ -420,13 +468,27 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width
             } else if (ship->ship_type == 4) {
                 // BROWN COAT CYAN SHIELD - bright cyan
                 cairo_set_source_rgba(cr, 0.2, 0.9, 1.0, 0.6);  // Brighter and more saturated
+            } else if (ship->ship_type == 5) {
+                // JUGGERNAUT GOLD SHIELD - golden glow
+                cairo_set_source_rgba(cr, 1.0, 0.9, 0.2, 0.5);  // Golden
             } else {
                 // Blue ship: no shield (shouldn't reach here)
                 cairo_set_source_rgba(cr, 0.2, 0.6, 1.0, 0.5);
             }
             
             cairo_set_line_width(cr, 2.0);
-            cairo_arc(cr, 0, 0, 22, 0, 2 * M_PI);
+            
+            // Shield radius scales with ship size
+            double shield_radius;
+            if (ship->ship_type == 5) {
+                shield_radius = 50;  // Larger shield for juggernaut
+            } else if (ship->ship_type == 4) {
+                shield_radius = 24;  // Slightly larger for brown coat
+            } else {
+                shield_radius = 22;  // Standard shield radius
+            }
+            
+            cairo_arc(cr, 0, 0, shield_radius, 0, 2 * M_PI);
             cairo_stroke(cr);
             
             // Draw shield impact flash

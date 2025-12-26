@@ -541,6 +541,81 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
         } else if (ship->ship_type == 4) {
             // BROWN COAT ELITE BLUE SHIP
             comet_buster_update_brown_coat_ship(game, i, dt, visualizer);
+        } else if (ship->ship_type == 5) {
+            // JUGGERNAUT: Slow, massive ship with long, lazy sine wave
+            ship->patrol_behavior_timer += dt;
+            if (ship->patrol_behavior_timer >= ship->patrol_behavior_duration) {
+                // Time to change behavior (changes less frequently)
+                ship->patrol_behavior_timer = 0.0;
+                ship->patrol_behavior_duration = 4.0 + (rand() % 40) / 10.0;  // 4-8 seconds
+                
+                int behavior_roll = rand() % 100;
+                if (behavior_roll < 80) {
+                    ship->patrol_behavior_type = 0;  // 80% straight movement (rare direction changes)
+                } else {
+                    ship->patrol_behavior_type = 1;  // 20% circular movement
+                    double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                    if (base_speed > 0.1) {
+                        double perp_x = -ship->base_vy / base_speed;
+                        double perp_y = ship->base_vx / base_speed;
+                        ship->patrol_circle_center_x = ship->x + perp_x * 150.0;
+                        ship->patrol_circle_center_y = ship->y + perp_y * 150.0;
+                    }
+                    ship->patrol_circle_angle = 0.0;
+                }
+            }
+            
+            // Apply patrol behavior with long, lazy sine wave
+            double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+            double target_vx, target_vy;
+            
+            if (ship->patrol_behavior_type == 0) {
+                // Straight movement with long sine wave oscillation
+                if (base_speed > 0.1) {
+                    double dir_x = ship->base_vx / base_speed;
+                    double dir_y = ship->base_vy / base_speed;
+                    double perp_x = -dir_y;
+                    double perp_y = dir_x;
+                    double wave_amplitude = 60.0;
+                    double wave_frequency = 0.5;  // MUCH longer wave (half frequency)
+                    double sine_offset = sin(ship->path_time * wave_frequency * M_PI) * wave_amplitude;
+                    target_vx = dir_x * base_speed + perp_x * sine_offset;
+                    target_vy = dir_y * base_speed + perp_y * sine_offset;
+                } else {
+                    target_vx = ship->vx;
+                    target_vy = ship->vy;
+                }
+                ship->path_time += dt;
+            } else if (ship->patrol_behavior_type == 1) {
+                // Circular movement - smooth and slow
+                ship->patrol_circle_angle += (base_speed / ship->patrol_circle_radius) * dt * 0.5;  // Slower circle
+                
+                double target_x = ship->patrol_circle_center_x + cos(ship->patrol_circle_angle) * ship->patrol_circle_radius;
+                double target_y = ship->patrol_circle_center_y + sin(ship->patrol_circle_angle) * ship->patrol_circle_radius;
+                
+                double dx_circle = target_x - ship->x;
+                double dy_circle = target_y - ship->y;
+                double dist_to_target = sqrt(dx_circle*dx_circle + dy_circle*dy_circle);
+                
+                if (dist_to_target > 0.1) {
+                    target_vx = (dx_circle / dist_to_target) * base_speed * 0.8;
+                    target_vy = (dy_circle / dist_to_target) * base_speed * 0.8;
+                } else {
+                    target_vx = -sin(ship->patrol_circle_angle) * base_speed * 0.8;
+                    target_vy = cos(ship->patrol_circle_angle) * base_speed * 0.8;
+                }
+                
+                ship->angle = atan2(target_vy, target_vx);
+            } else {
+                target_vx = ship->base_vx * 0.8;
+                target_vy = ship->base_vy * 0.8;
+            }
+            
+            // Smooth, slow turning for massive ship
+            double turn_rate = 0.06;  // Slower turning for Juggernaut
+            ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
+            ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
+            ship->angle = atan2(ship->vy, ship->vx);
         } else {
             // PATROL BLUE SHIP: More dynamic patrol with occasional evasive maneuvers
             ship->patrol_behavior_timer += dt;
@@ -1233,18 +1308,28 @@ void comet_buster_update_fuel(CometBusterGame *game, double dt) {
         }
     }
     
-    // Passive missile generation when energy is at max (5 missiles per second)
+    // Passive missile generation when energy is at max (rate depends on difficulty)
     if (game->energy_amount >= game->max_energy) {
         game->missile_generation_timer += dt;
         
-        // 5 missiles per second = 1 missile every 0.2 seconds
-        while (game->missile_generation_timer >= 0.2 && game->missile_ammo < 200) {
+        // Determine generation interval based on difficulty
+        // Easy: 5 missiles per second (0.2s interval)
+        // Medium: 2.5 missiles per second (0.4s interval)
+        // Hard: 1.25 missiles per second (0.8s interval)
+        double generation_interval = 0.2;  // Default (easy)
+        if (game->difficulty == MEDIUM) {
+            generation_interval = 0.4;  // Half speed
+        } else if (game->difficulty == HARD) {
+            generation_interval = 0.8;  // 1/4 speed
+        }
+        
+        while (game->missile_generation_timer >= generation_interval && game->missile_ammo < 200) {
             // Check if we're going from 0 to 1 missile
             if (game->missile_ammo == 0) {
                 game->using_missiles = true;  // Auto-toggle when you get first missile
             }
             game->missile_ammo++;
-            game->missile_generation_timer -= 0.2;
+            game->missile_generation_timer -= generation_interval;
         }
         
         // Stop accumulating timer if at max missiles
@@ -1435,11 +1520,22 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             double dist = sqrt(dx*dx + dy*dy);
             
             if (dist < 15.0) {
-                ship->shield_health -= 6;  // Missiles do 3x damage (was 2)
                 comet_buster_spawn_explosion(game, missile->x, missile->y, 1, 8);
                 missile->active = false;
                 
-                if (ship->shield_health <= 0) {
+                // Missiles do 3 damage to shields first
+                if (ship->shield_health > 0) {
+                    ship->shield_health -= 3;
+                    if (ship->shield_health < 0) {
+                        ship->shield_health = 0;
+                    }
+                } else {
+                    // Shields depleted - damage health instead
+                    ship->health -= 1;
+                }
+                
+                // Only destroy if health reaches 0
+                if (ship->health <= 0) {
                     comet_buster_destroy_enemy_ship(game, j, width, height, visualizer);
                 }
                 
@@ -1621,8 +1717,20 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                         }
 #endif
                     } else {
-                        // No shield, destroy the ship
-                        comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                        // Shields are gone - damage health instead
+                        enemy->health--;
+                        
+                        // Play alien hit sound
+#ifdef ExternalSound
+                        if (visualizer && visualizer->audio.sfx_hit) {
+                            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+                        }
+#endif
+                        
+                        // Only destroy if health reaches 0
+                        if (enemy->health <= 0) {
+                            comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                        }
                     }
                 }
                 // If it was provoked, the bullet just triggers the provocation but doesn't destroy it
@@ -1742,8 +1850,11 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         double collision_dist = 15.0 + 15.0;  // Both ships have ~15px radius
         
         if (dist < collision_dist) {
-            // Enemy ship is destroyed
-            comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+            // Damage enemy ship health
+            enemy_ship->health--;
+            if (enemy_ship->health <= 0) {
+                comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+            }
             // Player ship takes damage
             comet_buster_on_ship_hit(game, visualizer);
             break;  // Exit loop since we just modified enemy_ship_count
@@ -1771,8 +1882,13 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                                                        ship->x - comet->x);
                     ship->shield_impact_timer = 0.2;
                 } else {
-                    // No shield, ship is destroyed
-                    comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                    // Shields are down - damage health instead
+                    ship->health--;
+                    
+                    // Only destroy if health reaches 0
+                    if (ship->health <= 0) {
+                        comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                    }
                 }
                 
                 // Comet is destroyed either way

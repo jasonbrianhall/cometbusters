@@ -137,7 +137,7 @@ typedef struct {
     double path_time;           // Time along sine wave path (for wave motion)
     double base_vx, base_vy;    // Original velocity direction (for sine calculation)
     int ship_type;              // 0 = patrol (blue), 1 = aggressive (red), 2 = hunter (green), 
-                                // 3 = sentinel (purple), 4 = brown coat (elite blue)
+                                // 3 = sentinel (purple), 4 = brown coat (elite blue), 5 = juggernaut (massive gold)
     bool active;
     
     // Shield system for enemy ships
