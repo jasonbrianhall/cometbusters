@@ -116,25 +116,39 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
     game->spawn_queen.active = false;
     
     // Check if this is a boss wave
-    if (game->current_wave % 20 == 10) {
-        // Spawn Queen appears on waves 10, 20, 30, etc.
-        comet_buster_spawn_spawn_queen(game, screen_width, screen_height);
-        // Don't spawn normal comets - spawn queen controls the difficulty
-    } else if (game->current_wave % 20 == 5) {
-        // Regular boss on waves 5, 15, 25, etc.
+    if (game->current_wave % 30 == 5) {
+        // Regular boss on waves 5, 35, 65, 95, etc.
         comet_buster_spawn_boss(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
         comet_buster_spawn_random_comets(game, 3, screen_width, screen_height);
-    } else if (game->current_wave % 20 == 15) {
-        // Regular boss on waves 5, 15, 25, etc.
+    } else if (game->current_wave % 30 == 10) {
+        // Spawn Queen on waves 10, 40, 70, 100, etc.
+        comet_buster_spawn_spawn_queen(game, screen_width, screen_height);
+        // Don't spawn normal comets - spawn queen controls the difficulty
+    } else if (game->current_wave % 30 == 15) {
+        // Void Nexus on waves 15, 45, 75, 105, etc.
         printf("Should be spawning void\n");
         comet_buster_spawn_void_nexus(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
         comet_buster_spawn_random_comets(game, 5, screen_width, screen_height);
-    } else if (game->current_wave % 20 == 0) {
-        // Regular boss on waves 5, 15, 25, etc.
+    } else if (game->current_wave % 30 == 20) {
+        // Harbinger on waves 20, 50, 80, 110, etc.
         printf("Should be spawning harbinger\n");
         comet_buster_spawn_harbinger(game, screen_width, screen_height);
+        // Spawn some normal comets alongside the boss
+        comet_buster_spawn_random_comets(game, 5, screen_width, screen_height);
+    } else if (game->current_wave % 30 == 25) {
+        // Star boss on waves 25, 55, 85, 115, etc.
+        //comet_buster_spawn_star_boss(game, screen_width, screen_height);
+        comet_buster_spawn_boss(game, screen_width, screen_height);
+        // Spawn some normal comets alongside the boss
+        comet_buster_spawn_random_comets(game, 3, screen_width, screen_height);
+    } else if (game->current_wave % 30 == 0) {
+        // Final boss on waves 30, 60, 90, 120, etc.
+        printf("Should be spawning final boss\n");
+        // TODO: Spawn the 6th boss here
+        // For now, spawn regular boss as placeholder
+        comet_buster_spawn_boss(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
         comet_buster_spawn_random_comets(game, 5, screen_width, screen_height);
     } else {
@@ -158,7 +172,7 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
     }
     
     // Spawn Juggernaut with 1/10 chance at the start of ANY wave (but not on first wave)
-    if (game->current_wave > 1 && (rand() % 4 == 0)) {
+    if (game->current_wave > 1 && (rand() % 10 == 0)) {
         int random_edge = rand() % 8;  // Random spawn edge (0-7)
         double juggernaut_speed = 80.0;  // Slower than normal ships
         comet_buster_spawn_enemy_ship_internal(game, screen_width, screen_height,
@@ -664,6 +678,47 @@ void comet_buster_spawn_boss(CometBusterGame *game, int screen_width, int screen
     fprintf(stdout, "[SPAWN BOSS] Boss spawned! Position: (%.1f, %.1f), Active: %d, Health: %d\n", 
             boss->x, boss->y, boss->active, boss->health);
 }
+
+/*void comet_buster_spawn_star_boss(CometBusterGame *game, int screen_width, int screen_height) {
+    if (!game) return;
+    
+    BossShip *boss = &game->boss;
+    memset(boss, 0, sizeof(BossShip));
+    
+    // Center of screen
+    boss->x = screen_width / 2.0;
+    boss->y = screen_height / 2.0;
+    
+    boss->vx = 0;
+    boss->vy = 0;
+    
+    boss->health = 60;  // 60 health for star boss
+    boss->max_health = 60;
+    
+    boss->shield_health = 15;
+    boss->max_shield_health = 15;
+    boss->shield_active = true;
+    
+    boss->width = 40;
+    boss->height = 40;
+    
+    // Star boss specific
+    boss->boss_type = 3;  // Type 3 = star boss
+    boss->wave_phase = 1;  // Start at phase 1
+    boss->phase_timer = 0;
+    boss->explosion_timer = 0;
+    
+    // Rapid rotation
+    boss->rotation = 0;
+    boss->rotation_speed = 180.0;  // Fast rotation
+    boss->damage_flash_timer = 0;
+    
+    boss->active = true;
+    game->boss_active = true;
+    
+    fprintf(stdout, "[SPAWN STAR BOSS] Rotating star boss spawned! Position: (%.1f, %.1f)\n", 
+            boss->x, boss->y);
+}*/
 
 void comet_buster_spawn_floating_text(CometBusterGame *game, double x, double y, const char *text, double r, double g, double b) {
     if (!game || game->floating_text_count >= MAX_FLOATING_TEXT) {
