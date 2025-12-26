@@ -2573,6 +2573,7 @@ void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
     // Determine targeting based on missile count (modulo 5)
     MissileTarget target;
     int mod_type = game->missile_count % 5;
+    missile->missile_type = mod_type;  // Store the type for rendering
     
     if (mod_type == 1) {
         // Missiles 1, 6, 11, 16... - target ships and boss (priority: Boss > Ships > Comets)

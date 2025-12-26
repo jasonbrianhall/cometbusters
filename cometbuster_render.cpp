@@ -932,6 +932,13 @@ void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, i
     (void)width;
     (void)height;
     
+    // Color scheme for each missile type
+    // Type 0: CYAN - Target furthest comet
+    // Type 1: RED - Target ships and boss
+    // Type 2: GREEN - Target closest comets
+    // Type 3: MAGENTA - Target comets ~400px away
+    // Type 4: ORANGE - Target comets 200-600px away
+    
     for (int i = 0; i < game->missile_count; i++) {
         Missile *missile = &game->missiles[i];
         if (!missile->active) continue;
@@ -949,7 +956,35 @@ void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, i
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
         cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
         
-        cairo_set_source_rgba(cr, 1.0, 1.0, 0.2, alpha);
+        // Determine fill color based on missile type
+        double fill_r = 1.0, fill_g = 1.0, fill_b = 0.2;  // Default yellow
+        double stroke_r = 1.0, stroke_g = 0.8, stroke_b = 0.0;  // Default orange
+        
+        switch (missile->missile_type) {
+            case 0:  // Furthest comet - CYAN
+                fill_r = 0.2; fill_g = 1.0; fill_b = 1.0;
+                stroke_r = 0.0; stroke_g = 0.8; stroke_b = 1.0;
+                break;
+            case 1:  // Ships and boss - RED
+                fill_r = 1.0; fill_g = 0.2; fill_b = 0.2;
+                stroke_r = 1.0; stroke_g = 0.0; stroke_b = 0.0;
+                break;
+            case 2:  // Closest comets - GREEN
+                fill_r = 0.2; fill_g = 1.0; fill_b = 0.2;
+                stroke_r = 0.0; stroke_g = 0.8; stroke_b = 0.0;
+                break;
+            case 3:  // Comets ~400px away - MAGENTA
+                fill_r = 1.0; fill_g = 0.2; fill_b = 1.0;
+                stroke_r = 0.8; stroke_g = 0.0; stroke_b = 0.8;
+                break;
+            case 4:  // Comets 200-600px away - ORANGE
+                fill_r = 1.0; fill_g = 0.6; fill_b = 0.0;
+                stroke_r = 1.0; stroke_g = 0.4; stroke_b = 0.0;
+                break;
+        }
+        
+        // Draw missile body
+        cairo_set_source_rgba(cr, fill_r, fill_g, fill_b, alpha);
         cairo_move_to(cr, 8.0, 0);
         cairo_line_to(cr, -4.0, 3.0);
         cairo_line_to(cr, -2.0, 0);
@@ -957,7 +992,8 @@ void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, i
         cairo_close_path(cr);
         cairo_fill(cr);
         
-        cairo_set_source_rgba(cr, 1.0, 0.8, 0.0, alpha);
+        // Draw missile outline
+        cairo_set_source_rgba(cr, stroke_r, stroke_g, stroke_b, alpha);
         cairo_move_to(cr, 8.0, 0);
         cairo_line_to(cr, -4.0, 3.0);
         cairo_line_to(cr, -2.0, 0);

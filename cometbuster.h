@@ -95,6 +95,7 @@ typedef struct {
     bool has_target;            // Is tracking a target?
     double turn_speed;          // How fast missile can turn (degrees/sec)
     double speed;               // Missile speed (faster than bullets)
+    int missile_type;           // 0-4 based on targeting behavior (type 0: furthest, 1: ships/boss, 2: closest comets, 3: comets ~400px, 4: comets 200-600px)
 } Missile;
 
 typedef struct {
