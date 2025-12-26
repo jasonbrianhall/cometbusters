@@ -1552,6 +1552,179 @@ void on_debug_skip_to_boss_phase(GtkWidget *widget, gpointer data) {
 
 #endif // DEBUG
 
+// ============================================================================
+// CHEAT MENU CALLBACKS (always available, not gated by DEBUG)
+// ============================================================================
+
+/**
+ * Handle boss level selection from dropdown menu
+ */
+void on_cheat_boss_level_selected(GtkComboBox *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // Get selected level
+    gint active_index = gtk_combo_box_get_active(widget);
+    if (active_index < 0) return;
+    
+    // Boss levels: 5, 10, 15, 20, 25, 30
+    int boss_levels[] = {5, 10, 15, 20, 25, 30};
+    int selected_level = boss_levels[active_index];
+    
+    // Close high score dialog if open
+    if (gui->high_score_dialog) {
+        gtk_widget_destroy(gui->high_score_dialog);
+        gui->high_score_dialog = NULL;
+    }
+    
+    // Reset high score dialog flag
+    gui->high_score_dialog_shown = false;
+    gui->game_paused = false;
+    
+    // Initialize game WITHOUT splash screen
+    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, false, 1);  // Medium difficulty
+    
+    // Jump to selected boss level
+    CometBusterGame *game = &gui->visualizer.comet_buster;
+    game->current_wave = selected_level;
+    game->score = selected_level * 5000;  // Scale score with level
+    game->score_multiplier = 1.0f + (selected_level * 0.1f);  // Increase multiplier per level
+    
+    // Spawn wave comets
+    comet_buster_spawn_wave(game, gui->visualizer.width, gui->visualizer.height);
+    
+    fprintf(stdout, "[CHEAT] Jumped to Boss Level %d! Score: %d, Multiplier: %.2fx\n", 
+            selected_level, game->score, game->score_multiplier);
+}
+
+/**
+ * Open cheat boss level selection dropdown dialog
+ */
+void on_cheat_boss_level_selector(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // Pause the game
+    gui->game_paused = true;
+    
+    // Create dialog
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        "Select Boss Level",
+        GTK_WINDOW(gui->window),
+        GTK_DIALOG_MODAL,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Jump to Level", GTK_RESPONSE_OK,
+        NULL);
+    
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 300, 150);
+    
+    // Create main vbox
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    
+    // Create label
+    GtkWidget *label = gtk_label_new("Select a boss level:");
+    gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+    
+    // Create combo box
+    GtkWidget *combo_box = gtk_combo_box_text_new();
+    
+    // Add boss level options: 5, 10, 15, 20, 25, 30
+    int boss_levels[] = {5, 10, 15, 20, 25, 30};
+    for (int i = 0; i < 6; i++) {
+        char level_text[32];
+        snprintf(level_text, sizeof(level_text), "Level %d", boss_levels[i]);
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_box), NULL, level_text);
+    }
+    
+    // Set default selection to Level 5
+    gtk_combo_box_set_active(GTK_COMBO_BOX(combo_box), 0);
+    
+    gtk_box_pack_start(GTK_BOX(vbox), combo_box, FALSE, FALSE, 0);
+    
+    // Add vbox to dialog
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_add(GTK_CONTAINER(content_area), vbox);
+    
+    gtk_widget_show_all(dialog);
+    
+    // Run dialog
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+    
+    if (response == GTK_RESPONSE_OK) {
+        // Call the boss level selection handler
+        on_cheat_boss_level_selected(GTK_COMBO_BOX(combo_box), gui);
+    }
+    
+    // Resume game if cancelled
+    if (response != GTK_RESPONSE_OK) {
+        gui->game_paused = false;
+        fprintf(stdout, "[CHEAT] Boss level selection cancelled\n");
+    }
+    
+    gtk_widget_destroy(dialog);
+}
+
+/**
+ * Handle lives adjustment dialog
+ */
+void on_cheat_set_lives(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // Pause the game
+    gui->game_paused = true;
+    
+    // Create dialog
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        "Set Number of Lives",
+        GTK_WINDOW(gui->window),
+        GTK_DIALOG_MODAL,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Set Lives", GTK_RESPONSE_OK,
+        NULL);
+    
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 300, 150);
+    
+    // Create main vbox
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    
+    // Create label
+    GtkWidget *label = gtk_label_new("Enter number of lives (1-10):");
+    gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+    
+    // Create spin button for lives
+    GtkWidget *lives_spin = gtk_spin_button_new_with_range(1, 10, 1);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(lives_spin), 
+                              (double)gui->visualizer.comet_buster.ship_lives);
+    gtk_box_pack_start(GTK_BOX(vbox), lives_spin, FALSE, FALSE, 0);
+    
+    // Add vbox to dialog
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_add(GTK_CONTAINER(content_area), vbox);
+    
+    gtk_widget_show_all(dialog);
+    
+    // Run dialog
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+    
+    if (response == GTK_RESPONSE_OK) {
+        int new_lives = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(lives_spin));
+        gui->visualizer.comet_buster.ship_lives = new_lives;
+        fprintf(stdout, "[CHEAT] Lives set to: %d\n", new_lives);
+    }
+    
+    // Resume game if cancelled
+    if (response != GTK_RESPONSE_OK) {
+        gui->game_paused = false;
+        fprintf(stdout, "[CHEAT] Lives adjustment cancelled\n");
+    } else {
+        gui->game_paused = false;
+    }
+    
+    gtk_widget_destroy(dialog);
+}
 
 void on_toggle_fullscreen(GtkWidget *widget, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
@@ -2116,6 +2289,24 @@ int main(int argc, char *argv[]) {
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(debug_item), debug_menu);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), debug_item);
 #endif // DEBUG
+    
+    // Cheat menu
+    GtkWidget *cheat_menu = gtk_menu_new();
+    GtkWidget *cheat_item = gtk_menu_item_new_with_label("Cheats");
+    
+    GtkWidget *cheat_boss_level_item = gtk_menu_item_new_with_label("Select Boss Level (5, 10, 15, 20, 25, 30)");
+    g_signal_connect(cheat_boss_level_item, "activate", G_CALLBACK(on_cheat_boss_level_selector), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(cheat_menu), cheat_boss_level_item);
+    
+    GtkWidget *cheat_separator = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(cheat_menu), cheat_separator);
+    
+    GtkWidget *cheat_lives_item = gtk_menu_item_new_with_label("Set Lives (1-10)");
+    g_signal_connect(cheat_lives_item, "activate", G_CALLBACK(on_cheat_set_lives), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(cheat_menu), cheat_lives_item);
+    
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(cheat_item), cheat_menu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), cheat_item);
     
     // Help menu
     GtkWidget *help_menu = gtk_menu_new();
