@@ -515,4 +515,14 @@ void draw_harbinger_boss(BossShip *boss, cairo_t *cr, int width, int height);
 void comet_buster_update_harbinger(CometBusterGame *game, double dt, int width, int height);
 bool comet_buster_hit_void_nexus_fragment(Bullet *b, BossShip *boss, int *fragment_hit);
 
+// Star Vortex boss functions
+void comet_buster_spawn_star_vortex(CometBusterGame *game, int screen_width, int screen_height);
+void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width, int height);
+bool star_vortex_handle_comet_collision(CometBusterGame *game, Comet *comet, 
+                                        double collision_dx, double collision_dy);
+void star_vortex_fire_missiles(CometBusterGame *game);
+void star_vortex_spawn_juggernauts(CometBusterGame *game, int width, int height);
+void star_vortex_final_explosion(CometBusterGame *game);
+void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height);
+
 #endif // COMETBUSTER_H

@@ -1569,15 +1569,17 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     }
     
     // Update boss if active
-    if (game->boss_active && game->spawn_queen.active && game->spawn_queen.is_spawn_queen && game->current_wave % 20 == 10) {
+    if (game->boss_active && game->spawn_queen.active && game->spawn_queen.is_spawn_queen && game->current_wave % 30 == 10) {
         comet_buster_update_spawn_queen(game, dt, width, height);
     } else if (game->boss_active && game->boss.active) {
         // Route to correct boss based on wave
-        if (game->current_wave % 20 == 5) {
+        if (game->current_wave % 30 == 5) {
             comet_buster_update_boss(game, dt, width, height);        // Death Star (wave 5, 25, 45, etc)
-        } else if (game->current_wave % 20 == 15) {
+        } else if (game->current_wave % 30 == 15) {
             comet_buster_update_void_nexus(game, dt, width, height);  // Void Nexus (wave 15, 35, 55, etc)
-        } else if (game->current_wave % 20 == 0) {
+        } else if (game->current_wave % 30 == 0) {
+            comet_buster_update_harbinger(game, dt, width, height);   // Harbinger (wave 20, 40, 60, etc)
+        }  else if (game->current_wave % 30 == 0) {
             comet_buster_update_harbinger(game, dt, width, height);   // Harbinger (wave 20, 40, 60, etc)
         }
     } 

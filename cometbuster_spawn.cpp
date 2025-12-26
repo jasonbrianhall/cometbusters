@@ -139,10 +139,10 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
         comet_buster_spawn_random_comets(game, 5, screen_width, screen_height);
     } else if (game->current_wave % 30 == 25) {
         // Star boss on waves 25, 55, 85, 115, etc.
-        //comet_buster_spawn_star_boss(game, screen_width, screen_height);
-        comet_buster_spawn_boss(game, screen_width, screen_height);
+        comet_buster_spawn_star_vortex(game, screen_width, screen_height);
+        //comet_buster_spawn_boss(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
-        comet_buster_spawn_random_comets(game, 3, screen_width, screen_height);
+        comet_buster_spawn_random_comets(game, 8, screen_width, screen_height);
     } else if (game->current_wave % 30 == 0) {
         // Final boss on waves 30, 60, 90, 120, etc.
         printf("Should be spawning final boss\n");
