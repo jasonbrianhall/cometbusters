@@ -158,7 +158,7 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
     }
     
     // Spawn Juggernaut with 1/10 chance at the start of ANY wave (but not on first wave)
-    if (game->current_wave >= 1 && (rand() % 10 >= 0)) {
+    if (game->current_wave > 1 && (rand() % 10 == 0)) {
         int random_edge = rand() % 8;  // Random spawn edge (0-7)
         double juggernaut_speed = 80.0;  // Slower than normal ships
         comet_buster_spawn_enemy_ship_internal(game, screen_width, screen_height,
@@ -446,7 +446,7 @@ void comet_buster_spawn_enemy_ship_internal(CometBusterGame *game, int screen_wi
     
     // Set health based on ship type (juggernaut is special)
     if (ship_type == 5) {
-        ship->health = 120;  // Juggernaut: very durable
+        ship->health = 10;  // Juggernaut: reduced durability
     } else {
         ship->health = 1;   // All other types: 1 hit = destroyed
     }
@@ -487,10 +487,10 @@ void comet_buster_spawn_enemy_ship_internal(CometBusterGame *game, int screen_wi
         ship->burst_count_this_wave = 0;      // Track total bursts
     } else if (ship_type == 5) {
         // JUGGERNAUT - massive, heavily armored ship
-        ship->max_shield_health = 10;
-        ship->shield_health = 10;  // Substantial shield protection
-        // Juggernaut has slower cooldown but higher damage
-        ship->shoot_cooldown = 2.5 + (rand() % 30) / 10.0;  // Shoot every 2.5-5.5 seconds
+        ship->max_shield_health = 5;
+        ship->shield_health = 5;  // Reduced shield protection
+        // Juggernaut fires FAST
+        ship->shoot_cooldown = 0.5 + (rand() % 10) / 10.0;  // Shoot every 0.5-1.5 seconds
     } else {
         // Blue ships (patrol): 3 shield points
         ship->max_shield_health = 3;

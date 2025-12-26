@@ -542,80 +542,25 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
             // BROWN COAT ELITE BLUE SHIP
             comet_buster_update_brown_coat_ship(game, i, dt, visualizer);
         } else if (ship->ship_type == 5) {
-            // JUGGERNAUT: Slow, massive ship with long, lazy sine wave
-            ship->patrol_behavior_timer += dt;
-            if (ship->patrol_behavior_timer >= ship->patrol_behavior_duration) {
-                // Time to change behavior (changes less frequently)
-                ship->patrol_behavior_timer = 0.0;
-                ship->patrol_behavior_duration = 4.0 + (rand() % 40) / 10.0;  // 4-8 seconds
+            // JUGGERNAUT: Always chases player, fires rapidly
+            double dx = game->ship_x - ship->x;
+            double dy = game->ship_y - ship->y;
+            double dist_to_player = sqrt(dx*dx + dy*dy);
+            
+            // Always chase player (no range limit for Juggernaut)
+            if (dist_to_player > 0.1) {
+                double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                if (base_speed < 1.0) base_speed = 80.0;  // Juggernaut speed
                 
-                int behavior_roll = rand() % 100;
-                if (behavior_roll < 80) {
-                    ship->patrol_behavior_type = 0;  // 80% straight movement (rare direction changes)
-                } else {
-                    ship->patrol_behavior_type = 1;  // 20% circular movement
-                    double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
-                    if (base_speed > 0.1) {
-                        double perp_x = -ship->base_vy / base_speed;
-                        double perp_y = ship->base_vx / base_speed;
-                        ship->patrol_circle_center_x = ship->x + perp_x * 150.0;
-                        ship->patrol_circle_center_y = ship->y + perp_y * 150.0;
-                    }
-                    ship->patrol_circle_angle = 0.0;
-                }
+                double target_vx = (dx / dist_to_player) * base_speed;
+                double target_vy = (dy / dist_to_player) * base_speed;
+                
+                // Smooth but slow turning for massive ship
+                double turn_rate = 0.08;  // Slower turning than other ships
+                ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
+                ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
+                ship->angle = atan2(ship->vy, ship->vx);
             }
-            
-            // Apply patrol behavior with long, lazy sine wave
-            double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
-            double target_vx, target_vy;
-            
-            if (ship->patrol_behavior_type == 0) {
-                // Straight movement with long sine wave oscillation
-                if (base_speed > 0.1) {
-                    double dir_x = ship->base_vx / base_speed;
-                    double dir_y = ship->base_vy / base_speed;
-                    double perp_x = -dir_y;
-                    double perp_y = dir_x;
-                    double wave_amplitude = 60.0;
-                    double wave_frequency = 0.5;  // MUCH longer wave (half frequency)
-                    double sine_offset = sin(ship->path_time * wave_frequency * M_PI) * wave_amplitude;
-                    target_vx = dir_x * base_speed + perp_x * sine_offset;
-                    target_vy = dir_y * base_speed + perp_y * sine_offset;
-                } else {
-                    target_vx = ship->vx;
-                    target_vy = ship->vy;
-                }
-                ship->path_time += dt;
-            } else if (ship->patrol_behavior_type == 1) {
-                // Circular movement - smooth and slow
-                ship->patrol_circle_angle += (base_speed / ship->patrol_circle_radius) * dt * 0.5;  // Slower circle
-                
-                double target_x = ship->patrol_circle_center_x + cos(ship->patrol_circle_angle) * ship->patrol_circle_radius;
-                double target_y = ship->patrol_circle_center_y + sin(ship->patrol_circle_angle) * ship->patrol_circle_radius;
-                
-                double dx_circle = target_x - ship->x;
-                double dy_circle = target_y - ship->y;
-                double dist_to_target = sqrt(dx_circle*dx_circle + dy_circle*dy_circle);
-                
-                if (dist_to_target > 0.1) {
-                    target_vx = (dx_circle / dist_to_target) * base_speed * 0.8;
-                    target_vy = (dy_circle / dist_to_target) * base_speed * 0.8;
-                } else {
-                    target_vx = -sin(ship->patrol_circle_angle) * base_speed * 0.8;
-                    target_vy = cos(ship->patrol_circle_angle) * base_speed * 0.8;
-                }
-                
-                ship->angle = atan2(target_vy, target_vx);
-            } else {
-                target_vx = ship->base_vx * 0.8;
-                target_vy = ship->base_vy * 0.8;
-            }
-            
-            // Smooth, slow turning for massive ship
-            double turn_rate = 0.06;  // Slower turning for Juggernaut
-            ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
-            ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
-            ship->angle = atan2(ship->vy, ship->vx);
         } else {
             // PATROL BLUE SHIP: More dynamic patrol with occasional evasive maneuvers
             ship->patrol_behavior_timer += dt;
@@ -1027,6 +972,56 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
                         // Reload even if no target in range
                         ship->shoot_cooldown = 0.5;
                     }
+                }
+            }
+        } else if (ship->ship_type == 5) {
+            // JUGGERNAUT: Fires heat-seeking missiles at player
+            ship->shoot_cooldown -= dt;
+            if (ship->shoot_cooldown <= 0) {
+                double dx = game->ship_x - ship->x;
+                double dy = game->ship_y - ship->y;
+                double dist = sqrt(dx*dx + dy*dy);
+                
+                if (dist > 0.01 && game->missile_count < MAX_MISSILES) {
+                    // Spawn a heat-seeking missile from the tip of the ship
+                    Missile *missile = &game->missiles[game->missile_count];
+                    memset(missile, 0, sizeof(Missile));
+                    
+                    // Spawn from the tip of the ship (36 pixels ahead, since juggernaut is 3x size)
+                    double tip_offset = 36.0;
+                    missile->x = ship->x + cos(ship->angle) * tip_offset;
+                    missile->y = ship->y + sin(ship->angle) * tip_offset;
+                    
+                    double speed = 200.0;  // Restored original speed
+                    missile->vx = (dx / dist) * speed;
+                    missile->vy = (dy / dist) * speed;
+                    missile->angle = atan2(missile->vy, missile->vx);
+                    
+                    // Target the player
+                    missile->target_x = game->ship_x;
+                    missile->target_y = game->ship_y;
+                    missile->target_id = -2;  // Special ID for player target
+                    missile->has_target = true;
+                    
+                    missile->lifetime = 8.0;
+                    missile->max_lifetime = 8.0;
+                    missile->turn_speed = 25.0;  // Slow turning (25 degrees/sec)
+                    missile->speed = 200.0;
+                    missile->active = true;
+                    missile->missile_type = 1;  // Red color (targeting player)
+                    missile->owner_ship_id = i;  // Store which ship fired this missile
+                    
+                    game->missile_count++;
+                    
+                    // Play missile fire sound
+#ifdef ExternalSound
+                    if (visualizer && visualizer->audio.sfx_missile && !game->splash_screen_active) {
+                        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_missile);
+                    }
+#endif
+                    
+                    // Slow fire rate (2.5 seconds)
+                    ship->shoot_cooldown = 2.5 + (rand() % 20) / 10.0;  // 2.5-4.5 sec
                 }
             }
         } else {
@@ -1515,6 +1510,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             EnemyShip *ship = &game->enemy_ships[j];
             if (!ship->active) continue;
             
+            // Don't let missiles hit the ship that fired them
+            if (missile->owner_ship_id == j) continue;
+            
             double dx = ship->x - missile->x;
             double dy = ship->y - missile->y;
             double dist = sqrt(dx*dx + dy*dy);
@@ -1807,6 +1805,32 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         }
     }
     
+    // Check enemy missiles hitting player
+    for (int i = 0; i < game->missile_count; i++) {
+        if (!game->missiles[i].active) continue;
+        
+        Missile *missile = &game->missiles[i];
+        
+        // Only check if it's targeting the player (from enemy)
+        if (missile->target_id != -2) continue;
+        
+        double dx = game->ship_x - missile->x;
+        double dy = game->ship_y - missile->y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        // Collision radius for player ship
+        if (dist < 15.0) {
+            fprintf(stdout, "[COLLISION] Enemy missile hit player ship!\n");
+            
+            // Missiles do same damage as bullets (1 to shield/health)
+            comet_buster_on_ship_hit(game, visualizer);
+            
+            // Missile disappears on impact
+            missile->active = false;
+            continue;
+        }
+    }
+    
     // Check enemy ship-enemy ship collisions (ships destroy each other on contact)
     for (int i = 0; i < game->enemy_ship_count; i++) {
         EnemyShip *ship1 = &game->enemy_ships[i];
@@ -1850,10 +1874,17 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         double collision_dist = 15.0 + 15.0;  // Both ships have ~15px radius
         
         if (dist < collision_dist) {
-            // Damage enemy ship health
-            enemy_ship->health--;
-            if (enemy_ship->health <= 0) {
-                comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+            // Damage enemy ship - shields first, then health
+            if (enemy_ship->shield_health > 0) {
+                enemy_ship->shield_health -= 3;
+                if (enemy_ship->shield_health < 0) {
+                    enemy_ship->shield_health = 0;
+                }
+            } else {
+                enemy_ship->health--;
+                if (enemy_ship->health <= 0) {
+                    comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                }
             }
             // Player ship takes damage
             comet_buster_on_ship_hit(game, visualizer);
@@ -2176,8 +2207,7 @@ void comet_buster_update_brown_coat_ship(CometBusterGame *game, int ship_index, 
     double dy = game->ship_y - ship->y;
     double dist_to_player = sqrt(dx*dx + dy*dy);
     
-    // Chase player aggressively (larger range than red ships)
-    double chase_range = 400.0;  // Larger detection range
+    // Chase player aggressively (always in pursuit)
     
     if (dist_to_player > 0.1) {
         // Move toward player with smooth turning
@@ -2738,6 +2768,7 @@ void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
     missile->turn_speed = 120.0;
     missile->speed = 250.0;
     missile->active = true;
+    missile->owner_ship_id = -1;  // Player fired this missile
     
     game->missile_count++;
     game->missile_ammo--;
@@ -2777,7 +2808,12 @@ void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, i
             bool target_valid = false;
             double target_x = 0, target_y = 0;
             
-            if (missile->target_id == -1) {
+            if (missile->target_id == -2) {
+                // Player target (from Juggernaut)
+                target_x = game->ship_x;
+                target_y = game->ship_y;
+                target_valid = true;
+            } else if (missile->target_id == -1) {
                 // Boss target
                 if (game->boss_active && game->boss.active) {
                     target_x = game->boss.x;

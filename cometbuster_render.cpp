@@ -428,7 +428,7 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width
             cairo_stroke(cr);
             
             // Health bar (green to yellow to red as health decreases)
-            double health_ratio = (double)ship->health / 120.0;  // 120 is max health
+            double health_ratio = (double)ship->health / 10.0;  // 10 is max health
             if (health_ratio < 0) health_ratio = 0;
             
             // Color changes: green -> yellow -> red
