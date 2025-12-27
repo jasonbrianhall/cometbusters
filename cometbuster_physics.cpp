@@ -132,18 +132,85 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
         game->is_boosting = false;
     }
     
-    // Apply max velocity cap
-    double max_speed = 400.0;
-    double current_speed = sqrt(game->ship_vx * game->ship_vx + game->ship_vy * game->ship_vy);
-    if (current_speed > max_speed) {
-        game->ship_vx = (game->ship_vx / current_speed) * max_speed;
-        game->ship_vy = (game->ship_vy / current_speed) * max_speed;
-    }
-    
     // Apply friction/drag
     double friction = 0.95;
     game->ship_vx *= friction;
     game->ship_vy *= friction;
+    
+    // ========== GRAVITY EFFECT (Singularity Boss) ==========
+    double max_speed = 400.0;
+    if (game->boss_active && game->boss.active && game->current_wave % 30 == 0) {
+        // Singularity boss is active - calculate and apply gravity
+        BossShip *boss = &game->boss;
+        
+        // STEP 1: Calculate direction and distance from player to boss
+        // This gives us the direction the gravity should pull toward
+        double dx = boss->x - game->ship_x;  // Horizontal distance to boss
+        double dy = boss->y - game->ship_y;  // Vertical distance to boss
+        double dist = sqrt(dx*dx + dy*dy);   // Total distance to boss
+        
+        if (dist > 0) {  // Avoid division by zero
+            // STEP 2: Determine gravity strength based on boss phase
+            // Stronger gravity in later phases makes it harder to escape
+            double gravity_strength = 100.0;  // Default gravity acceleration
+            switch (boss->phase) {
+                case 0: 
+                    gravity_strength = 100.0;   // GRAVITATIONAL PULL - weak, learning phase
+                    break;
+                case 1: 
+                    gravity_strength = 150.0;   // STELLAR COLLAPSE - medium, pressure building
+                    break;
+                case 2: 
+                    gravity_strength = 200.0;   // VOID EXPANSION - heavy, very hard to move
+                    break;
+                case 3: 
+                    gravity_strength = 300.0;   // SINGULARITY COLLAPSE - maximum, nearly irresistible
+                    break;
+            }
+            
+            // STEP 3: Calculate gravitational acceleration vector
+            // Normalize the direction (dx/dist, dy/dist) and multiply by gravity strength
+            // This creates a force pulling the player toward the boss center
+            double grav_vx = (dx / dist) * gravity_strength;
+            double grav_vy = (dy / dist) * gravity_strength;
+            
+            // STEP 4: Apply gravitational force to player velocity
+            // The gravity accelerates the player toward the boss each frame
+            game->ship_vx += grav_vx * dt;
+            game->ship_vy += grav_vy * dt;
+            
+            // STEP 5: Reduce player maximum speed based on phase
+            // This simulates the "crushing weight" of gravity
+            // Players move slower as they get deeper into the fight
+            double speed_penalty = 1.0;  // Multiplier for max allowed speed (1.0 = no change)
+            switch (boss->phase) {
+                case 0: 
+                    speed_penalty = 0.80;   // Phase 0: 20% slower (-20% movement speed)
+                    break;
+                case 1: 
+                    speed_penalty = 0.60;   // Phase 1: 40% slower (-40% movement speed)
+                    break;
+                case 2: 
+                    speed_penalty = 0.40;   // Phase 2: 60% slower (-60% movement speed)
+                    break;
+                case 3: 
+                    speed_penalty = 0.25;   // Phase 3: 75% slower (-75% movement speed, barely mobile)
+                    break;
+            }
+            
+            // Apply the speed penalty to the maximum speed
+            max_speed *= speed_penalty;
+        }
+    }
+    
+    // Apply max velocity cap (respects the reduced max_speed from gravity)
+    // This prevents gravity from accelerating the player to infinite speed
+    double current_speed = sqrt(game->ship_vx * game->ship_vx + game->ship_vy * game->ship_vy);
+    if (current_speed > max_speed) {
+        // Clamp velocity magnitude to max_speed while preserving direction
+        game->ship_vx = (game->ship_vx / current_speed) * max_speed;
+        game->ship_vy = (game->ship_vy / current_speed) * max_speed;
+    }
     
     // Update position
     game->ship_x += game->ship_vx * dt;
@@ -1581,6 +1648,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             comet_buster_update_harbinger(game, dt, width, height);   // Harbinger (wave 20, 50, 80, etc)
         } else if (game->current_wave % 30 == 25) {
             comet_buster_update_star_vortex(game, dt, width, height); // Star Vortex (wave 25, 55, 85, etc)
+        } else if (game->current_wave % 30 == 0) {
+            comet_buster_update_singularity(game, dt, width, height); // Singularity (wave 30, 60, 90, etc)
         }
     } 
     
@@ -1873,6 +1942,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     }
     
     // Check enemy ship-player ship collisions (both take damage)
+    // NOTE: Singularity satellites (blue orbiting balls) are visual only - they don't cause damage
+    // The satellites are drawn around the Singularity boss but are not separate collision objects
     for (int i = 0; i < game->enemy_ship_count; i++) {
         EnemyShip *enemy_ship = &game->enemy_ships[i];
         if (!enemy_ship->active) continue;

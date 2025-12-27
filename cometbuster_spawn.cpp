@@ -150,13 +150,11 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
         comet_buster_spawn_random_comets(game, 8, screen_width, screen_height);
     } else if (game->current_wave % 30 == 0) {
         comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, "ULTIMATE THREAT DETECTED", 1.0, 1.0, 0.0);
-        // Final boss on waves 30, 60, 90, 120, etc.
-        printf("Should be spawning final boss\n");
-        // TODO: Spawn the 6th boss here
-        // For now, spawn regular boss as placeholder
-        comet_buster_spawn_boss(game, screen_width, screen_height);
+        // Final boss on waves 30, 60, 90, 120, etc. - THE SINGULARITY
+        printf("Should be spawning The Singularity\n");
+        comet_buster_spawn_singularity(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
-        comet_buster_spawn_random_comets(game, 5, screen_width, screen_height);
+        comet_buster_spawn_random_comets(game, 10, screen_width, screen_height);
     } else {
         // Normal waves - spawn comets
         int wave_count = comet_buster_get_wave_comet_count(game->current_wave);

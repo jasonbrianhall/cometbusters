@@ -525,4 +525,9 @@ void star_vortex_spawn_juggernauts(CometBusterGame *game, int width, int height)
 void star_vortex_final_explosion(CometBusterGame *game);
 void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height);
 
+// Singularity (Ultimate) boss functions
+void comet_buster_spawn_singularity(CometBusterGame *game, int screen_width, int screen_height);
+void comet_buster_update_singularity(CometBusterGame *game, double dt, int width, int height);
+void draw_singularity_boss(BossShip *boss, cairo_t *cr, int width, int height);
+
 #endif // COMETBUSTER_H

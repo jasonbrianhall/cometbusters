@@ -2176,3 +2176,536 @@ bool comet_buster_check_bullet_harbinger(Bullet *b, BossShip *boss) {
     
     return (dist < 40.0);  // Hitbox radius of 40
 }
+// ============================================================================
+// THE SINGULARITY - ULTIMATE BOSS (Waves 30, 60, 90, 120+)
+// ============================================================================
+
+#define SINGULARITY_SATELLITE_COUNT 8
+#define SINGULARITY_MAX_HEALTH 500
+
+// Satellite structure for Singularity
+typedef struct {
+    double x, y;
+    double vx, vy;
+    double orbit_angle;
+    double orbit_radius;
+    int health;
+    int max_health;
+    bool active;
+    double fire_cooldown;
+} SingularitySatellite;
+
+void comet_buster_spawn_singularity(CometBusterGame *game, int screen_width, int screen_height) {
+    if (!game) return;
+    
+    fprintf(stdout, "[SINGULARITY] THE ULTIMATE BOSS AWAKENS at Wave %d\n", game->current_wave);
+    
+    BossShip *boss = &game->boss;
+    memset(boss, 0, sizeof(BossShip));
+    
+    // Position at center of screen
+    boss->x = screen_width / 2.0;
+    boss->y = screen_height / 2.0;
+    boss->vx = 20.0 + (rand() % 30);
+    boss->vy = 10.0 + (rand() % 20);
+    
+    // Scale health by wave
+    int wave_scaling = 1 + (game->current_wave / 30);
+    boss->health = SINGULARITY_MAX_HEALTH * wave_scaling;
+    boss->max_health = boss->health;
+    
+    // Shield system
+    boss->shield_health = 50;
+    boss->max_shield_health = 50;
+    boss->shield_active = true;
+    
+    // Phase management
+    boss->phase = 0;
+    boss->phase_timer = 0;
+    boss->phase_duration = 25.0;  // Phase 0: 25 seconds
+    
+    // Visual properties
+    boss->rotation = 0;
+    boss->rotation_speed = 45.0;  // Start slow, increases per phase
+    boss->damage_flash_timer = 0;
+    
+    // Singularity-specific fields (using existing boss fields creatively)
+    boss->fire_pattern_timer = 0;
+    boss->burst_angle_offset = 0;  // For rotating attacks
+    boss->phase = 0;  // Current phase
+    boss->laser_angle = 0;  // For beam rotation
+    
+    // Initialize satellite data in spare fields
+    // We'll use the fragment_positions array to store satellite positions
+    boss->fragment_count = 3;  // Start with 3 satellites, increase per phase
+    
+    boss->active = true;
+    game->boss_active = true;
+    
+    fprintf(stdout, "[SINGULARITY] Boss spawned at (%.1f, %.1f) with %d HP\n", 
+            boss->x, boss->y, boss->health);
+}
+
+void comet_buster_update_singularity(CometBusterGame *game, double dt, int width, int height) {
+    if (!game || !game->boss_active) return;
+    
+    BossShip *boss = &game->boss;
+    if (!boss->active) return;
+    
+    // ========== PHASE MANAGEMENT ==========
+    boss->phase_timer += dt;
+    
+    // Determine current phase based on health
+    int new_phase = 0;
+    if (boss->health < boss->max_health * 0.75) new_phase = 1;
+    if (boss->health < boss->max_health * 0.50) new_phase = 2;
+    if (boss->health < boss->max_health * 0.25) new_phase = 3;
+    
+    // Phase transition
+    if (new_phase != boss->phase) {
+        fprintf(stdout, "[SINGULARITY] Phase transition: %d -> %d\n", boss->phase, new_phase);
+        boss->phase = new_phase;
+        boss->phase_timer = 0;
+        
+        // Update phase-specific properties
+        switch (new_phase) {
+            case 0: // GRAVITATIONAL PULL
+                boss->rotation_speed = 45.0;
+                boss->fragment_count = 3;
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60, 
+                    "GRAVITATIONAL PULL", 0.2, 0.8, 1.0);
+                break;
+            case 1: // STELLAR COLLAPSE
+                boss->rotation_speed = 90.0;
+                boss->fragment_count = 6;
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60,
+                    "GRAVITATIONAL FIELD INTENSIFIES", 0.2, 0.8, 1.0);
+                break;
+            case 2: // VOID EXPANSION
+                boss->rotation_speed = 90.0;
+                boss->fragment_count = 8;
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60,
+                    "VOID EXPANSION IMMINENT", 0.2, 0.8, 1.0);
+                break;
+            case 3: // SINGULARITY COLLAPSE
+                boss->rotation_speed = 360.0;
+                boss->fragment_count = 8;
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60,
+                    "SINGULARITY COLLAPSE INITIATED", 0.2, 0.8, 1.0);
+                break;
+        }
+    }
+    
+    // ========== MOVEMENT ==========
+    boss->x += boss->vx * dt;
+    boss->y += boss->vy * dt;
+    
+    // Keep boss roughly in screen (don't drift too far)
+    if (boss->x < 100) boss->vx = fabs(boss->vx);
+    if (boss->x > width - 100) boss->vx = -fabs(boss->vx);
+    if (boss->y < 100) boss->vy = fabs(boss->vy);
+    if (boss->y > height - 100) boss->vy = -fabs(boss->vy);
+    
+    // ========== ROTATION ==========
+    boss->rotation += boss->rotation_speed * dt;
+    if (boss->rotation > 360) boss->rotation -= 360;
+    
+    // ========== FIRING PATTERNS ==========
+    boss->fire_pattern_timer += dt;
+    
+    switch (boss->phase) {
+        case 0: // Phase 0: Beam sweeps every 3 seconds
+            if (boss->fire_pattern_timer >= 3.0) {
+                // Wide 180° beam sweep
+                double sweep_angle = (boss->burst_angle_offset * M_PI / 180.0);
+                for (int i = 0; i < 6; i++) {
+                    double angle = sweep_angle + (i * 30.0 * M_PI / 180.0);
+                    double vx = cos(angle) * 250.0;
+                    double vy = sin(angle) * 250.0;
+                    comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                }
+                boss->burst_angle_offset += 180;  // Alternate directions
+                boss->fire_pattern_timer = 0;
+            }
+            break;
+            
+        case 1: // Phase 1: Dual patterns every 2 seconds
+            if (boss->fire_pattern_timer >= 2.0) {
+                int cycle = ((int)(boss->phase_timer * 0.5)) % 2;
+                
+                if (cycle == 0) {
+                    // 3 narrow beams
+                    for (int i = 0; i < 3; i++) {
+                        double angle = boss->rotation * M_PI / 180.0 + (i - 1) * 30.0 * M_PI / 180.0;
+                        double vx = cos(angle) * 300.0;
+                        double vy = sin(angle) * 300.0;
+                        comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                    }
+                } else {
+                    // Wide sweep
+                    for (int i = 0; i < 7; i++) {
+                        double angle = boss->rotation * M_PI / 180.0 + (i - 3) * 30.0 * M_PI / 180.0;
+                        double vx = cos(angle) * 300.0;
+                        double vy = sin(angle) * 300.0;
+                        comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                    }
+                }
+                
+                boss->fire_pattern_timer = 0;
+            }
+            
+            // Satellite convergence every 15 seconds
+            if (fmod(boss->phase_timer, 15.0) < dt) {
+                fprintf(stdout, "[SINGULARITY] Satellite convergence!\n");
+            }
+            break;
+            
+        case 2: // Phase 2: Complex patterns every 2 seconds
+            if (boss->fire_pattern_timer >= 2.0) {
+                // 4 rotating beams
+                for (int i = 0; i < 4; i++) {
+                    double angle = (boss->rotation + i * 90.0) * M_PI / 180.0;
+                    double vx = cos(angle) * 300.0;
+                    double vy = sin(angle) * 300.0;
+                    comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                }
+                
+                // Fragmenting projectiles in spiral
+                for (int i = 0; i < 4; i++) {
+                    double angle = (boss->rotation + i * 90.0 + boss->phase_timer * 90) * M_PI / 180.0;
+                    double vx = cos(angle) * 250.0;
+                    double vy = sin(angle) * 250.0;
+                    comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                }
+                
+                boss->fire_pattern_timer = 0;
+            }
+            
+            // Homing projectiles every 2.5 seconds
+            if (fmod(boss->phase_timer, 2.5) < dt) {
+                for (int i = 0; i < 2; i++) {
+                    double angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x) 
+                                 + (i - 0.5) * 0.5;
+                    double vx = cos(angle) * 180.0;
+                    double vy = sin(angle) * 180.0;
+                    comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                }
+            }
+            
+            // Echo clones every 20 seconds
+            if (fmod(boss->phase_timer, 20.0) < dt) {
+                fprintf(stdout, "[SINGULARITY] Echo clones created!\n");
+            }
+            break;
+            
+        case 3: // Phase 3: Everything at once, every 1.5 seconds
+            if (boss->fire_pattern_timer >= 1.5) {
+                // 4 rotating laser beams
+                for (int i = 0; i < 4; i++) {
+                    double angle = (boss->rotation + i * 90.0) * M_PI / 180.0;
+                    double vx = cos(angle) * 300.0;
+                    double vy = sin(angle) * 300.0;
+                    comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                }
+                
+                // Fragmenting projectiles in spiral pattern
+                for (int i = 0; i < 6; i++) {
+                    double angle = (boss->rotation + i * 60.0 + boss->phase_timer * 180) * M_PI / 180.0;
+                    double vx = cos(angle) * 250.0;
+                    double vy = sin(angle) * 250.0;
+                    comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                }
+                
+                // Homing projectiles (4x from boss)
+                for (int i = 0; i < 4; i++) {
+                    double angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x) 
+                                 + (i - 1.5) * M_PI / 3.0;
+                    double vx = cos(angle) * 200.0;
+                    double vy = sin(angle) * 200.0;
+                    comet_buster_spawn_enemy_bullet(game, boss->x, boss->y, vx, vy);
+                }
+                
+                boss->fire_pattern_timer = 0;
+            }
+            
+            // Dimensional shred waves every 5 seconds
+            if (fmod(boss->phase_timer, 5.0) < dt) {
+                fprintf(stdout, "[SINGULARITY] Dimensional shred waves!\n");
+            }
+            break;
+    }
+    
+    // ========== ASTEROID SPAWNING (Singularity spews asteroids) ==========
+    // The Singularity periodically ejects asteroids in various patterns
+    // This adds more chaos and makes the fight more dynamic
+    // Frequency and quantity increase as the boss gets weaker (phases progress)
+    
+    // Determine asteroid spawn parameters based on phase
+    double spawn_interval = 5.0;  // How often to spawn asteroids
+    int asteroids_per_spawn = 0;  // How many to spawn each time
+    
+    switch (boss->phase) {
+        case 0:
+            // Phase 0: Occasional asteroids, 3 per spawn, every 5 seconds
+            spawn_interval = 5.0;
+            asteroids_per_spawn = 3;
+            break;
+        case 1:
+            // Phase 1: More frequent, 4 per spawn, every 4 seconds
+            spawn_interval = 4.0;
+            asteroids_per_spawn = 4;
+            break;
+        case 2:
+            // Phase 2: Much more frequent, 5 per spawn, every 3 seconds
+            spawn_interval = 3.0;
+            asteroids_per_spawn = 5;
+            break;
+        case 3:
+            // Phase 3: Constant barrage, 6 per spawn, every 2 seconds
+            spawn_interval = 2.0;
+            asteroids_per_spawn = 6;
+            break;
+    }
+    
+    // Use laser_angle as a timer for asteroid spawning
+    boss->laser_angle += dt;
+    
+    if (boss->laser_angle >= spawn_interval) {
+        // Time to spawn asteroids!
+        fprintf(stdout, "[SINGULARITY] Spawning %d asteroids!\n", asteroids_per_spawn);
+        
+        for (int i = 0; i < asteroids_per_spawn; i++) {
+            if (game->comet_count >= MAX_COMETS) break;  // Respect comet limit
+            
+            int slot = game->comet_count;
+            Comet *asteroid = &game->comets[slot];
+            memset(asteroid, 0, sizeof(Comet));
+            
+            // Position: spawn around the boss perimeter
+            // Spread asteroids around the boss in a circular pattern
+            double spawn_angle = (i * 360.0 / asteroids_per_spawn) * M_PI / 180.0;
+            spawn_angle += (rand() % 30 - 15) * M_PI / 180.0;  // Add random variation
+            
+            double spawn_distance = 80.0;  // Spawn from this distance away from boss
+            asteroid->x = boss->x + cos(spawn_angle) * spawn_distance;
+            asteroid->y = boss->y + sin(spawn_angle) * spawn_distance;
+            
+            // Velocity: shoot outward from boss (and slightly randomized)
+            double speed = 200.0 + (rand() % 100);  // 200-300 px/sec
+            asteroid->vx = cos(spawn_angle) * speed;
+            asteroid->vy = sin(spawn_angle) * speed;
+            
+            // Appearance: medium-sized asteroids, cyan/blue color
+            asteroid->size = COMET_MEDIUM;
+            asteroid->radius = 20;
+            asteroid->frequency_band = 2;  // Treble (cyan color, matches Singularity theme)
+            asteroid->rotation = 0;
+            asteroid->rotation_speed = 150 + (rand() % 200);  // Spinning
+            asteroid->active = true;
+            asteroid->health = 1;  // Dies in one hit
+            asteroid->base_angle = (rand() % 360) * (M_PI / 180.0);
+            
+            // Cyan color matching Singularity
+            asteroid->color[0] = 0.1 + (rand() % 150) / 500.0;
+            asteroid->color[1] = 0.7 + (rand() % 200) / 500.0;
+            asteroid->color[2] = 1.0;
+            
+            game->comet_count++;
+        }
+        
+        // Reset asteroid spawn timer
+        boss->laser_angle = 0;
+    }
+    
+    if (boss->damage_flash_timer > 0) {
+        boss->damage_flash_timer -= dt;
+    }
+    
+    // ========== CHECK IF BOSS IS DEFEATED ==========
+    if (boss->health <= 0) {
+        fprintf(stdout, "[SINGULARITY] THE SINGULARITY HAS BEEN DESTROYED!\n");
+        
+        // MASSIVE EXPLOSION
+        // Main implosion
+        comet_buster_spawn_explosion(game, boss->x, boss->y, 2, 200);
+        
+        // Secondary explosions around satellites
+        for (int i = 0; i < boss->fragment_count; i++) {
+            double angle = (i * 360.0 / boss->fragment_count) * M_PI / 180.0;
+            double sat_x = boss->x + cos(angle) * 100;
+            double sat_y = boss->y + sin(angle) * 100;
+            comet_buster_spawn_explosion(game, sat_x, sat_y, 2, 60);
+        }
+        
+        // EXPLODE INTO COMET SHARDS (40 shards for ultimate boss)
+        int num_shards = 40;
+        for (int i = 0; i < num_shards; i++) {
+            if (game->comet_count >= MAX_COMETS) break;
+            
+            int slot = game->comet_count;
+            Comet *shard = &game->comets[slot];
+            memset(shard, 0, sizeof(Comet));
+            
+            // Position at boss center
+            shard->x = boss->x + (rand() % 60 - 30);
+            shard->y = boss->y + (rand() % 60 - 30);
+            
+            // High velocity in all directions
+            double angle = (i * 360.0 / num_shards) * M_PI / 180.0;
+            angle += (rand() % 40 - 20) * M_PI / 180.0;
+            double speed = 400.0 + (rand() % 250);  // 400-650 px/sec
+            
+            shard->vx = cos(angle) * speed;
+            shard->vy = sin(angle) * speed;
+            
+            // Small cyan crystalline fragments
+            shard->size = COMET_SMALL;
+            shard->radius = 8;
+            shard->frequency_band = 2;
+            shard->rotation_speed = 250 + (rand() % 350);
+            shard->active = true;
+            shard->health = 1;
+            shard->base_angle = (rand() % 360) * (M_PI / 180.0);
+            
+            // Cyan with slight variation
+            shard->color[0] = 0.1 + (rand() % 100) / 500.0;
+            shard->color[1] = 0.8 + (rand() % 150) / 500.0;
+            shard->color[2] = 1.0;
+            
+            game->comet_count++;
+        }
+        
+        // DEATH MESSAGES
+        comet_buster_spawn_floating_text(game, boss->x, boss->y - 60, 
+                                        "SINGULARITY COLLAPSED", 0.2, 0.8, 1.0);
+        comet_buster_spawn_floating_text(game, boss->x, boss->y, 
+                                        "DIMENSIONAL BARRIER RESTORED", 0.0, 1.0, 1.0);
+        comet_buster_spawn_floating_text(game, boss->x, boss->y + 60,
+                                        "COSMIC THREAT ELIMINATED", 1.0, 1.0, 0.0);
+        
+        // SCORE REWARD
+        int base_score = 5000;
+        int wave_bonus = game->current_wave * 300;
+        int total_score = base_score + wave_bonus;
+        
+        if (game->score_multiplier >= 4.0) {
+            total_score += 1500;
+            comet_buster_spawn_floating_text(game, boss->x, boss->y + 120,
+                                            "PERFECT VICTORY!", 1.0, 1.0, 0.0);
+        }
+        
+        game->score += total_score;
+        fprintf(stdout, "[SINGULARITY] Score awarded: %d\n", total_score);
+        
+        boss->active = false;
+        game->boss_active = false;
+    }
+}
+
+void draw_singularity_boss(BossShip *boss, cairo_t *cr, int width, int height) {
+    (void)width;
+    (void)height;
+    
+    if (!boss || !boss->active) return;
+    
+    cairo_save(cr);
+    cairo_translate(cr, boss->x, boss->y);
+    cairo_rotate(cr, boss->rotation * M_PI / 180.0);
+    
+    // Determine phase for visual effects
+    int phase = boss->phase;
+    // double screen_darkness = 0.1 + phase * 0.15;  // Increases with phase (for future use)
+    
+    // Main black hole body (grows larger in later phases)
+    double core_radius = 60.0;
+    if (phase >= 2) core_radius = 80.0;
+    
+    // Dark center
+    cairo_set_source_rgb(cr, 0.1, 0.05, 0.15);
+    cairo_arc(cr, 0, 0, core_radius, 0, 2.0 * M_PI);
+    cairo_fill(cr);
+    
+    // Outer event horizon glow (cyan, pulsing)
+    double glow_intensity = 0.2 + 0.3 * sin(boss->rotation * M_PI / 180.0 * 0.1);
+    cairo_set_source_rgba(cr, 0.2, 0.8, 1.0, glow_intensity);
+    cairo_set_line_width(cr, 3.0);
+    cairo_arc(cr, 0, 0, core_radius + 15, 0, 2.0 * M_PI);
+    cairo_stroke(cr);
+    
+    // Inner event horizon rings
+    for (int i = 1; i <= 3; i++) {
+        cairo_set_source_rgba(cr, 0.2, 0.8, 1.0, 0.3 - i * 0.08);
+        cairo_set_line_width(cr, 1.5);
+        cairo_arc(cr, 0, 0, core_radius - (i * 8), 0, 2.0 * M_PI);
+        cairo_stroke(cr);
+    }
+    
+    // Damage flash
+    if (boss->damage_flash_timer > 0) {
+        cairo_set_source_rgba(cr, 1.0, 0.5, 0.5, boss->damage_flash_timer);
+        cairo_arc(cr, 0, 0, core_radius + 20, 0, 2.0 * M_PI);
+        cairo_fill(cr);
+    }
+    
+    // Draw orbiting satellites
+    // NOTE: These are visual elements only - they do NOT cause collision damage
+    // They orbit the Singularity boss and are purely for visual feedback of the boss's status
+    for (int i = 0; i < boss->fragment_count; i++) {
+        double angle = (i * 360.0 / boss->fragment_count + boss->rotation) * M_PI / 180.0;
+        double orbit_radius = 120.0;
+        double sat_x = cos(angle) * orbit_radius;
+        double sat_y = sin(angle) * orbit_radius;
+        
+        // Satellite glow
+        cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, 0.5);
+        cairo_arc(cr, sat_x, sat_y, 12.0, 0, 2.0 * M_PI);
+        cairo_fill(cr);
+        
+        // Satellite core
+        cairo_set_source_rgb(cr, 0.3, 1.0, 1.0);
+        cairo_arc(cr, sat_x, sat_y, 8.0, 0, 2.0 * M_PI);
+        cairo_fill(cr);
+    }
+    
+    cairo_restore(cr);
+    
+    // Draw health bar
+    double bar_width = 140.0;
+    double bar_height = 12.0;
+    double bar_x = boss->x - bar_width / 2.0;
+    double bar_y = boss->y - 80.0;
+    
+    // Background
+    cairo_set_source_rgb(cr, 0.1, 0.05, 0.1);
+    cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
+    cairo_fill(cr);
+    
+    // Health bar (cyan gradient)
+    double health_percent = (double)boss->health / boss->max_health;
+    cairo_set_source_rgb(cr, 0.0, 1.0, 1.0);
+    cairo_rectangle(cr, bar_x, bar_y, bar_width * health_percent, bar_height);
+    cairo_fill(cr);
+    
+    // Border
+    cairo_set_source_rgb(cr, 0.4, 0.4, 0.4);
+    cairo_set_line_width(cr, 1.5);
+    cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
+    cairo_stroke(cr);
+    
+    // Phase indicator
+    cairo_set_source_rgb(cr, 0.2, 0.8, 1.0);
+    cairo_set_font_size(cr, 11);
+    cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    
+    const char *phase_text = "";
+    switch (boss->phase) {
+        case 0: phase_text = "GRAVITATIONAL PULL"; break;
+        case 1: phase_text = "STELLAR COLLAPSE"; break;
+        case 2: phase_text = "VOID EXPANSION"; break;
+        case 3: phase_text = "SINGULARITY COLLAPSE"; break;
+        default: phase_text = "UNKNOWN"; break;
+    }
+    
+    cairo_move_to(cr, boss->x - 70, boss->y + 70);
+    cairo_show_text(cr, phase_text);
+}

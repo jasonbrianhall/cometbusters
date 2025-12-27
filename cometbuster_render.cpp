@@ -59,12 +59,16 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
         } else if (game->boss.active) {
             if (game->current_wave % 30 == 5) {
                draw_comet_buster_boss(&game->boss, cr, width, height);      // Death Star (wave 5, 35, 65, etc)
+           } else if (game->current_wave % 30 == 10) {
+               draw_spawn_queen_boss(&game->spawn_queen, cr, width, height); // Spawn Queen (wave 10, 40, 70, etc)
            } else if (game->current_wave % 30 == 15) {
               draw_void_nexus_boss(&game->boss, cr, width, height);         // Void Nexus (wave 15, 45, 75, etc)
            } else if (game->current_wave % 30 == 20) {
               draw_harbinger_boss(&game->boss, cr, width, height);          // Harbinger (wave 20, 50, 80, etc)
            } else if (game->current_wave % 30 == 25) {
               draw_star_vortex_boss(&game->boss, cr, width, height);        // Star Vortex (wave 25, 55, 85, etc)
+           } else if (game->current_wave % 30 == 0) {
+              draw_singularity_boss(&game->boss, cr, width, height);        // Singularity (wave 30, 60, 90, etc)
            }
        }
     }
