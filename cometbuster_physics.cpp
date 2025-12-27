@@ -1948,6 +1948,10 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             // Check against regular boss
             if (game->boss.active) {
                 BossShip *boss = &game->boss;
+                
+                // Skip comet damage during Phase 2 (countdown - boss is invulnerable)
+                if (boss->phase == 2) continue;
+                
                 double dx = boss->x - comet->x;
                 double dy = boss->y - comet->y;
                 double dist = sqrt(dx*dx + dy*dy);

@@ -99,6 +99,9 @@ void comet_buster_spawn_star_vortex(CometBusterGame *game, int screen_width, int
     boss->active = true;
     game->boss_active = true;
     
+    // Spawn initial message
+    comet_buster_spawn_floating_text(game, boss->x + 200, boss->y - 100, "STAR VORTEX ENGAGED!", 1.0, 0.5, 0.0);
+    
     // Spawn a few comets alongside the boss
     comet_buster_spawn_random_comets(game, 2, screen_width, screen_height);
     
@@ -128,6 +131,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
     // Check if boss health reached zero in ANY phase before Phase 2 - transition to Phase 2
     if (boss->health <= 0 && boss->phase < 2) {
         fprintf(stdout, "[STAR VORTEX] Boss health reached zero! Entering Phase 2 (10 Second Countdown)\n");
+        comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "PHASE 2: DETONATION!", 1.0, 0.5, 0.0);
         boss->phase = 2;
         boss->phase_timer = 0;
         boss->burst_angle_offset = 0;
@@ -199,6 +203,14 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         boss->x = width + 50;
     }
     
+    // Wrap around vertically (wrap sooner to prevent rendering at edge)
+    if (boss->y > height + 50) {
+        boss->y = -50;
+    }
+    if (boss->y < -50) {
+        boss->y = height + 50;
+    }
+    
     // Visual rotation
     boss->rotation += boss->rotation_speed * dt;
     if (boss->rotation >= 360.0) {
@@ -217,6 +229,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         // Auto-advance to Phase 1 after phase duration
         if (boss->phase_timer >= boss->phase_duration) {
             fprintf(stdout, "[STAR VORTEX] Phase 0 complete. Entering Phase 1 (Juggernaut spawn)\n");
+            comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "PHASE 1: OFFENSIVE!", 1.0, 1.0, 0.0);
             boss->phase = 1;
             boss->phase_timer = 0;
             boss->burst_angle_offset = 0;
@@ -237,6 +250,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         // Spawn juggernauts periodically
         boss->fire_pattern_timer += dt;
         if (boss->fire_pattern_timer >= 3.0) {
+            comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "SPAWNING ESCORTS!", 1.0, 0.5, 1.0);
             star_vortex_spawn_juggernauts(game, width, height);
             boss->fire_pattern_timer = 0;
         }
@@ -251,6 +265,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         // Shoot bullets at nearby asteroids
         boss->burst_angle_offset += dt;
         if (boss->burst_angle_offset >= 0.4) {  // Fire bullets every 0.4 seconds
+            comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "SUPPRESSING THREATS!", 0.0, 1.0, 1.0);
             star_vortex_shoot_asteroids(game);
             boss->burst_angle_offset = 0;
         }
@@ -262,6 +277,16 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
     else if (boss->phase == 2) {
         // Display countdown (10, 9, 8, ...)
         int countdown = 10 - (int)boss->phase_timer;
+        
+        // Show initial phase 2 message when countdown is 10 (first second only)
+        if (countdown == 10) {
+            comet_buster_spawn_floating_text(game, boss->x, boss->y + 80, "CORE DESTABILIZING!", 1.0, 0.0, 0.0);
+        }
+        
+        // Make boss immortal during countdown
+        boss->health = 100;  // Keep health high
+        boss->shield_health = 100;  // Keep shield strong
+        boss->shield_active = true;  // Ensure shield stays active
         
         if (countdown >= 0 && countdown <= 10) {
             // Spin faster as countdown progresses
