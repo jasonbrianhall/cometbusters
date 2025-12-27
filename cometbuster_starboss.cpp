@@ -87,9 +87,9 @@ void comet_buster_spawn_star_vortex(CometBusterGame *game, int screen_width, int
     boss->phase_timer = 0;
     boss->phase_duration = 15.0;  // Each phase lasts ~15 seconds
     
-    // Visual rotation - fast spinning star
+    // Visual rotation - slower spinning star
     boss->rotation = 0;
-    boss->rotation_speed = 360.0;  // Full rotation per second (very fast)
+    boss->rotation_speed = 180.0;  // Half rotation per second (slower)
     
     // Star vortex specific fields using existing BossShip fields
     boss->damage_flash_timer = 0;
@@ -161,7 +161,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         boss->shoot_cooldown -= dt;
         if (boss->shoot_cooldown <= 0) {
             star_vortex_fire_missiles(game);
-            boss->shoot_cooldown = 0.7;  // Fire every 0.7 seconds
+            boss->shoot_cooldown = 1.2;  // Fire every 1.2 seconds (slower)
         }
     }
     
@@ -188,7 +188,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         boss->shoot_cooldown -= dt;
         if (boss->shoot_cooldown <= 0) {
             star_vortex_fire_missiles(game);
-            boss->shoot_cooldown = 1.5;  // Fire every 1.5 seconds (less than Phase 0)
+            boss->shoot_cooldown = 2.5;  // Fire every 2.5 seconds (much slower)
         }
     }
     
@@ -207,7 +207,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
             boss->shoot_cooldown -= dt;
             if (boss->shoot_cooldown <= 0) {
                 star_vortex_fire_missiles(game);
-                boss->shoot_cooldown = 0.4;  // Rapid fire
+                boss->shoot_cooldown = 0.8;  // Rapid fire (but slower than before)
             }
         }
         
@@ -420,8 +420,8 @@ void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     
     // Draw a 6-pointed star
     int num_points = 6;
-    double outer_radius = 30.0;
-    double inner_radius = 15.0;
+    double outer_radius = 50.0;  // Increased from 30.0
+    double inner_radius = 25.0;  // Increased from 15.0
     
     // Star color (shifts based on phase)
     double r = 1.0, g = 0.6, b = 0.0;  // Orange by default
@@ -498,4 +498,3 @@ void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
     cairo_stroke(cr);
 }
-
