@@ -530,6 +530,18 @@ gboolean on_high_score_dialog_delete(GtkWidget *widget, GdkEvent *event, gpointe
     return FALSE;
 }
 
+void on_high_score_dialog_skip(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    if (gui->high_score_dialog) {
+        gtk_widget_destroy(gui->high_score_dialog);
+        gui->high_score_dialog = NULL;
+    }
+    
+    gui->game_paused = false;
+}
+
 gboolean on_high_score_name_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return FALSE;
@@ -620,7 +632,7 @@ void on_show_high_score_entry(CometGUI *gui) {
     // Skip button
     GtkWidget *skip_button = gtk_button_new_with_label("Skip");
     g_signal_connect(skip_button, "clicked",
-                    G_CALLBACK(on_high_score_dialog_delete), gui);
+                    G_CALLBACK(on_high_score_dialog_skip), gui);
     gtk_container_add(GTK_CONTAINER(button_box), skip_button);
     
     gtk_widget_show_all(gui->high_score_dialog);
