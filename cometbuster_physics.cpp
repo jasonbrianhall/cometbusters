@@ -226,6 +226,35 @@ void comet_buster_update_comets(CometBusterGame *game, double dt, int width, int
     for (int i = 0; i < game->comet_count; i++) {
         Comet *c = &game->comets[i];
         
+        // ========== GRAVITY WELL EFFECT ==========
+        // If boss is active and pulling, affect comets within void radius
+        if (game->boss_active && game->boss.active && game->boss.gravity_pull_strength > 0) {
+            double dx = game->boss.x - c->x;
+            double dy = game->boss.y - c->y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            // Only apply gravity if comet is within void radius
+            if (dist < game->boss.void_radius && dist > 1.0) {
+                // Normalized direction toward boss
+                double dir_x = dx / dist;
+                double dir_y = dy / dist;
+                
+                // Gravitational acceleration (inverse square law, scaled)
+                // Strength decreases with distance squared
+                double gravity_accel = (game->boss.gravity_pull_strength * 10000.0) / (dist * dist);
+                
+                // Cap acceleration to prevent massive velocities near center
+                double max_gravity_accel = 500.0;  // Maximum acceleration per frame
+                if (gravity_accel > max_gravity_accel) {
+                    gravity_accel = max_gravity_accel;
+                }
+                
+                // Apply gravitational acceleration to comet velocity
+                c->vx += dir_x * gravity_accel * dt;
+                c->vy += dir_y * gravity_accel * dt;
+            }
+        }
+        
         // Update position
         c->x += c->vx * dt;
         c->y += c->vy * dt;
@@ -757,6 +786,35 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
             if (new_speed > 0.1) {
                 ship->vx = (ship->vx / new_speed) * base_speed;
                 ship->vy = (ship->vy / new_speed) * base_speed;
+            }
+        }
+        
+        // ========== GRAVITY WELL EFFECT ==========
+        // If boss is active and pulling, affect enemy ships within void radius
+        if (game->boss_active && game->boss.active && game->boss.gravity_pull_strength > 0) {
+            double dx = game->boss.x - ship->x;
+            double dy = game->boss.y - ship->y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            // Only apply gravity if ship is within void radius
+            if (dist < game->boss.void_radius && dist > 1.0) {
+                // Normalized direction toward boss
+                double dir_x = dx / dist;
+                double dir_y = dy / dist;
+                
+                // Gravitational acceleration (inverse square law, scaled)
+                // Strength decreases with distance squared
+                double gravity_accel = (game->boss.gravity_pull_strength * 10000.0) / (dist * dist);
+                
+                // Cap acceleration to prevent massive velocities near center
+                double max_gravity_accel = 400.0;  // Slightly lower than comets
+                if (gravity_accel > max_gravity_accel) {
+                    gravity_accel = max_gravity_accel;
+                }
+                
+                // Apply gravitational acceleration to ship velocity
+                ship->vx += dir_x * gravity_accel * dt;
+                ship->vy += dir_y * gravity_accel * dt;
             }
         }
         
@@ -2196,6 +2254,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             // Check missile-boss collisions
             for (int j = 0; j < game->missile_count; j++) {
                 // Skip missiles fired by the boss itself (owner_ship_id == -3)
+                // Player missiles (-1) and enemy missiles (0+) should hit the boss
                 if (game->missiles[j].owner_ship_id == -3) continue;
                 
                 if (comet_buster_check_missile_boss(&game->missiles[j], &game->boss)) {

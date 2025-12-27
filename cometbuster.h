@@ -223,6 +223,10 @@ typedef struct {
     int bomb_count;                 // Number of active bouncing bombs
     int bomb_spawned_this_phase;    // Track bombs created in current phase
     double beam_angle_offset;       // For variety in beam attacks
+    
+    // GRAVITY WELL SYSTEM (SINGULARITY BOSS)
+    double void_radius;              // Radius of gravitational pull (expands in later phases)
+    double gravity_pull_strength;    // How strong the gravitational pull is per phase
 } BossShip;
 
 // Spawn Queen (Mothership) structure - spawns Red and Sentinel ships on waves 10, 20, 30, etc.
