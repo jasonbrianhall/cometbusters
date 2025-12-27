@@ -1574,13 +1574,13 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     } else if (game->boss_active && game->boss.active) {
         // Route to correct boss based on wave
         if (game->current_wave % 30 == 5) {
-            comet_buster_update_boss(game, dt, width, height);        // Death Star (wave 5, 25, 45, etc)
+            comet_buster_update_boss(game, dt, width, height);        // Death Star (wave 5, 35, 65, etc)
         } else if (game->current_wave % 30 == 15) {
-            comet_buster_update_void_nexus(game, dt, width, height);  // Void Nexus (wave 15, 35, 55, etc)
-        } else if (game->current_wave % 30 == 0) {
-            comet_buster_update_harbinger(game, dt, width, height);   // Harbinger (wave 20, 40, 60, etc)
-        }  else if (game->current_wave % 30 == 0) {
-            comet_buster_update_harbinger(game, dt, width, height);   // Harbinger (wave 20, 40, 60, etc)
+            comet_buster_update_void_nexus(game, dt, width, height);  // Void Nexus (wave 15, 45, 75, etc)
+        } else if (game->current_wave % 30 == 20) {
+            comet_buster_update_harbinger(game, dt, width, height);   // Harbinger (wave 20, 50, 80, etc)
+        } else if (game->current_wave % 30 == 25) {
+            comet_buster_update_star_vortex(game, dt, width, height); // Star Vortex (wave 25, 55, 85, etc)
         }
     } 
     
@@ -2122,6 +2122,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             
             // Check missile-boss collisions
             for (int j = 0; j < game->missile_count; j++) {
+                // Skip missiles fired by the boss itself (owner_ship_id == -3)
+                if (game->missiles[j].owner_ship_id == -3) continue;
+                
                 if (comet_buster_check_missile_boss(&game->missiles[j], &game->boss)) {
                     game->missiles[j].active = false;
                     
