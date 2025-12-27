@@ -1181,6 +1181,73 @@ void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width,
     // ========== CHECK IF BOSS IS DEFEATED ==========
     if (boss->health <= 0) {
         fprintf(stdout, "[VOID NEXUS] Void Nexus destroyed!\n");
+        
+        // Spectacular crystalline explosion
+        comet_buster_spawn_explosion(game, boss->x, boss->y, 2, 100);  // Treble frequency, lots of particles
+        
+        // Additional secondary explosions around the fragments
+        for (int i = 0; i < boss->fragment_count; i++) {
+            comet_buster_spawn_explosion(game, boss->fragment_positions[i][0], 
+                                        boss->fragment_positions[i][1], 2, 40);
+        }
+        
+        // EXPLODE INTO SCATTERING COMETS
+        // Spawn 15 small comets that fly away at high velocity in all directions
+        int num_shards = 15;
+        for (int i = 0; i < num_shards; i++) {
+            if (game->comet_count >= MAX_COMETS) break;
+            
+            int slot = game->comet_count;
+            Comet *shard = &game->comets[slot];
+            memset(shard, 0, sizeof(Comet));
+            
+            // Position at boss center with small random offset
+            shard->x = boss->x + (rand() % 40 - 20);
+            shard->y = boss->y + (rand() % 40 - 20);
+            
+            // High velocity in random direction (360 degrees)
+            double angle = (i * 360.0 / num_shards) * M_PI / 180.0;
+            angle += (rand() % 30 - 15) * M_PI / 180.0;  // Add random variation
+            double speed = 350.0 + (rand() % 200);  // 350-550 pixels/sec - VERY FAST
+            
+            shard->vx = cos(angle) * speed;
+            shard->vy = sin(angle) * speed;
+            
+            // Small crystalline fragments
+            shard->size = COMET_SMALL;
+            shard->radius = 8;
+            shard->frequency_band = 2;  // Treble (cyan color)
+            shard->rotation = 0;
+            shard->rotation_speed = 200 + (rand() % 300);  // Fast spinning
+            shard->active = true;
+            shard->health = 1;
+            shard->base_angle = (rand() % 360) * (M_PI / 180.0);
+            
+            // Cyan color for crystalline look
+            shard->color[0] = 0.2 + (rand() % 100) / 500.0;
+            shard->color[1] = 0.8 + (rand() % 100) / 500.0;
+            shard->color[2] = 1.0;
+            
+            game->comet_count++;
+        }
+        
+        // Death messages
+        comet_buster_spawn_floating_text(game, boss->x, boss->y - 50, "NEXUS SHATTERED", 0.2, 0.8, 1.0);
+        comet_buster_spawn_floating_text(game, boss->x, boss->y, "CRYSTALLINE COLLAPSE", 0.0, 1.0, 1.0);
+        
+        // Score reward
+        int base_score = 1500;
+        int wave_bonus = game->current_wave * 150;
+        int total_score = base_score + wave_bonus;
+        
+        if (game->score_multiplier >= 4.0) {
+            total_score += 750;
+            comet_buster_spawn_floating_text(game, boss->x, boss->y + 50, "PERFECT DESTRUCTION!", 1.0, 1.0, 0.0);
+        }
+        
+        game->score += total_score;
+        fprintf(stdout, "[VOID NEXUS] Score awarded: %d\n", total_score);
+        
         boss->active = false;
         game->boss_active = false;
     }
