@@ -2113,9 +2113,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
 #endif
                     }
                     
-                    if (game->boss.health <= 0) {
-                        comet_buster_destroy_boss(game, width, height, visualizer);
-                    }
+                    // Don't destroy boss here - let starboss update handle phase transitions
                     break;
                 }
             }
@@ -2156,9 +2154,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
 #endif
                     }
                     
-                    if (game->boss.health <= 0) {
-                        comet_buster_destroy_boss(game, width, height, visualizer);
-                    }
+                    // Don't destroy boss here - let starboss update handle phase transitions
                     break;
                 }
             }

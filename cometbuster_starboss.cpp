@@ -110,6 +110,9 @@ void comet_buster_spawn_star_vortex(CometBusterGame *game, int screen_width, int
 // UPDATE & PHYSICS
 // ============================================================================
 
+// Forward declarations
+static void star_vortex_shoot_asteroids(CometBusterGame *game);
+
 void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width, int height) {
     if (!game || !game->boss_active) return;
     
@@ -119,22 +122,87 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         return;
     }
     
-    // Movement: constant horizontal drift across screen
-    boss->x += boss->vx * dt;
-    boss->y += boss->vy * dt;
+    // Phase management timer
+    boss->phase_timer += dt;
     
-    // Wrap around: if boss goes off-screen right, wrap to left (for loop behavior)
-    if (boss->x > width + 100) {
-        boss->x = -100;
-    }
-    if (boss->x < -100) {
-        boss->x = width + 100;
+    // Check if boss health reached zero in ANY phase before Phase 2 - transition to Phase 2
+    if (boss->health <= 0 && boss->phase < 2) {
+        fprintf(stdout, "[STAR VORTEX] Boss health reached zero! Entering Phase 2 (10 Second Countdown)\n");
+        boss->phase = 2;
+        boss->phase_timer = 0;
+        boss->burst_angle_offset = 0;
+        boss->health = 1;  // Make immortal during countdown
     }
     
-    // Visual rotation (fast spinning)
+    // During Phase 2 (countdown), boss becomes immortal
+    if (boss->phase == 2) {
+        boss->health = 1;  // Keep health at 1 so it never dies early
+    }
+    // During Phase 1, keep health at minimum 3 to preserve remaining structure
+    else if (boss->phase == 1 && boss->health > 0 && boss->health < 3) {
+        boss->health = 3;  // Clamp to 3 (but don't interfere with death trigger above)
+    }
+    
+    // ==========================================================================
+    // INTELLIGENT MOVEMENT
+    // ==========================================================================
+    
+    if (boss->phase == 2) {
+        // Phase 2: Move toward screen center for dramatic effect
+        double target_x = width / 2.0;
+        double move_speed = 50.0;
+        
+        if (boss->x < target_x - 5) {
+            boss->x += move_speed * dt;
+        } else if (boss->x > target_x + 5) {
+            boss->x -= move_speed * dt;
+        }
+    } else {
+        // Phases 0-1: Intelligent movement with asteroid avoidance
+        double desired_x = boss->x + boss->vx * dt;
+        double desired_y = boss->y + boss->vy * dt;
+        double avoidance_x = 0;
+        double avoidance_y = 0;
+        double avoidance_strength = 300.0;
+        
+        // Scan for nearby asteroids and avoid them
+        for (int i = 0; i < game->comet_count; i++) {
+            Comet *comet = &game->comets[i];
+            if (!comet->active) continue;
+            
+            double dx = comet->x - boss->x;
+            double dy = comet->y - boss->y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            // Avoid asteroids within 150 pixels
+            if (dist < 150.0 && dist > 0.1) {
+                // Move away from this asteroid
+                double avoid_dx = -dx / dist;
+                double avoid_dy = -dy / dist;
+                double threat_level = 1.0 - (dist / 150.0);  // 0 to 1
+                
+                avoidance_x += avoid_dx * avoidance_strength * threat_level * dt;
+                avoidance_y += avoid_dy * avoidance_strength * threat_level * dt;
+            }
+        }
+        
+        // Apply movement with avoidance
+        boss->x += boss->vx * dt + avoidance_x;
+        boss->y += boss->vy * dt + avoidance_y;
+    }
+    
+    // Wrap around horizontally (wrap sooner to prevent rendering at edge)
+    if (boss->x > width + 50) {
+        boss->x = -50;
+    }
+    if (boss->x < -50) {
+        boss->x = width + 50;
+    }
+    
+    // Visual rotation
     boss->rotation += boss->rotation_speed * dt;
     if (boss->rotation >= 360.0) {
-        boss->rotation -= 360.0;  // Keep rotation in 0-360 range for optimization
+        boss->rotation -= 360.0;
     }
     
     // Update damage flash
@@ -142,15 +210,12 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         boss->damage_flash_timer -= dt;
     }
     
-    // Phase management
-    boss->phase_timer += dt;
-    
     // ==========================================================================
     // PHASE 0: Normal - Shooting missiles at player
     // ==========================================================================
     if (boss->phase == 0) {
+        // Auto-advance to Phase 1 after phase duration
         if (boss->phase_timer >= boss->phase_duration) {
-            // Transition to Phase 1
             fprintf(stdout, "[STAR VORTEX] Phase 0 complete. Entering Phase 1 (Juggernaut spawn)\n");
             boss->phase = 1;
             boss->phase_timer = 0;
@@ -161,39 +226,38 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         boss->shoot_cooldown -= dt;
         if (boss->shoot_cooldown <= 0) {
             star_vortex_fire_missiles(game);
-            boss->shoot_cooldown = 1.2;  // Fire every 1.2 seconds (slower)
+            boss->shoot_cooldown = 1.2;
         }
     }
     
     // ==========================================================================
-    // PHASE 1: Juggernaut Spawn - Enemy ships spawn, boss shoots less
+    // PHASE 1: Juggernaut Spawn - shoot at asteroids and player
     // ==========================================================================
     else if (boss->phase == 1) {
-        if (boss->phase_timer >= boss->phase_duration) {
-            // Transition to Phase 2
-            fprintf(stdout, "[STAR VORTEX] Phase 1 complete. Entering Phase 2 (Final Explosion)\n");
-            boss->phase = 2;
-            boss->phase_timer = 0;
-            boss->burst_angle_offset = 0;
-        }
-        
-        // Spawn juggernauts periodically from four corners
+        // Spawn juggernauts periodically
         boss->fire_pattern_timer += dt;
-        if (boss->fire_pattern_timer >= 3.0) {  // Spawn every 3 seconds
+        if (boss->fire_pattern_timer >= 3.0) {
             star_vortex_spawn_juggernauts(game, width, height);
             boss->fire_pattern_timer = 0;
         }
         
-        // Still shoot missiles but less frequently
+        // Shoot missiles at player
         boss->shoot_cooldown -= dt;
         if (boss->shoot_cooldown <= 0) {
             star_vortex_fire_missiles(game);
-            boss->shoot_cooldown = 2.5;  // Fire every 2.5 seconds (much slower)
+            boss->shoot_cooldown = 2.5;
+        }
+        
+        // Shoot bullets at nearby asteroids
+        boss->burst_angle_offset += dt;
+        if (boss->burst_angle_offset >= 0.4) {  // Fire bullets every 0.4 seconds
+            star_vortex_shoot_asteroids(game);
+            boss->burst_angle_offset = 0;
         }
     }
     
     // ==========================================================================
-    // PHASE 2: Final Countdown - Countdown timer then massive explosion
+    // PHASE 2: Final Countdown - Visual 10 second countdown then massive explosion
     // ==========================================================================
     else if (boss->phase == 2) {
         // Display countdown (10, 9, 8, ...)
@@ -297,6 +361,47 @@ bool star_vortex_handle_comet_collision(CometBusterGame *game, Comet *comet,
 }
 
 // ============================================================================
+// ASTEROID SHOOTING
+// ============================================================================
+
+static void star_vortex_shoot_asteroids(CometBusterGame *game) {
+    if (!game || !game->boss_active) return;
+    
+    BossShip *boss = &game->boss;
+    if (!boss->active) return;
+    
+    // Find nearest asteroids and shoot at them
+    int targets_shot = 0;
+    int max_targets = 2;  // Shoot at up to 2 asteroids per volley
+    
+    for (int i = 0; i < game->comet_count && targets_shot < max_targets; i++) {
+        Comet *comet = &game->comets[i];
+        if (!comet->active) continue;
+        
+        double dx = comet->x - boss->x;
+        double dy = comet->y - boss->y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        // Only shoot at asteroids within 400 pixels
+        if (dist < 400.0 && dist > 10.0) {
+            double angle = atan2(dy, dx);
+            double bullet_speed = 250.0;
+            double vx = cos(angle) * bullet_speed;
+            double vy = sin(angle) * bullet_speed;
+            
+            // Spawn bullet from star point (same as missiles)
+            double star_point_angle = (boss->rotation * M_PI / 180.0) + (targets_shot * M_PI / 3.0);
+            double spawn_x = boss->x + cos(star_point_angle) * 50.0;
+            double spawn_y = boss->y + sin(star_point_angle) * 50.0;
+            
+            // Spawn as enemy bullet with boss as owner
+            comet_buster_spawn_enemy_bullet_from_ship(game, spawn_x, spawn_y, vx, vy, -3);
+            targets_shot++;
+        }
+    }
+}
+
+// ============================================================================
 // FIRING PATTERNS
 // ============================================================================
 
@@ -318,13 +423,22 @@ void star_vortex_fire_missiles(CometBusterGame *game) {
     double start_angle = angle_to_player - angle_spread / 2.0;
     
     double missile_speed = 200.0;
+    double star_radius = 50.0;  // Matches the outer radius of the star
     
     for (int i = 0; i < num_missiles; i++) {
+        // Calculate missile angle
         double angle = start_angle + (angle_spread / (num_missiles - 1)) * i;
         double vx = cos(angle) * missile_speed;
         double vy = sin(angle) * missile_speed;
         
-        star_vortex_spawn_missile(game, boss->x, boss->y, vx, vy, -3);  // -3 = star vortex boss
+        // Spawn from star point (alternate between outer points)
+        // 6-pointed star = 60 degree spacing between points
+        // Rotate based on star's current rotation so missiles come from different points
+        double star_point_angle = (boss->rotation * M_PI / 180.0) + (i * M_PI / 3.0);  // 60 degrees apart
+        double spawn_x = boss->x + cos(star_point_angle) * star_radius;
+        double spawn_y = boss->y + sin(star_point_angle) * star_radius;
+        
+        star_vortex_spawn_missile(game, spawn_x, spawn_y, vx, vy, -3);  // -3 = star vortex boss
     }
 }
 
@@ -497,4 +611,41 @@ void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     cairo_set_line_width(cr, 1.0);
     cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
     cairo_stroke(cr);
+    
+    // Draw countdown timer during Phase 2
+    if (boss->phase == 2) {
+        int countdown = 10 - (int)boss->phase_timer;
+        if (countdown < 0) countdown = 0;
+        if (countdown > 10) countdown = 10;
+        
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size(cr, 48.0);
+        
+        // Countdown color changes: red for most of it, yellow at end
+        double r = 1.0, g = 0.0, b = 0.0;  // Red by default
+        if (countdown <= 3) {
+            r = 1.0; g = 1.0; b = 0.0;  // Yellow for final 3 seconds
+        }
+        cairo_set_source_rgb(cr, r, g, b);
+        
+        char countdown_text[16];
+        snprintf(countdown_text, sizeof(countdown_text), "%d", countdown);
+        
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, countdown_text, &extents);
+        
+        // Center the countdown text above the boss
+        double text_x = boss->x - extents.width / 2.0;
+        double text_y = boss->y - 80.0;
+        
+        cairo_move_to(cr, text_x, text_y);
+        cairo_show_text(cr, countdown_text);
+        
+        // Add glow effect
+        cairo_set_source_rgba(cr, r, g, b, 0.3);
+        cairo_set_line_width(cr, 3.0);
+        cairo_move_to(cr, text_x, text_y);
+        cairo_show_text(cr, countdown_text);
+        cairo_stroke(cr);
+    }
 }
