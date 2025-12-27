@@ -1640,12 +1640,14 @@ void on_cheat_boss_level_selector(GtkWidget *widget, gpointer data) {
     
     // Create combo box
     GtkWidget *combo_box = gtk_combo_box_text_new();
+
+    static const char *bossTypes[] = { "Death Star", "Spawn Queen", "Void Nexus", "Harbinger", "Star Boss", "The Ultimate Boss" };
     
     // Add boss level options: 5, 10, 15, 20, 25, 30
     int boss_levels[] = {5, 10, 15, 20, 25, 30};
     for (int i = 0; i < 6; i++) {
         char level_text[32];
-        snprintf(level_text, sizeof(level_text), "Level %d", boss_levels[i]);
+        snprintf(level_text, sizeof(level_text), "Level %d: %s", boss_levels[i], bossTypes[i]);
         gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_box), NULL, level_text);
     }
     

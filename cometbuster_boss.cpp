@@ -1575,6 +1575,22 @@ void draw_void_nexus_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     cairo_set_line_width(cr, 1.0);
     cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
     cairo_stroke(cr);
+    
+    // Phase indicator dialog (below health bar)
+    cairo_set_source_rgb(cr, 0.2, 0.8, 1.0);  // Cyan color
+    cairo_set_font_size(cr, 12);
+    cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    
+    const char *phase_text = "";
+    switch (boss->phase) {
+        case 0: phase_text = "STABILIZING"; break;
+        case 1: phase_text = "FRAGMENTING"; break;
+        case 2: phase_text = "DISPERSING"; break;
+        default: phase_text = "UNKNOWN"; break;
+    }
+    
+    cairo_move_to(cr, boss->x - 40, boss->y + 50);
+    cairo_show_text(cr, phase_text);
 }
 
 void comet_buster_spawn_harbinger(CometBusterGame *game, int screen_width, int screen_height) {
