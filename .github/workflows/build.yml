@@ -164,7 +164,7 @@ jobs:
         # Generate component entries for all DLLs
         $dllEntries = Get-ChildItem -Name "*.dll" | ForEach-Object {
           $safeId = $_ -replace '[^a-zA-Z0-9]', '_'
-          "          <File Id=`"$safeId`" Name=`"$_`" Source=`"$_`"/>"
+          "                <File Id=`"$safeId`" Name=`"$_`" Source=`"$_`"/>"
         }
         
         # Create advanced WXS installer
@@ -201,7 +201,6 @@ jobs:
               <ComponentRef Id="CometBusterExecutable" />
               <ComponentRef Id="ApplicationShortcut" />
               <ComponentRef Id="DesktopShortcut" />
-              <ComponentRef Id="DependencyComponent" />
             </Feature>
             
             <!-- Directory structure -->
@@ -215,9 +214,10 @@ jobs:
               <Directory Id="DesktopFolder" Name="Desktop" />
             </Directory>
             
-            <!-- Main executable component -->
+            <!-- Main executable and all DLL dependencies in one component -->
+            <!-- FIXED: Using hardcoded GUID instead of auto-generated (*) to support multiple files -->
             <DirectoryRef Id="INSTALLFOLDER">
-              <Component Id="CometBusterExecutable" Guid="*">
+              <Component Id="CometBusterExecutable" Guid="E5D4C8B7-9F2A-4C3D-8E1F-5A6B7C8D9E0F">
                 <File Id="CometBusterEXE" Name="cometbuster.exe" Source="cometbuster.exe" KeyPath="yes">
                   <Shortcut Id="CometBusterStartMenuShortcut"
                             Directory="ApplicationProgramsFolder"
@@ -227,19 +227,15 @@ jobs:
                             IconIndex="0" />
                 </File>
                 <RegistryValue Root="HKCU" Key="Software\Comet Buster" Name="installed" Type="integer" Value="1" KeyPath="no" />
-              </Component>
-            </DirectoryRef>
-            
-            <!-- DLL dependencies component -->
-            <DirectoryRef Id="INSTALLFOLDER">
-              <Component Id="DependencyComponent" Guid="*">
-                $dllEntries
+                
+                <!-- DLL dependencies - all in one component with executable as KeyPath -->
+                $($dllEntries -join "`r`n")
               </Component>
             </DirectoryRef>
             
             <!-- Start Menu shortcut -->
             <DirectoryRef Id="ApplicationProgramsFolder">
-              <Component Id="ApplicationShortcut" Guid="*">
+              <Component Id="ApplicationShortcut" Guid="A0B1C2D3-E4F5-4D6E-9F0A-7B8C9D0E1F2A">
                 <RemoveFolder Id="ApplicationProgramsFolderRemove" On="uninstall" />
                 <RegistryValue Root="HKCU" Key="Software\Comet Buster\Shortcuts" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
               </Component>
@@ -247,7 +243,7 @@ jobs:
             
             <!-- Desktop shortcut component (optional) -->
             <DirectoryRef Id="DesktopFolder">
-              <Component Id="DesktopShortcut" Guid="*">
+              <Component Id="DesktopShortcut" Guid="B1C2D3E4-F5A6-4E7F-0A1B-8C9D0E1F2A3B">
                 <Condition>DESKTOP_SHORTCUT=1</Condition>
                 <Shortcut Id="DesktopShortcutCometBuster"
                           Directory="DesktopFolder"
