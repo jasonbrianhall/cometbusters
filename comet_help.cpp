@@ -107,7 +107,6 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     
     GtkWidget *gameplay_label = gtk_label_new(
         "• Destroy waves of comets and enemy ships while dodging attacks\n"
-        "• Audio-reactive gameplay that syncs with your music\n"
         "• Progressive difficulty levels with escalating challenges\n"
         "• Epic boss battles with unique attack patterns\n"
         "• Score tracking and persistent high score table\n"
@@ -129,7 +128,7 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     
     GtkWidget *features_label = gtk_label_new(
         "• Full-screen and windowed rendering modes\n"
-        "• Gamepad and keyboard support\n"
+        "• Gamepad, mouse, and keyboard support\n"
         "• Seamless audio integration with visualization\n"
         "• Smooth 60 FPS gameplay performance\n"
         "• Cross-platform compatibility (Windows, Linux, and theoretically macOS [untested])");
