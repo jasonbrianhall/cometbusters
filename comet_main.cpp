@@ -23,11 +23,6 @@
 #include "audio_wad.h"
 #include "comet_help.cpp"
 
-#ifndef M_PI
-#define M_PI 3.1415926535
-#endif
-
-
 #ifdef _WIN32
 std::string getExecutableDir() { 
     char buffer[MAX_PATH]; 

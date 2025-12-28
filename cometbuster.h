@@ -16,6 +16,12 @@
 #define MAX_MISSILE_PICKUPS 16
 #define MAX_HIGH_SCORES 25
 
+
+#ifndef M_PI
+#define M_PI 3.1415926535
+#endif
+
+
 typedef enum {
     COMET_SMALL = 0,
     COMET_MEDIUM = 1,
