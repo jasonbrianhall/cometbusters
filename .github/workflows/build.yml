@@ -79,6 +79,16 @@ jobs:
         # Copy PNG icon
         cp ../../icon.png . 2>/dev/null || true
         
+        # Copy WAD file from repo root (game assets with sound)
+        if [ -f "../../cometbuster.wad" ]; then
+          cp ../../cometbuster.wad .
+          echo "✅ Copied cometbuster.wad"
+        else
+          echo "⚠️  Warning: cometbuster.wad not found at repo root"
+          # Search for it in case it's elsewhere
+          find ../.. -name "cometbuster.wad" -type f 2>/dev/null | head -1 | xargs -I {} cp {} . 2>/dev/null || true
+        fi
+        
         # Copy DLLs explicitly
         DLL_SOURCE="/usr/x86_64-w64-mingw32/sys-root/mingw/bin"
         
@@ -95,6 +105,7 @@ jobs:
         echo "Creating file inventory..."
         find . -name "*.dll" -type f | sort > dll_list.txt
         find . -name "*.exe" -type f | sort > exe_list.txt
+        find . -name "*.wad" -type f | sort > wad_list.txt
         
         # Create portable ZIP
         zip -r ../../CometBuster-GTK-Portable.zip ./*
@@ -167,6 +178,15 @@ jobs:
           "                <File Id=`"$safeId`" Name=`"$_`" Source=`"$_`"/>"
         }
         
+        # Generate WAD file entry if it exists
+        $wadEntry = ""
+        if (Test-Path "cometbuster.wad") {
+          $wadEntry = "                `n                <!-- Game assets -->`n                <File Id=`"CometBusterWAD`" Name=`"cometbuster.wad`" Source=`"cometbuster.wad`" />`n"
+          Write-Host "✅ WAD file found and will be included"
+        } else {
+          Write-Host "⚠️  Warning: cometbuster.wad not found"
+        }
+        
         # Create advanced WXS installer
         @"
         <?xml version="1.0" encoding="UTF-8"?>
@@ -219,7 +239,7 @@ jobs:
             <DirectoryRef Id="INSTALLFOLDER">
               <Component Id="CometBusterExecutable" Guid="E5D4C8B7-9F2A-4C3D-8E1F-5A6B7C8D9E0F" Win64="no">
                 <File Id="CometBusterEXE" Name="cometbuster.exe" Source="cometbuster.exe" />
-                
+                $wadEntry
                 <!-- DLL dependencies -->
                 $($dllEntries -join "`r`n")
                 
@@ -359,14 +379,18 @@ jobs:
         mkdir -p "msix-package/Assets"
         mkdir -p "msix-package/Files"
         
-        # Copy executable and DLLs
+        # Copy executable, DLLs, and all assets from extracted source
         Copy-Item "msix-source/*" -Destination "msix-package/Files/" -Recurse -Force
         
-        # Copy or create icon for MSIX (resize if needed)
+        # Copy or create icon for MSIX
         if (Test-Path "msix-source/icon.png") {
           Copy-Item "msix-source/icon.png" "msix-package/Assets/CometBusterLogo.scale-100.png"
           Copy-Item "msix-source/icon.png" "msix-package/Assets/CometBuster44x44.scale-100.png"
         }
+        
+        # Verify files
+        Write-Host "📦 MSIX package contents:"
+        Get-ChildItem "msix-package/Files/" -File | ForEach-Object { Write-Host "  - $_" }
 
     - name: Create MSIX Manifest
       working-directory: msix-package
