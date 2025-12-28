@@ -2236,6 +2236,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                     } else {
                         // No shield - full damage
                         game->boss.health -= 2;  // Double damage when no shield
+                        if(game->boss.health <0) { game->boss.health = 0; }
+
                         game->boss.damage_flash_timer = 0.1;
                         game->consecutive_hits++;
                         
@@ -2264,10 +2266,10 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                     
                     if (shield_active) {
                         game->boss.shield_health -= 2;
+                        if (game->boss.shield_health < 0) { game->boss.shield_health = 0; }
                         game->boss.shield_impact_timer = 0.2;
                         game->boss.shield_impact_angle = atan2(game->boss.y - game->missiles[j].y,
                                                                game->boss.x - game->missiles[j].x);
-                        game->boss.health -= 2;
                         game->boss.damage_flash_timer = 0.1;
                         game->consecutive_hits++;
                         
@@ -2278,6 +2280,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
 #endif
                     } else {
                         game->boss.health -= 4;
+                        if(game->boss.health <0) { game->boss.health = 0; }
                         game->boss.damage_flash_timer = 0.1;
                         game->consecutive_hits++;
                         
@@ -2588,7 +2591,11 @@ MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, doubl
     for (int i = 0; i < game->enemy_ship_count; i++) {
         EnemyShip *ship = &game->enemy_ships[i];
         if (!ship->active) continue;
-        
+    
+    
+       // SKIP BLUE SHIPS (type 0) - they're allies, not threats
+        if (ship->ship_type == 0) continue;
+
         double dx = ship->x - x;
         double dy = ship->y - y;
         double dist = sqrt(dx*dx + dy*dy);
@@ -2665,6 +2672,11 @@ MissileTarget comet_buster_find_best_anti_asteroid_target(CometBusterGame *game,
     for (int i = 0; i < game->enemy_ship_count; i++) {
         EnemyShip *ship = &game->enemy_ships[i];
         if (!ship->active) continue;
+
+       // SKIP BLUE SHIPS (type 0) - they're allies, not threats
+        if (ship->ship_type == 0) continue;
+
+
         
         double dx = ship->x - x;
         double dy = ship->y - y;
@@ -2839,6 +2851,7 @@ MissileTarget comet_buster_find_comet_in_distance_range(CometBusterGame *game, d
 //   % 5 == 3: Preferred distance (comets ~400px away)
 //   % 5 == 4: Distance range (comets 200-600px away)
 //   % 5 == 0: Furthest comet within range
+
 void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
     if (!game || game->missile_count >= MAX_MISSILES) return;
     if (game->missile_ammo <= 0) return;
