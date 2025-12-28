@@ -716,7 +716,9 @@ cometbuster/
 ├── joystick.cpp               # Gamepad/joystick support
 ├── visualization.h            # Display structures
 ├── createwad.py               # WAD file creator tool
+├── miniz*                     # MINIZ zip support (https://github.com/richgel999/miniz)
 └── cometbuster_readme.md      # Original narrative README
+
 ```
 
 ---
