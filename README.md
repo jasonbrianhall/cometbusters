@@ -217,7 +217,7 @@ And the fact that you're in this field at all might be exactly where they want y
 - Rapid-fire targeting system
 - Click or use keyboard to shoot
 - Unlimited ammo (because you're not a quitter)
-- Spread pattern for hitting multiple targets
+- Fast bullet firing and shoots straight
 
 **Boost Thrusters**
 - 2.5x speed multiplier
@@ -237,12 +237,13 @@ And the fact that you're in this field at all might be exactly where they want y
   - **Passive Generation**: When energy reaches 100 (full), missiles slowly load into the Destiny
 - **Generation Rate (when energy = 100)**:
   - **Easy**: 5 missiles/second (max 200 missiles)
-  - **Medium**: 2.5 missiles/second (max 100 missiles)  
+  - **Medium**: 2.5 missiles/second (max 100 missiles)
   - **Hard**: 1.25 missiles/second (max 25 missiles)
 - **Auto-Toggle**: First missile acquisition automatically switches to missile mode
 - **Manual Toggle**: Press Q to switch between bullets and missiles anytime
 - **Usage**: Each missile fired costs 1 ammo
 - **Strategic Note**: Best enemies to hunt for pickups are Red and Green ships; maintain full energy for consistent passive generation
+- **Missile Aiming**: Multiple types of missiles are loaded.  Some aim for ships, some aim for the nearest comet, some aim for the furthest or the middlest.  Don't be surprised when your missile hits something you weren't aiming for.
 
 ### Survival Systems
 
@@ -259,7 +260,7 @@ And the fact that you're in this field at all might be exactly where they want y
 
 **Invulnerability Frames**
 - 2-3 seconds of protection after taking damage
-- Flash white to indicate active status
+- Flash to indicate active status
 - Gives you time to escape and reorganize
 
 ### Scoring System
@@ -272,10 +273,11 @@ And the fact that you're in this field at all might be exactly where they want y
 
 **Score Multiplier**
 - Starts at 1.0x
-- Increases with consecutive hits
+- Increases with hits
 - Maximum of 5.0x multiplier
 - **Resets to 1.0x when you take damage**
 - Building multiplier is high-risk/high-reward
+- Finishing a wave gives you points
 
 **Life Milestones**
 - Extra life every 100,000 points
@@ -438,10 +440,16 @@ Each wave gets exponentially harder:
 - Boss fights are the main event
 - One mistake can cascade into game-over
 
+**Boss Waves**
+- Spawn every fifth wave
+- Different boss every wave
+- Bosses reset after 6 bosses (boss on wave 5 is the same as boss on wave 35)
+
 ### Energy & Missile Strategy
 
 **The Core Systems**:
 - **Energy**: Fuel for boost thrusters (recharges at 10/sec when idle, burns at 25/sec when boosting)
+  1.  Pickups from destroyed enemy ships (10% chance; +1 shield)
 - **Missiles**: Acquired two ways:
   1. Pickups from destroyed enemy ships (+20 per pickup)
   2. Passive generation when energy = 100 (rates vary by difficulty)
@@ -557,8 +565,11 @@ sudo apt-get install libgtk-3-dev libcairo2-dev libsdl2-dev libsdl2-mixer-dev bu
 # Fedora/RHEL
 sudo dnf install gtk3-devel cairo-devel SDL2-devel SDL2_mixer-devel gcc gcc-c++ make
 
-# macOS (with Homebrew)
+# macOS (with Homebrew) [completely untested]
 brew install gtk+3 cairo sdl2 sdl2_mixer
+
+# mingw on Fedora (adjust as needed)
+sudo dnf install mingw64-gcc mingw64-gcc-c++ mingw64-gtk3 mingw64-gtkmm30 mingw64-SDL2 mingw64-SDL2_mixer
 ```
 
 ### Building
@@ -579,7 +590,7 @@ make windows
 # Run (Windows with MinGW - after copying build directory to Windows)
 cd build/windows 
 (copy to windows all the DLLs and exe)
-cometbuster.exe (on windwos)
+cometbuster.exe (on windows)
 
 ```
 
@@ -716,7 +727,7 @@ cometbuster/
 ├── joystick.cpp               # Gamepad/joystick support
 ├── visualization.h            # Display structures
 ├── createwad.py               # WAD file creator tool
-├── miniz*                     # MINIZ zip support (https://github.com/richgel999/miniz)
+├── miniz*                     # MINIZ zip support (https://github.com/richgel999/miniz); thank you MINIZ team
 └── cometbuster_readme.md      # Original narrative README
 
 ```
