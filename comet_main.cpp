@@ -10,13 +10,25 @@
 #include "comet_help.cpp"
 
 #ifdef _WIN32
-    #include <windows.h>
+    #include <direct.h>
+    #include <windows.h>  // For Sleep function on Windows
     #include <shlobj.h>
+    #include <appmodel.h>
+    #include <vector>
 #else
     #include <unistd.h>
     #include <sys/stat.h>
     #include <sys/types.h>
     #include <signal.h>
+#endif
+
+#ifdef _WIN32
+std::string getExecutableDir() { 
+    char buffer[MAX_PATH]; 
+    GetModuleFileNameA(NULL, buffer, MAX_PATH); 
+    std::string path(buffer); size_t pos = path.find_last_of("\\/"); 
+    return (pos == std::string::npos) ? "." : path.substr(0, pos); 
+}
 #endif
 
 typedef struct {
@@ -2149,10 +2161,16 @@ int main(int argc, char *argv[]) {
     }
     
     // Try to load WAD file with sounds
+#ifdef _WIN32
+    if (!audio_load_wad(&gui.audio, getExecutableDir() + "\\cometbuster.wad")) {
+        fprintf(stderr, "Warning: Could not load cometbuster.wad, sounds will be silent\n");
+    }
+#else
     if (!audio_load_wad(&gui.audio, "cometbuster.wad")) {
         fprintf(stderr, "Warning: Could not load cometbuster.wad, sounds will be silent\n");
     }
-    
+#endif
+
     // Copy audio system to visualizer so game code can access it
     gui.visualizer.audio = gui.audio;
     
