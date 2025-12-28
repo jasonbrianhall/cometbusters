@@ -46,13 +46,6 @@ jobs:
           binutils make zip unzip libzip-devel \
           ImageMagick
 
-    - name: Prepare Game Icon
-      run: |
-        # Use icon.png as the main app icon if available
-        if [ -f "icon.png" ]; then
-          cp icon.png icon.png
-        fi
-
     - name: Build Windows GTK Version
       run: |
         make windows
