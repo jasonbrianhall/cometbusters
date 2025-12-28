@@ -2,7 +2,7 @@ name: Build Comet Buster
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ master, dev ]
     paths:
       - '**.cpp'
       - '**.h'
@@ -11,7 +11,7 @@ on:
       - '**.yml'
       - '**.yaml'
   pull_request:
-    branches: [ main, dev ]
+    branches: [ master, dev ]
     paths:
       - '**.cpp'
       - '**.h'
@@ -42,6 +42,7 @@ jobs:
           mingw64-gcc mingw64-gcc-c++ \
           mingw64-gtk3 mingw64-gtkmm30 \
           mingw64-libzip \
+          mingw64-SDL2 mingw64-SDL2_mixer \
           wine wine-devel \
           binutils make zip unzip libzip-devel \
           ImageMagick
@@ -479,13 +480,13 @@ jobs:
           release/CometBuster-GTK.msi
           release/CometBuster-GTK.msix
           release/CometBuster-GTK-Portable.zip
-        tag_name: ${{ github.ref == 'refs/heads/main' && format('v{0}', github.run_number) || format('dev-v{0}', github.run_number) }}
-        name: ${{ github.ref == 'refs/heads/main' && format('Release v{0}', github.run_number) || format('Dev Build v{0}', github.run_number) }}
+        tag_name: ${{ github.ref == 'refs/heads/master' && format('v{0}', github.run_number) || format('dev-v{0}', github.run_number) }}
+        name: ${{ github.ref == 'refs/heads/master' && format('Release v{0}', github.run_number) || format('Dev Build v{0}', github.run_number) }}
         draft: false
-        prerelease: ${{ github.ref != 'refs/heads/main' }}
-        make_latest: ${{ github.ref == 'refs/heads/main' }}
+        prerelease: ${{ github.ref != 'refs/heads/master' }}
+        make_latest: ${{ github.ref == 'refs/heads/master' }}
         body: |
-          ## ${{ github.ref == 'refs/heads/main' && 'Stable Release' || 'Development Build' }}
+          ## ${{ github.ref == 'refs/heads/master' && 'Stable Release' || 'Development Build' }}
           
           **Version:** ${{ needs.build-linux.outputs.version }}  
           **Commit:** ${{ github.sha }}  
