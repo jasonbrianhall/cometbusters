@@ -2205,7 +2205,7 @@ int main(int argc, char *argv[]) {
     
     // Create window
     gui.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(gui.window), "CometBuster");
+    gtk_window_set_title(GTK_WINDOW(gui.window), "Comet Busters");
     
     // Get screen dimensions using GdkDisplay (non-deprecated)
     GdkDisplay *display = gdk_display_get_default();
