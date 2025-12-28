@@ -16,6 +16,7 @@
 #define MAX_MISSILE_PICKUPS 16
 #define MAX_HIGH_SCORES 25
 
+// PI
 #ifndef M_PI
 #define M_PI 3.1415926535
 #endif
