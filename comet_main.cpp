@@ -4,11 +4,7 @@
 #include <time.h>
 #include <string.h>
 #include <math.h>
-#include "cometbuster.h"
-#include "visualization.h"
-#include "audio_wad.h"
-#include "comet_help.cpp"
-
+#include <string>
 #ifdef _WIN32
     #include <direct.h>
     #include <windows.h>  // For Sleep function on Windows
@@ -21,6 +17,12 @@
     #include <sys/types.h>
     #include <signal.h>
 #endif
+
+#include "cometbuster.h"
+#include "visualization.h"
+#include "audio_wad.h"
+#include "comet_help.cpp"
+
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
