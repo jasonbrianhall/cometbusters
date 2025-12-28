@@ -1,4 +1,4 @@
-name: Build Comet Buster
+name: Build Comet Busters
 
 on:
   push:
@@ -206,7 +206,7 @@ jobs:
         <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
           
           <Product Id="*" 
-                   Name="Comet Buster" 
+                   Name="Comet Busters" 
                    Language="1033" 
                    Version="${{ needs.build-linux.outputs.version }}" 
                    Manufacturer="Jason Brian Hall" 
@@ -215,13 +215,13 @@ jobs:
             <Package InstallerVersion="500" 
                      Compressed="yes" 
                      InstallScope="perMachine" 
-                     Description="Comet Buster GTK - Action Arcade Game"
+                     Description="Comet Busters GTK - Action Arcade Game"
                      Comments="Built with GitHub Actions"
                      Manufacturer="Jason Brian Hall" />
             
             <!-- Major upgrade configuration -->
             <MajorUpgrade 
-              DowngradeErrorMessage="A newer version of Comet Buster is already installed. Please uninstall it first." 
+              DowngradeErrorMessage="A newer version of Comet Busters is already installed. Please uninstall it first." 
               Schedule="afterInstallInitialize" />
             
             <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
@@ -230,7 +230,7 @@ jobs:
             <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
             
             <!-- Feature configuration -->
-            <Feature Id="ProductFeature" Title="Comet Buster" Level="1">
+            <Feature Id="ProductFeature" Title="Comet Busters" Level="1">
               <ComponentRef Id="CometBusterExecutable" />
               <ComponentRef Id="ApplicationShortcut" />
               <ComponentRef Id="DesktopShortcut" />
@@ -239,10 +239,10 @@ jobs:
             <!-- Directory structure -->
             <Directory Id="TARGETDIR" Name="SourceDir">
               <Directory Id="ProgramFilesFolder">
-                <Directory Id="INSTALLFOLDER" Name="Comet Buster" />
+                <Directory Id="INSTALLFOLDER" Name="Comet Busters" />
               </Directory>
               <Directory Id="ProgramMenuFolder">
-                <Directory Id="ApplicationProgramsFolder" Name="Comet Buster" />
+                <Directory Id="ApplicationProgramsFolder" Name="Comet Busters" />
               </Directory>
               <Directory Id="DesktopFolder" Name="Desktop" />
             </Directory>
@@ -259,14 +259,14 @@ jobs:
                 <!-- Start Menu Shortcut (non-advertised) -->
                 <Shortcut Id="CometBusterStartMenuShortcut"
                           Directory="ApplicationProgramsFolder"
-                          Name="Comet Buster"
+                          Name="Comet Busters"
                           Target="[INSTALLFOLDER]cometbuster.exe"
                           WorkingDirectory="INSTALLFOLDER"
                           Icon="CometBusterIcon"
                           IconIndex="0" />
                 
                 <!-- Registry KeyPath for component (required for non-advertised shortcuts) -->
-                <RegistryValue Root="HKCU" Key="Software\Comet Buster" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+                <RegistryValue Root="HKCU" Key="Software\Comet Busters" Name="installed" Type="integer" Value="1" KeyPath="yes" />
               </Component>
             </DirectoryRef>
             
@@ -274,7 +274,7 @@ jobs:
             <DirectoryRef Id="ApplicationProgramsFolder">
               <Component Id="ApplicationShortcut" Guid="A0B1C2D3-E4F5-4D6E-9F0A-7B8C9D0E1F2A" Win64="no">
                 <RemoveFolder Id="ApplicationProgramsFolderRemove" On="uninstall" />
-                <RegistryValue Root="HKCU" Key="Software\Comet Buster\Shortcuts" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+                <RegistryValue Root="HKCU" Key="Software\Comet Busters\Shortcuts" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
               </Component>
             </DirectoryRef>
             
@@ -284,12 +284,12 @@ jobs:
                 <Condition>DESKTOP_SHORTCUT=1</Condition>
                 <Shortcut Id="DesktopShortcutCometBuster"
                           Directory="DesktopFolder"
-                          Name="Comet Buster"
+                          Name="Comet Busters"
                           Target="[INSTALLFOLDER]cometbuster.exe"
                           WorkingDirectory="INSTALLFOLDER"
                           Icon="CometBusterIcon"
                           IconIndex="0" />
-                <RegistryValue Root="HKCU" Key="Software\Comet Buster\Shortcuts" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+                <RegistryValue Root="HKCU" Key="Software\Comet Busters\Shortcuts" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
               </Component>
             </DirectoryRef>
             
@@ -420,7 +420,7 @@ jobs:
             Version="${{ needs.build-linux.outputs.version }}.0" />
           
           <Properties>
-            <DisplayName>Comet Buster</DisplayName>
+            <DisplayName>Comet Busters</DisplayName>
             <PublisherDisplayName>Jason Brian Hall</PublisherDisplayName>
             <Logo>Assets\CometBusterLogo.scale-100.png</Logo>
           </Properties>
@@ -435,13 +435,13 @@ jobs:
           
           <Applications>
             <Application Id="CometBuster" Executable="Files\cometbuster.exe" EntryPoint="Windows.FullTrustApplication">
-              <uap:VisualElements DisplayName="Comet Buster"
+              <uap:VisualElements DisplayName="Comet Busters"
                                   Description="Blast asteroids and comets in this action-packed arcade game!"
                                   Square150x150Logo="Assets\CometBusterLogo.scale-100.png"
                                   Square44x44Logo="Assets\CometBuster44x44.scale-100.png"
                                   BackgroundColor="#1a1a2e">
                 <uap:DefaultTile Wide310x150Logo="Assets\CometBusterLogo.scale-100.png"
-                                ShortName="Comet Buster">
+                                ShortName="Comet Busters">
                   <uap:ShowNameOnTiles>
                     <uap:ShowOn Tile="square150x150Logo"/>
                     <uap:ShowOn Tile="wide310x150Logo"/>
@@ -552,7 +552,7 @@ jobs:
           **Commit:** ${{ github.sha }}  
           **Build:** #${{ github.run_number }}  
           
-          ### 🌠 Comet Buster
+          ### 🌠 Comet Busters
           An exciting asteroid-busting action arcade game with classic gameplay and modern GTK interface.
           
           ### 📦 Downloads
@@ -617,7 +617,7 @@ jobs:
           
           **Command-line Properties:**
           - `DESKTOP_SHORTCUT=1` - Create desktop shortcut (default: 1)
-          - `INSTALLFOLDER="C:\Program Files\Comet Buster"` - Custom install path
+          - `INSTALLFOLDER="C:\Program Files\Comet Busters"` - Custom install path
           
           ---
           *Built with ❤️ using GitHub Actions*
