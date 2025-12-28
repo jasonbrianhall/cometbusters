@@ -43,7 +43,6 @@ jobs:
           mingw64-gtk3 mingw64-gtkmm30 \
           mingw64-libzip \
           mingw64-SDL2 mingw64-SDL2_mixer \
-          wine wine-devel \
           binutils make zip unzip libzip-devel \
           ImageMagick
 
