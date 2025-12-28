@@ -177,12 +177,19 @@ Juggernauts are colossal golden warships that spawn occasionally at the beginnin
 
 Between waves lurk Boss Ships—massive capital-class vessels that rewrite the rules of combat:
 
+- **The Death Star** - A rotating metallic sphere bristling with weapon ports. Fires in spread patterns and rotates continuously. Classic and straightforward by boss standards—dangerous, but predictable if you learn the patterns.
+
+- **The Spawn Queen** - The recruiting nightmare. A floating matriarch that periodically spawns entire squadrons of enemy ships (6 Red, 2 Green, 2 Purple per spawn cycle). While dealing with the Queen, she also hurls massive asteroids at you. Control the spawning or drown in enemy waves.
+
 - **The Void Nexus** - A fragmented entity that splits and multiplies. Spawns Brown Coat Elite ships as reinforcements. Defeat one fragment and it spawns smaller variants.
+
 - **The Harbinger** - Rains devastating ordnance across the battlefield, creating no-go zones that expand and contract unpredictably.
+
 - **The Star Vortex** - Warps local gravity, pulling asteroids into chaotic orbits. Spawns entire **Juggernaut fleets** in Phase 2. The ultimate chaos engine.
+
 - **The Singularity** - The ultimate threat. Its existence barely makes sense. Few who've encountered it have lived to describe it.
 
-When a Boss appears, you must abandon conventional tactics. Standard destruction doesn't work. These are puzzles to solve, not just enemies to shoot.
+When a Boss appears, you must abandon conventional tactics. Standard destruction doesn't work. These are puzzles to solve, not just enemies to shoot. Each boss demands understanding its attack patterns and exploiting its specific weaknesses.
 
 ---
 
@@ -487,6 +494,54 @@ Each wave gets exponentially harder:
 10. **Remember: The Destiny is Ancient** - This ship survived something before. Trust its design, even when it seems fragile
 11. **Prepare for Phase Shifts** - Boss fights have multiple phases. When patterns change dramatically, adapt your strategy
 
+### Boss-Specific Strategies
+
+**Against the Death Star**
+- Relatively straightforward compared to other bosses
+- Watch the rotating patterns—learn the timing of fire spreads
+- Position yourself in the gaps between firing arcs
+- Keep moving to avoid standing still when volleys arrive
+- High shield and full missiles recommended before engagement
+
+**Against the Spawn Queen**
+- **THE PRIORITY THREAT** - This is arguably the most dangerous boss
+- She doesn't shoot directly; instead she **recruits entire squadrons** (10 ships per wave: 6 Red, 2 Green, 2 Purple)
+- While managing her recruitment waves, she also **hurls massive asteroids** at you
+- Strategy:
+  1. Focus fire on the Queen herself to reduce her health quickly
+  2. Don't get distracted by the spawned ships—kill the Queen before she recruits again
+  3. Expect chaos—you'll be juggling 10+ enemy ships, asteroids, and the Queen simultaneously
+  4. Pre-generate missiles to maximum before fight starts
+  5. Use omnidirectional fire to clear space around you when overwhelmed
+  6. The Queen spawns from top-center, making her relatively stationary—exploit this
+  7. Expect multiple recruitment phases—each one gets more intense
+
+**Against the Void Nexus**
+- Fragmented multi-part boss
+- Destroying fragments doesn't kill it—they spawn smaller variants
+- Focus on learning the fragmentation pattern
+- Clear smaller fragments systematically
+- Expect Brown Coat reinforcements
+
+**Against the Harbinger**
+- Ordnance-based threat—creates dangerous zones
+- Pattern-heavy boss; learn the bombing patterns
+- Stay mobile and predict where safe zones will be
+- Don't camp in one location
+
+**Against the Star Vortex**
+- Two distinct phases
+- Phase 1: Gravity manipulation with missile attacks
+- Phase 2: Spawns Juggernaut fleets—expect 3-4 massive golden ships
+- This is where you'll need maximum missile capacity
+- Focus on Juggernauts in Phase 2; the Star Vortex becomes secondary threat
+
+**Against the Singularity**
+- The final boss; information is limited
+- Prepare for the unexpected—this boss may break your assumptions
+- Bring maximum firepower
+- Trust the Destiny's ancient design
+
 ---
 
 ## 🛠️ Installation & Building
@@ -509,20 +564,26 @@ brew install gtk+3 cairo sdl2 sdl2_mixer
 ### Building
 
 ```bash
-# Clone or navigate to the game directory
+# Navigate to the game directory
 cd cometbuster
 
-# Create build directory
-mkdir build
-cd build
-
-# Compile
-cmake ..
+# Compile for Linux
 make
 
-# Run
-./comet_buster
+# Or compile for Windows (using MinGW)
+make windows
+
+# Run (Linux)
+./build/linux/cometbuster
+
+# Run (Windows with MinGW - after copying build directory to Windows)
+cd build/windows 
+(copy to windows all the DLLs and exe)
+cometbuster.exe (on windwos)
+
 ```
+
+**Note on Windows builds**: To build for Windows, run `make windows` which uses MinGW. The executable is placed in `build/windows/cometbuster.exe`. When copying to a Windows machine, copy the entire `build/windows/` directory (not just the .exe) to ensure all dependencies are included.
 
 ### Audio Setup (Optional)
 
@@ -532,11 +593,19 @@ The game supports audio through a WAD file (ZIP archive) system:
 # Create your WAD file with sounds and music
 python3 createwad.py sounds/ music/ cometbuster.wad
 
-# Place in game directory
-cp cometbuster.wad ../bin/
+# Place in the build output directory
+# On Linux:
+cp cometbuster.wad build/linux/
+
+# On Windows:
+cp cometbuster.wad build/windows/
 
 # Run game
-./comet_buster
+# Linux:
+./build/linux/cometbuster
+
+# Windows:
+./build/windows/cometbuster.exe
 ```
 
 If you don't have a WAD file, the game will still run in silent mode (it's actually fine for arcade purists).
@@ -558,7 +627,6 @@ If you don't have a WAD file, the game will still run in silent mode (it's actua
 - **Fullscreen/Windowed**: Toggle for your setup
 - **FPS**: Locked at 60 FPS (not configurable yet)
 - **VSync**: Enabled for smooth consistent performance
-- **Screen Shake**: Visual feedback for impacts (disable if motion sickness)
 - **Particle Effects**: More visuals = more fun but uses more CPU
 
 ### Audio Options
@@ -619,7 +687,6 @@ Different factions prioritize different colors, but you should just shoot everyt
 
 ### Performance Issues
 - Disable particle effects
-- Disable screen shake
 - Close other applications (game runs at locked 60 FPS)
 
 ### Weird Physics
@@ -816,7 +883,15 @@ Boss logic is isolated in `cometbuster_boss.cpp`. See existing boss implementati
 
 ## 📄 License & Distribution
 
-This is provided as-is. Do with it what you will (within reason).
+**MIT License**
+
+Copyright (c) 2025 Jason Hall
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ---
 
