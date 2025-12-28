@@ -215,27 +215,31 @@ jobs:
             </Directory>
             
             <!-- Main executable and all DLL dependencies in one component -->
-            <!-- FIXED: Using hardcoded GUID instead of auto-generated (*) to support multiple files -->
+            <!-- FIXED: Using hardcoded GUID, registry KeyPath for shortcuts, Win64="no" for 32-bit -->
             <DirectoryRef Id="INSTALLFOLDER">
-              <Component Id="CometBusterExecutable" Guid="E5D4C8B7-9F2A-4C3D-8E1F-5A6B7C8D9E0F">
-                <File Id="CometBusterEXE" Name="cometbuster.exe" Source="cometbuster.exe" KeyPath="yes">
-                  <Shortcut Id="CometBusterStartMenuShortcut"
-                            Directory="ApplicationProgramsFolder"
-                            Name="Comet Buster"
-                            WorkingDirectory="INSTALLFOLDER"
-                            Icon="CometBusterIcon.exe"
-                            IconIndex="0" />
-                </File>
-                <RegistryValue Root="HKCU" Key="Software\Comet Buster" Name="installed" Type="integer" Value="1" KeyPath="no" />
+              <Component Id="CometBusterExecutable" Guid="E5D4C8B7-9F2A-4C3D-8E1F-5A6B7C8D9E0F" Win64="no">
+                <File Id="CometBusterEXE" Name="cometbuster.exe" Source="cometbuster.exe" />
                 
-                <!-- DLL dependencies - all in one component with executable as KeyPath -->
+                <!-- DLL dependencies -->
                 $($dllEntries -join "`r`n")
+                
+                <!-- Start Menu Shortcut (non-advertised) -->
+                <Shortcut Id="CometBusterStartMenuShortcut"
+                          Directory="ApplicationProgramsFolder"
+                          Name="Comet Buster"
+                          Target="[INSTALLFOLDER]cometbuster.exe"
+                          WorkingDirectory="INSTALLFOLDER"
+                          Icon="CometBusterIcon.exe"
+                          IconIndex="0" />
+                
+                <!-- Registry KeyPath for component (required for non-advertised shortcuts) -->
+                <RegistryValue Root="HKCU" Key="Software\Comet Buster" Name="installed" Type="integer" Value="1" KeyPath="yes" />
               </Component>
             </DirectoryRef>
             
             <!-- Start Menu shortcut -->
             <DirectoryRef Id="ApplicationProgramsFolder">
-              <Component Id="ApplicationShortcut" Guid="A0B1C2D3-E4F5-4D6E-9F0A-7B8C9D0E1F2A">
+              <Component Id="ApplicationShortcut" Guid="A0B1C2D3-E4F5-4D6E-9F0A-7B8C9D0E1F2A" Win64="no">
                 <RemoveFolder Id="ApplicationProgramsFolderRemove" On="uninstall" />
                 <RegistryValue Root="HKCU" Key="Software\Comet Buster\Shortcuts" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
               </Component>
@@ -243,7 +247,7 @@ jobs:
             
             <!-- Desktop shortcut component (optional) -->
             <DirectoryRef Id="DesktopFolder">
-              <Component Id="DesktopShortcut" Guid="B1C2D3E4-F5A6-4E7F-0A1B-8C9D0E1F2A3B">
+              <Component Id="DesktopShortcut" Guid="B1C2D3E4-F5A6-4E7F-0A1B-8C9D0E1F2A3B" Win64="no">
                 <Condition>DESKTOP_SHORTCUT=1</Condition>
                 <Shortcut Id="DesktopShortcutCometBuster"
                           Directory="DesktopFolder"
