@@ -2164,14 +2164,18 @@ int main(int argc, char *argv[]) {
     
     // Try to load WAD file with sounds
 #ifdef _WIN32
-    if (!audio_load_wad(&gui.audio, getExecutableDir() + "\\cometbuster.wad")) {
-        fprintf(stderr, "Warning: Could not load cometbuster.wad, sounds will be silent\n");
+    {
+        std::string wadPath = getExecutableDir() + "\\cometbuster.wad";
+        if (!audio_load_wad(&gui.audio, wadPath.c_str())) {
+            fprintf(stderr, "Warning: Could not load cometbuster.wad, sounds will be silent\n");
+        }
     }
 #else
     if (!audio_load_wad(&gui.audio, "cometbuster.wad")) {
         fprintf(stderr, "Warning: Could not load cometbuster.wad, sounds will be silent\n");
     }
 #endif
+
 
     // Copy audio system to visualizer so game code can access it
     gui.visualizer.audio = gui.audio;
