@@ -69,6 +69,19 @@ jobs:
       run: |
         make windows
 
+    - name: Convert PNG Icon to ICO Format
+      working-directory: build/windows
+      run: |
+        # Convert icon.png to icon.ico for Windows installer
+        if [ -f "../../icon.png" ]; then
+          echo "Converting icon.png to icon.ico..."
+          convert ../../icon.png -resize 256x256 -colors 256 icon.ico
+          echo "✅ Icon converted successfully"
+          ls -lh icon.ico
+        else
+          echo "⚠️  icon.png not found at repo root"
+        fi
+
     - name: Prepare Build Artifacts
       working-directory: build/windows
       run: |
@@ -249,7 +262,7 @@ jobs:
                           Name="Comet Buster"
                           Target="[INSTALLFOLDER]cometbuster.exe"
                           WorkingDirectory="INSTALLFOLDER"
-                          Icon="CometBusterIcon.exe"
+                          Icon="CometBusterIcon"
                           IconIndex="0" />
                 
                 <!-- Registry KeyPath for component (required for non-advertised shortcuts) -->
@@ -274,14 +287,14 @@ jobs:
                           Name="Comet Buster"
                           Target="[INSTALLFOLDER]cometbuster.exe"
                           WorkingDirectory="INSTALLFOLDER"
-                          Icon="CometBusterIcon.exe"
+                          Icon="CometBusterIcon"
                           IconIndex="0" />
                 <RegistryValue Root="HKCU" Key="Software\Comet Buster\Shortcuts" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
               </Component>
             </DirectoryRef>
             
-            <!-- Icon definition -->
-            <Icon Id="CometBusterIcon.exe" SourceFile="cometbuster.exe" />
+            <!-- Icon definition - use icon.ico from repo root -->
+            <Icon Id="CometBusterIcon" SourceFile="icon.ico" />
             
             <!-- UI configuration -->
             <UIRef Id="WixUI_InstallDir" />
@@ -290,7 +303,7 @@ jobs:
             <Property Id="DESKTOP_SHORTCUT" Value="1" />
             
             <!-- Add/Remove Programs configuration -->
-            <Property Id="ARPPRODUCTICON" Value="CometBusterIcon.exe" />
+            <Property Id="ARPPRODUCTICON" Value="CometBusterIcon" />
             <Property Id="ARPHELPLINK" Value="https://github.com" />
             <Property Id="ARPURLINFOABOUT" Value="https://github.com" />
             <Property Id="ARPURLUPDATEINFO" Value="https://github.com/releases" />
