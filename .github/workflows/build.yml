@@ -374,7 +374,8 @@ jobs:
         @"
         <?xml version="1.0" encoding="utf-8"?>
         <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
-                 xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10">
+                 xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+                 xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
           
           <Identity
             Name="CometBuster"
@@ -413,6 +414,10 @@ jobs:
               </uap:VisualElements>
             </Application>
           </Applications>
+          
+          <Capabilities>
+            <rescap:Capability Name="runFullTrust" />
+          </Capabilities>
         </Package>
         "@ | Out-File -FilePath "AppxManifest.xml" -Encoding UTF8
 
