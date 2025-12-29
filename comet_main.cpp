@@ -1878,7 +1878,7 @@ gboolean game_update_timer(gpointer data) {
         comet_buster_update_finale_splash(&gui->visualizer.comet_buster, 1.0 / 60.0);
         
         // Check if user wants to continue to next wave
-        if (gui->visualizer.comet_buster.mouse_right_pressed && 
+        if (gui->visualizer.mouse_right_pressed && 
             gui->visualizer.comet_buster.finale_waiting_for_input) {
             fprintf(stdout, "[FINALE] Player advancing to Wave 31\n");
             
@@ -1893,7 +1893,7 @@ gboolean game_update_timer(gpointer data) {
             comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
             
             // Reset input
-            gui->visualizer.comet_buster.mouse_right_pressed = false;
+            gui->visualizer.mouse_right_pressed = false;
         }
         
         // Redraw and return early (don't update normal game during finale splash)

@@ -105,8 +105,6 @@ static const char *VICTORY_SCROLL_LINES[] = {
     "The void offers no answers.",
     "Only echoes.",
     "",
-    "---",
-    "",
     "You have restored order to Kepler-442.",
     "The factions will reconsider their ambitions.",
     "The Sentinels have completed their observations.",
@@ -123,8 +121,6 @@ static const char *VICTORY_SCROLL_LINES[] = {
     "They are waiting.",
     "",
     "And they are preparing.",
-    "",
-    "---",
     "",
     "Press any key to return to the stars...",
     "",
@@ -738,8 +734,8 @@ void comet_buster_update_finale_splash(CometBusterGame *game, double dt) {
     game->finale_splash_timer += dt;
     game->finale_scroll_timer += dt;
     
-    // Auto-advance text lines every 1.5 seconds
-    if (game->finale_scroll_timer >= 1.5) {
+    // Auto-advance text lines every 0.6 seconds (faster scroll)
+    if (game->finale_scroll_timer >= 0.6) {
         game->finale_scroll_line_index++;
         game->finale_scroll_timer = 0.0;
         
@@ -770,12 +766,16 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
     cairo_move_to(cr, width/2.0 - extents.width/2.0, 80);
     cairo_show_text(cr, title);
     
-    // Victory scroll text
+    // Victory scroll text - scrolling effect (show 24 lines at a time)
     cairo_set_source_rgb(cr, 0.2, 0.8, 1.0);
     cairo_set_font_size(cr, 15);
     
+    int visible_lines = 24;  // Show 24 lines at a time
+    int start_line = (game->finale_scroll_line_index > visible_lines) ? 
+                     (game->finale_scroll_line_index - visible_lines) : 0;
+    
     double y_pos = 150;
-    for (int i = 0; i <= game->finale_scroll_line_index && i < NUM_VICTORY_LINES; i++) {
+    for (int i = start_line; i <= game->finale_scroll_line_index && i < NUM_VICTORY_LINES; i++) {
         cairo_text_extents(cr, VICTORY_SCROLL_LINES[i], &extents);
         cairo_move_to(cr, width/2.0 - extents.width/2.0, y_pos);
         cairo_show_text(cr, VICTORY_SCROLL_LINES[i]);
