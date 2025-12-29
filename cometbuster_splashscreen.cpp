@@ -63,7 +63,78 @@ static const char *OPENING_CRAWL_LINES[] = {
 
 #define NUM_CRAWL_LINES (sizeof(OPENING_CRAWL_LINES) / sizeof(OPENING_CRAWL_LINES[0]))
 
-// Initialize splash screen with lots of objects for impressive visuals
+// ============================================================================
+// VICTORY SCROLL TEXT - FINALE WHEN WAVE 30 IS BEATEN
+// ============================================================================
+
+static const char *VICTORY_SCROLL_LINES[] = {
+    "",
+    "",
+    "",
+    "THE KEPLER-442 INCIDENT: CONCLUDED",
+    "",
+    "The asteroids... they were never truly chaotic.",
+    "",
+    "As you clear the final waves from the field,",
+    "the truth crystallizes in the wreckage of a",
+    "thousand ships. This was not a mining operation.",
+    "It was a crucible. A test.",
+    "",
+    "The three factions sent their finest.",
+    "The Red Warships of the Galactic Defense Collective.",
+    "The peaceful patrols of the Independent Sector Alliance.",
+    "The corporate drones of the Asteroid Mining Collective.",
+    "",
+    "You destroyed them all.",
+    "",
+    "The Purple Sentinels... they were watching.",
+    "Observing. Calculating. Waiting.",
+    "When the final Juggernaut fell to your fire,",
+    "they simply... departed.",
+    "",
+    "As if satisfied.",
+    "",
+    "The DESTINY's ancient systems hum with purpose.",
+    "Weapons that should not exist. Shields that defy physics.",
+    "A ship of unknown origin, reborn as a mining vessel,",
+    "now standing victorious in a field of ash and silence.",
+    "",
+    "What are you, truly?",
+    "What was the DESTINY, before?",
+    "",
+    "The void offers no answers.",
+    "Only echoes.",
+    "",
+    "---",
+    "",
+    "You have restored order to Kepler-442.",
+    "The factions will reconsider their ambitions.",
+    "The Sentinels have completed their observations.",
+    "The Golden Juggernauts lie dormant in the dark.",
+    "",
+    "But something remains.",
+    "",
+    "At the edge of the asteroid field,",
+    "beyond the reach of conventional sensors,",
+    "something ancient stirs.",
+    "",
+    "The DESTINY's original designers are watching.",
+    "They are pleased with what you have become.",
+    "They are waiting.",
+    "",
+    "And they are preparing.",
+    "",
+    "---",
+    "",
+    "Press any key to return to the stars...",
+    "",
+    ""
+};
+
+#define NUM_VICTORY_LINES (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES[0]))
+
+// ============================================================================
+
 void comet_buster_init_splash_screen(CometBusterGame *game, int width, int height) {
     if (!game) return;
     
@@ -544,4 +615,115 @@ void comet_buster_exit_splash_screen(CometBusterGame *game) {
     game->boost_thrust_timer = 0.0;
     
     comet_buster_spawn_wave(game, 1920, 1080);
+}
+
+// ============================================================================
+// VICTORY SCROLL FUNCTIONS
+// ============================================================================
+
+void comet_buster_show_victory_scroll(CometBusterGame *game) {
+    if (!game) return;
+    
+    fprintf(stdout, "[VICTORY] Showing victory scroll\n");
+    
+    game->splash_screen_active = true;  // Reuse splash screen rendering system
+    game->splash_timer = 0.0;
+    
+#ifdef ExternalSound
+    // TODO: Play finale music
+    // audio_play_intro_music(&visualizer->audio, "music/finale.mp3");
+#endif
+}
+
+void comet_buster_update_victory_scroll(CometBusterGame *game, double dt) {
+    if (!game || !game->splash_screen_active) return;
+    
+    game->splash_timer += dt;
+    
+    // Auto-advance if scroll completes (optional)
+    double line_duration = 0.8;
+    double total_duration = NUM_VICTORY_LINES * line_duration + 3.0;
+    
+    if (game->splash_timer > total_duration) {
+        // Victory scroll complete - could auto-reset here if desired
+    }
+}
+
+void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game || !game->splash_screen_active || game->game_won == false) return;
+    
+    double timer = game->splash_timer;
+    
+    // Draw semi-transparent black background
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.95);
+    cairo_rectangle(cr, 0, 0, width, height);
+    cairo_fill(cr);
+    
+    // Setup text
+    cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);  // Yellow text like Star Wars
+    cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 24);
+    
+    // Calculate scroll
+    double line_duration = 0.8;  // Seconds per line
+    int start_line = (int)(timer / line_duration);
+    double line_alpha = 1.0 - fmod(timer, line_duration) / (line_duration * 0.3);
+    line_alpha = (line_alpha < 0) ? 0 : (line_alpha > 1) ? 1 : line_alpha;
+    
+    // Draw visible lines
+    int y_pos = height / 3;
+    for (int i = 0; i < 8 && start_line + i < NUM_VICTORY_LINES; i++) {
+        double fade = 1.0;
+        
+        // First line fades in
+        if (i == 0) {
+            fade = line_alpha;
+        }
+        // Last visible line fades out
+        if (i == 7) {
+            fade = 1.0 - (double)i / 10.0;
+        }
+        
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, fade);
+        
+        // Center text horizontally
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, VICTORY_SCROLL_LINES[start_line + i], &extents);
+        double x_pos = (width - extents.width) / 2.0;
+        
+        cairo_move_to(cr, x_pos, y_pos + i * 40);
+        cairo_show_text(cr, VICTORY_SCROLL_LINES[start_line + i]);
+    }
+}
+
+bool comet_buster_victory_scroll_input_detected(CometBusterGame *game, Visualizer *visualizer) {
+    if (!game || !game->splash_screen_active || !game->game_won) return false;
+    if (game->splash_timer < 2.0) return false;  // Minimum display time
+    
+    // Check keyboard
+    if (game->keyboard.key_a_pressed || game->keyboard.key_d_pressed || 
+        game->keyboard.key_w_pressed || game->keyboard.key_s_pressed ||
+        game->keyboard.key_space_pressed) {
+        return true;
+    }
+    
+    // Check mouse
+    if (game->mouse_left_pressed) {
+        return true;
+    }
+    
+    return false;
+}
+
+void comet_buster_exit_victory_scroll(CometBusterGame *game) {
+    if (!game) return;
+    
+    fprintf(stdout, "[VICTORY] Exiting victory scroll\n");
+    
+    game->splash_screen_active = false;
+    game->game_won = false;
+    game->splash_timer = 0.0;
+    
+    // Reset game to return to menu
+    comet_buster_reset_game(game);
 }

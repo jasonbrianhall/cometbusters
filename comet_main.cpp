@@ -1846,6 +1846,32 @@ gboolean game_update_timer(gpointer data) {
         return TRUE;
     }
     
+    // Handle victory scroll if game is won
+    if (gui->visualizer.comet_buster.game_won && gui->visualizer.comet_buster.splash_screen_active) {
+        // Update the victory scroll
+        comet_buster_update_victory_scroll(&gui->visualizer.comet_buster, 1.0 / 60.0);
+        
+        // Check if user wants to exit victory scroll
+        if (comet_buster_victory_scroll_input_detected(&gui->visualizer.comet_buster, &gui->visualizer)) {
+            fprintf(stdout, "[VICTORY] User pressed key - exiting victory scroll\n");
+            
+            // Stop the finale music
+            audio_stop_music(&gui->audio);
+            
+            // Exit the victory scroll
+            comet_buster_exit_victory_scroll(&gui->visualizer.comet_buster);
+            
+            // Start gameplay music rotation
+#ifdef ExternalSound
+            audio_play_random_music(&gui->audio);
+#endif
+        }
+        
+        // Redraw and return early (don't update normal game during victory scroll)
+        gtk_widget_queue_draw(gui->drawing_area);
+        return TRUE;
+    }
+    
     if (!gui->game_paused) {
         // Update game
         update_comet_buster(&gui->visualizer, 1.0 / 60.0);
@@ -1920,8 +1946,12 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     gui->visualizer.width = game_width;
     gui->visualizer.height = game_height;
     
+    // Draw victory scroll if game is won
+    if (gui->visualizer.comet_buster.game_won && gui->visualizer.comet_buster.splash_screen_active) {
+        comet_buster_draw_victory_scroll(&gui->visualizer.comet_buster, cr, game_width, game_height);
+    }
     // Draw splash screen if active, otherwise draw normal game
-    if (gui->visualizer.comet_buster.splash_screen_active) {
+    else if (gui->visualizer.comet_buster.splash_screen_active) {
         comet_buster_draw_splash_screen(&gui->visualizer.comet_buster, cr, game_width, game_height);
     } else {
         draw_comet_buster(&gui->visualizer, cr);

@@ -539,4 +539,7 @@ void comet_buster_spawn_singularity(CometBusterGame *game, int screen_width, int
 void comet_buster_update_singularity(CometBusterGame *game, double dt, int width, int height);
 void draw_singularity_boss(BossShip *boss, cairo_t *cr, int width, int height);
 
+void comet_buster_update_victory_scroll(CometBusterGame *game, double dt);
+void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int width, int height);
+void comet_buster_exit_victory_scroll(CometBusterGame *game);
 #endif // COMETBUSTER_H
