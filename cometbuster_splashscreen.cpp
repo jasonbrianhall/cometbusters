@@ -264,16 +264,16 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
     cairo_set_source_rgb(cr, 0.04, 0.06, 0.15);
     cairo_paint(cr);
 
-    // Draw grid
+    // Draw grid (extended 50 pixels further to the right)
     cairo_set_source_rgb(cr, 0.1, 0.15, 0.35);
     cairo_set_line_width(cr, 0.5);
-    for (int i = 0; i <= width; i += 50) {
+    for (int i = 0; i <= width + 50; i += 50) {  // Extend 50 pixels beyond width
         cairo_move_to(cr, i, 0);
         cairo_line_to(cr, i, height);
     }
     for (int i = 0; i <= height; i += 50) {
         cairo_move_to(cr, 0, i);
-        cairo_line_to(cr, width, i);
+        cairo_line_to(cr, width + 50, i);  // Extend 50 pixels to the right
     }
     cairo_stroke(cr);
     
