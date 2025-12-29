@@ -77,15 +77,24 @@ void comet_buster_init_splash_screen(CometBusterGame *game, int width, int heigh
     // Spawn a boss to make the splash screen look dramatic and dynamic
     //comet_buster_spawn_boss(game, width, height);
     
-    // Spawn 3 enemy ships for additional visual variety
+    // Spawn 3 enemy ships for additional visual variety (they are now SILENT during splash)
     for (int i = 0; i < 3; i++) {
         comet_buster_spawn_enemy_ship(game, width, height);
+    }
+    
+    // 20% chance to spawn a Juggernaut for dramatic intro splash
+    if ((rand() % 100) < 20) {
+        // Spawn a juggernaut (type 5) at a random edge
+        int random_edge = rand() % 8;  // Edges 0-7
+        double juggernaut_speed = 60.0;  // Slower, more menacing
+        comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
+        fprintf(stdout, "[SPLASH] JUGGERNAUT SPAWNED for intro drama!\n");
     }
     
     fprintf(stdout, "[SPLASH] Splash screen initialized:\n");
     fprintf(stdout, "  - %d comets\n", game->comet_count);
     fprintf(stdout, "  - Boss active: %d\n", game->boss_active);
-    fprintf(stdout, "  - %d enemy ships\n", game->enemy_ship_count);
+    fprintf(stdout, "  - %d enemy ships (SILENT during splash)\n", game->enemy_ship_count);
 }
 
 // Update splash screen - now includes enemy ship and boss animation
@@ -98,37 +107,41 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
     comet_buster_update_comets(game, dt, width, height);
     
     // Also update enemy ships so they move and animate on the splash screen
-    // Note: visualizer parameter is required for enemy ship update logic
     comet_buster_update_enemy_ships(game, dt, width, height, visualizer);
     
     // Update enemy bullets fired by ships
     comet_buster_update_enemy_bullets(game, dt, width, height, visualizer);
     
-    // Update boss if active (so it animates on splash screen)
+    // Update boss if active
     if (game->boss_active) {
         comet_buster_update_boss(game, dt, width, height);
     }
     
-    // Update particles (explosions, etc.)
+    // Update particles
     comet_buster_update_particles(game, dt);
     
-    // Check collisions between enemy bullets and comets for visual effects
-    for (int i = 0; i < game->enemy_bullet_count; i++) {
-        if (!game->enemy_bullets[i].active) continue;
-        
-        Bullet *bullet = &game->enemy_bullets[i];
+    // Now do collision detection using the REAL collision functions from collision.cpp
+    // Check enemy ship - comet collisions (same as main game)
+    for (int i = 0; i < game->enemy_ship_count; i++) {
+        if (!game->enemy_ships[i].active) continue;
         
         for (int j = 0; j < game->comet_count; j++) {
             if (!game->comets[j].active) continue;
             
+            EnemyShip *ship = &game->enemy_ships[i];
             Comet *comet = &game->comets[j];
             
-            if (comet_buster_check_bullet_comet(bullet, comet)) {
-                // Visual impact only - NO explosion sounds during splash screen
-                bullet->active = false;
-                // Note: Explosion spawning is disabled during splash to prevent sound effects
-                
-                break;
+            double dx = ship->x - comet->x;
+            double dy = ship->y - comet->y;
+            double dist = sqrt(dx*dx + dy*dy);
+            double collision_dist = 30.0 + comet->radius;
+            
+            if (dist < collision_dist) {
+                // Use the REAL destroy functions from collision.cpp
+                // This handles everything: explosions, damage, removal
+                comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                comet_buster_destroy_comet(game, j, width, height, visualizer);
+                break;  // Exit since we modified array indices
             }
         }
     }

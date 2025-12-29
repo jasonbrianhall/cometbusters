@@ -1809,15 +1809,20 @@ gboolean game_update_timer(gpointer data) {
     
     // Handle splash screen if active
     if (gui->visualizer.comet_buster.splash_screen_active) {
+        // Sync audio settings to visualizer (copy current state)
+        gui->visualizer.audio = gui->audio;
+        
         // Temporarily disable audio to prevent explosion/firing sounds during splash
         bool audio_was_enabled = gui->audio.audio_enabled;
         gui->audio.audio_enabled = false;
+        gui->visualizer.audio.audio_enabled = false;
         
         // Update the splash screen
         comet_buster_update_splash_screen(&gui->visualizer.comet_buster, 1.0 / 60.0, 1920, 1080, &gui->visualizer);
         
         // Restore audio setting
         gui->audio.audio_enabled = audio_was_enabled;
+        gui->visualizer.audio.audio_enabled = audio_was_enabled;
         
         // Check if user wants to exit splash screen
         if (comet_buster_splash_screen_input_detected(&gui->visualizer)) {
