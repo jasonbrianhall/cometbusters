@@ -1877,10 +1877,15 @@ gboolean game_update_timer(gpointer data) {
         // Update the finale splash
         comet_buster_update_finale_splash(&gui->visualizer.comet_buster, 1.0 / 60.0);
         
-        // Check if user wants to continue to next wave
-        if (gui->visualizer.mouse_right_pressed && 
-            gui->visualizer.comet_buster.finale_waiting_for_input) {
-            fprintf(stdout, "[FINALE] Player advancing to Wave 31\n");
+        // Check if user wants to continue to next wave (can right-click anytime to skip)
+        if (gui->visualizer.mouse_right_pressed) {
+            fprintf(stdout, "[FINALE] Player skipping to Wave 31\n");
+            
+            // If scroll isn't done yet, fast-forward to the end
+            if (!gui->visualizer.comet_buster.finale_waiting_for_input) {
+                gui->visualizer.comet_buster.finale_scroll_line_index = 999;  // Jump to end of scroll
+                gui->visualizer.comet_buster.finale_waiting_for_input = true;
+            }
             
             // Clean up finale splash
             gui->visualizer.comet_buster.finale_splash_active = false;
