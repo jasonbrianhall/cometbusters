@@ -69,32 +69,33 @@ void comet_buster_init_splash_screen(CometBusterGame *game, int width, int heigh
     
     game->splash_screen_active = true;
     game->splash_timer = 0.0;
+    game->enemy_ship_spawn_timer = 0.5;  // Spawn ships every 0.5 seconds during splash
     
     // Directly spawn lots of comets for impressive splash screen visuals
-    // Instead of relying on wave calculations, we spawn 32 comets directly
     comet_buster_spawn_random_comets(game, 32, width, height);
     
     // Spawn a boss to make the splash screen look dramatic and dynamic
     //comet_buster_spawn_boss(game, width, height);
     
-    // Spawn 3 enemy ships for additional visual variety (they are now SILENT during splash)
-    for (int i = 0; i < 3; i++) {
+    // Spawn MORE initial enemy ships for action-packed intro (6 instead of 3)
+    for (int i = 0; i < 6; i++) {
         comet_buster_spawn_enemy_ship(game, width, height);
     }
     
-    // 20% chance to spawn a Juggernaut for dramatic intro splash
-    if ((rand() % 100) < 20) {
-        // Spawn a juggernaut (type 5) at a random edge
-        int random_edge = rand() % 8;  // Edges 0-7
-        double juggernaut_speed = 60.0;  // Slower, more menacing
-        comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
-        fprintf(stdout, "[SPLASH] JUGGERNAUT SPAWNED for intro drama!\n");
+    // 50% chance to spawn 1-2 Juggernauts at start for dramatic intro splash
+    if ((rand() % 100) < 50) {
+        int num_juggernauts = 1 + (rand() % 2);  // 1 or 2 juggernauts
+        for (int j = 0; j < num_juggernauts; j++) {
+            int random_edge = rand() % 8;  // Edges 0-7
+            double juggernaut_speed = 70.0;
+            comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
+        }
+        fprintf(stdout, "[SPLASH] %d JUGGERNAUT(S) SPAWNED for intro drama!\n", num_juggernauts);
     }
     
     fprintf(stdout, "[SPLASH] Splash screen initialized:\n");
     fprintf(stdout, "  - %d comets\n", game->comet_count);
-    fprintf(stdout, "  - Boss active: %d\n", game->boss_active);
-    fprintf(stdout, "  - %d enemy ships (SILENT during splash)\n", game->enemy_ship_count);
+    fprintf(stdout, "  - %d enemy ships\n", game->enemy_ship_count);
 }
 
 // Update splash screen - now includes enemy ship and boss animation
@@ -119,6 +120,24 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
     
     // Update particles
     comet_buster_update_particles(game, dt);
+    
+    // Continuously spawn new ships during splash screen for action-packed intro
+    game->enemy_ship_spawn_timer -= dt;
+    if (game->enemy_ship_spawn_timer <= 0) {
+        // Spawn a new ship every 0.5 seconds
+        game->enemy_ship_spawn_timer = 0.5;
+        
+        // 25% chance to spawn a Juggernaut instead of regular ship
+        if ((rand() % 100) < 25 && game->enemy_ship_count < MAX_ENEMY_SHIPS) {
+            int random_edge = rand() % 8;
+            double juggernaut_speed = 70.0;
+            comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
+            fprintf(stdout, "[SPLASH] JUGGERNAUT spawned!\n");
+        } else if (game->enemy_ship_count < MAX_ENEMY_SHIPS) {
+            // Regular ship spawn
+            comet_buster_spawn_enemy_ship(game, width, height);
+        }
+    }
     
     // Now do collision detection using the REAL collision functions from collision.cpp
     // Check enemy ship - comet collisions (same as main game)
