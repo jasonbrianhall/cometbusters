@@ -139,6 +139,88 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
         }
     }
     
+    // Check enemy bullet - enemy ship collisions
+    for (int i = 0; i < game->enemy_bullet_count; i++) {
+        if (!game->enemy_bullets[i].active) continue;
+        
+        Bullet *bullet = &game->enemy_bullets[i];
+        int hit_ship = comet_buster_check_enemy_bullet_enemy_ship(game, bullet);
+        
+        if (hit_ship >= 0) {
+            // Enemy bullet hit another enemy ship
+            bullet->active = false;
+            
+            EnemyShip *ship = &game->enemy_ships[hit_ship];
+            if (ship->shield_health > 0) {
+                ship->shield_health--;
+                ship->shield_impact_angle = atan2(ship->y - bullet->y, ship->x - bullet->x);
+                ship->shield_impact_timer = 0.2;
+            } else {
+                ship->health--;
+                if (ship->health <= 0) {
+                    comet_buster_destroy_enemy_ship(game, hit_ship, width, height, visualizer);
+                }
+            }
+        }
+    }
+    
+    // Check ship-to-ship collisions (enemy ships bumping into each other)
+    for (int i = 0; i < game->enemy_ship_count; i++) {
+        if (!game->enemy_ships[i].active) continue;
+        
+        EnemyShip *ship1 = &game->enemy_ships[i];
+        
+        // Get ship1 collision radius based on type
+        double ship1_radius = 12.0;
+        if (ship1->ship_type == 5) {
+            ship1_radius = 36.0;
+        } else if (ship1->ship_type == 4) {
+            ship1_radius = 18.0;
+        }
+        
+        for (int j = i + 1; j < game->enemy_ship_count; j++) {
+            if (!game->enemy_ships[j].active) continue;
+            
+            EnemyShip *ship2 = &game->enemy_ships[j];
+            
+            // Get ship2 collision radius
+            double ship2_radius = 12.0;
+            if (ship2->ship_type == 5) {
+                ship2_radius = 36.0;
+            } else if (ship2->ship_type == 4) {
+                ship2_radius = 18.0;
+            }
+            
+            double dx = ship1->x - ship2->x;
+            double dy = ship1->y - ship2->y;
+            double dist = sqrt(dx*dx + dy*dy);
+            double collision_dist = ship1_radius + ship2_radius;
+            
+            if (dist < collision_dist && dist > 0.001) {
+                // Ships collided - both take damage
+                if (ship1->shield_health > 0) {
+                    ship1->shield_health--;
+                } else {
+                    ship1->health--;
+                }
+                
+                if (ship2->shield_health > 0) {
+                    ship2->shield_health--;
+                } else {
+                    ship2->health--;
+                }
+                
+                // Check if either ship should be destroyed
+                if (ship1->health <= 0) {
+                    comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                }
+                if (ship2->health <= 0) {
+                    comet_buster_destroy_enemy_ship(game, j, width, height, visualizer);
+                }
+            }
+        }
+    }
+    
     // Now do collision detection using the REAL collision functions from collision.cpp
     // Check enemy ship - comet collisions (same as main game)
     for (int i = 0; i < game->enemy_ship_count; i++) {
