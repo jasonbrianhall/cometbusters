@@ -58,6 +58,7 @@ int audio_get_sfx_volume(AudioManager *audio);
 
 // Music playback
 void audio_play_music(AudioManager *audio, const char *internal_path, bool loop);
+void audio_play_intro_music(AudioManager *audio, const char *internal_path);  // Play intro music - NOT added to rotation
 void audio_play_random_music(AudioManager *audio);  // Play random track from loaded list (no repeats until all played)
 void audio_stop_music(AudioManager *audio);
 void audio_pause_music(AudioManager *audio);

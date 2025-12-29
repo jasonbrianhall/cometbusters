@@ -1292,8 +1292,15 @@ void on_new_game_easy(GtkWidget *widget, gpointer data) {
     gui->visualizer.key_ctrl_pressed = false;
     gui->visualizer.key_q_pressed = false;
     
-    init_comet_buster_system_with_difficulty(&gui->visualizer, 0);
-    fprintf(stdout, "[GAME] New Game Started - Difficulty: EASY\n");
+    // Start new game WITH splash screen
+    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, 0);  // 0 = EASY
+    
+    // Play intro music
+#ifdef ExternalSound
+    audio_play_intro_music(&gui->audio, "music/intro.mp3");
+#endif
+    
+    fprintf(stdout, "[GAME] New Game Started - Difficulty: EASY (with splash screen)\n");
 }
 
 void on_new_game_medium(GtkWidget *widget, gpointer data) {
@@ -1333,8 +1340,15 @@ void on_new_game_medium(GtkWidget *widget, gpointer data) {
     gui->visualizer.key_ctrl_pressed = false;
     gui->visualizer.key_q_pressed = false;
     
-    init_comet_buster_system_with_difficulty(&gui->visualizer, 1);
-    fprintf(stdout, "[GAME] New Game Started - Difficulty: MEDIUM\n");
+    // Start new game WITH splash screen
+    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, 1);  // 1 = MEDIUM
+    
+    // Play intro music
+#ifdef ExternalSound
+    audio_play_intro_music(&gui->audio, "music/intro.mp3");
+#endif
+    
+    fprintf(stdout, "[GAME] New Game Started - Difficulty: MEDIUM (with splash screen)\n");
 }
 
 void on_new_game_hard(GtkWidget *widget, gpointer data) {
@@ -1374,8 +1388,15 @@ void on_new_game_hard(GtkWidget *widget, gpointer data) {
     gui->visualizer.key_ctrl_pressed = false;
     gui->visualizer.key_q_pressed = false;
     
-    init_comet_buster_system_with_difficulty(&gui->visualizer, 2);
-    fprintf(stdout, "[GAME] New Game Started - Difficulty: HARD\n");
+    // Start new game WITH splash screen
+    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, 2);  // 2 = HARD
+    
+    // Play intro music
+#ifdef ExternalSound
+    audio_play_intro_music(&gui->audio, "music/intro.mp3");
+#endif
+    
+    fprintf(stdout, "[GAME] New Game Started - Difficulty: HARD (with splash screen)\n");
 }
 
 void on_new_game(GtkWidget *widget, gpointer data) {
@@ -1786,6 +1807,40 @@ gboolean game_update_timer(gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return TRUE;
     
+    // Handle splash screen if active
+    if (gui->visualizer.comet_buster.splash_screen_active) {
+        // Temporarily disable audio to prevent explosion/firing sounds during splash
+        bool audio_was_enabled = gui->audio.audio_enabled;
+        gui->audio.audio_enabled = false;
+        
+        // Update the splash screen
+        comet_buster_update_splash_screen(&gui->visualizer.comet_buster, 1.0 / 60.0, 1920, 1080, &gui->visualizer);
+        
+        // Restore audio setting
+        gui->audio.audio_enabled = audio_was_enabled;
+        
+        // Check if user wants to exit splash screen
+        if (comet_buster_splash_screen_input_detected(&gui->visualizer)) {
+            fprintf(stdout, "[SPLASH] User pressed key - exiting splash screen\n");
+            
+            // Stop the intro music
+            audio_stop_music(&gui->audio);
+            
+            // Exit the splash screen
+            comet_buster_exit_splash_screen(&gui->visualizer.comet_buster);
+            
+            // Start gameplay music rotation
+#ifdef ExternalSound
+            audio_play_random_music(&gui->audio);
+            fprintf(stdout, "[SPLASH] Started gameplay music\n");
+#endif
+        }
+        
+        // Redraw and return early (don't update normal game during splash)
+        gtk_widget_queue_draw(gui->drawing_area);
+        return TRUE;
+    }
+    
     if (!gui->game_paused) {
         // Update game
         update_comet_buster(&gui->visualizer, 1.0 / 60.0);
@@ -1860,8 +1915,12 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     gui->visualizer.width = game_width;
     gui->visualizer.height = game_height;
     
-    // Draw the game
-    draw_comet_buster(&gui->visualizer, cr);
+    // Draw splash screen if active, otherwise draw normal game
+    if (gui->visualizer.comet_buster.splash_screen_active) {
+        comet_buster_draw_splash_screen(&gui->visualizer.comet_buster, cr, game_width, game_height);
+    } else {
+        draw_comet_buster(&gui->visualizer, cr);
+    }
     
     return FALSE;
 }
@@ -2149,8 +2208,8 @@ int main(int argc, char *argv[]) {
         gui.visualizer.joystick_manager.active_joystick = 0;
     }
     
-    // Initialize the game
-    init_comet_buster_system(&gui.visualizer);
+    // Initialize the game WITH splash screen visible at startup
+    comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, 1);  // true = show splash screen
     
     // Load high scores from disk
     high_scores_load(&gui.visualizer.comet_buster);
@@ -2190,7 +2249,7 @@ int main(int argc, char *argv[]) {
     audio_set_music_volume(&gui.audio, gui.music_volume);
     audio_set_sfx_volume(&gui.audio, gui.sfx_volume);
     
-    // Load background music tracks
+    // Load background music tracks (BUT don't play them yet - wait for splash to exit)
 #ifdef ExternalSound
     audio_play_music(&gui.audio, "music/track1.mp3", false);   // Load track 1
     audio_play_music(&gui.audio, "music/track2.mp3", false);   // Load track 2
@@ -2199,8 +2258,11 @@ int main(int argc, char *argv[]) {
     audio_play_music(&gui.audio, "music/track5.mp3", false);   // Load track 5
     audio_play_music(&gui.audio, "music/track6.mp3", false);   // Load track 6
     
-    // Play a random track
-    audio_play_random_music(&gui.audio);
+    // Play intro music during splash screen
+    audio_play_intro_music(&gui.audio, "music/intro.mp3");
+    
+    // DON'T start gameplay music yet - wait for splash to exit
+    // That happens in on_update_frame() when splash_screen_active becomes false
 #endif
     
     // Create window

@@ -243,7 +243,7 @@ int audio_get_sfx_volume(AudioManager *audio) {
     return audio->sfx_volume;
 }
 
-// Play music from WAD
+// Play music from WAD - adds to rotation
 void audio_play_music(AudioManager *audio, const char *internal_path, bool loop) {
     if (!audio || !audio->audio_enabled || !internal_path) return;
     
@@ -280,6 +280,42 @@ void audio_play_music(AudioManager *audio, const char *internal_path, bool loop)
         fprintf(stderr, "Failed to play music: %s\n", Mix_GetError());
     } else {
         fprintf(stdout, "[*] Playing: %s\n", internal_path);
+    }
+}
+
+// Play intro music without adding to rotation - for splash screen
+void audio_play_intro_music(AudioManager *audio, const char *internal_path) {
+    if (!audio || !audio->audio_enabled || !internal_path) return;
+    
+    WadFile music_file;
+    if (!wad_extract_file(&audio->wad, internal_path, &music_file)) {
+        fprintf(stderr, "Failed to load intro music from WAD: %s\n", internal_path);
+        return;
+    }
+    
+    // Create SDL_RWops from memory
+    SDL_RWops *rw = SDL_RWFromMem(music_file.data, music_file.size);
+    if (!rw) {
+        fprintf(stderr, "Failed to create SDL_RWops for intro music\n");
+        wad_free_file(&music_file);
+        return;
+    }
+    
+    // Load music
+    Mix_Music *music = Mix_LoadMUS_RW(rw, 1);
+    if (!music) {
+        fprintf(stderr, "Failed to load intro music: %s\n", Mix_GetError());
+        free(music_file.data);
+        return;
+    }
+    
+    // NOTE: Do NOT add to music_tracks array - this keeps it separate from gameplay rotation
+    // Play once (no loop) - the music_finished callback will be set up by the caller
+    if (Mix_PlayMusic(music, 0) < 0) {
+        fprintf(stderr, "Failed to play intro music: %s\n", Mix_GetError());
+        Mix_FreeMusic(music);
+    } else {
+        fprintf(stdout, "[*] Playing intro: %s\n", internal_path);
     }
 }
 

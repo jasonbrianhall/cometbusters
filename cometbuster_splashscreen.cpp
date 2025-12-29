@@ -124,13 +124,9 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
             Comet *comet = &game->comets[j];
             
             if (comet_buster_check_bullet_comet(bullet, comet)) {
-                // Create visual impact
+                // Visual impact only - NO explosion sounds during splash screen
                 bullet->active = false;
-                
-                // Spawn particles at collision point
-                double px = (bullet->x + comet->x) / 2.0;
-                double py = (bullet->y + comet->y) / 2.0;
-                comet_buster_spawn_explosion(game, px, py, comet->frequency_band, 8);
+                // Note: Explosion spawning is disabled during splash to prevent sound effects
                 
                 break;
             }
