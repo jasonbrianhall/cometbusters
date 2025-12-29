@@ -2210,7 +2210,7 @@ bool comet_buster_check_bullet_harbinger(Bullet *b, BossShip *boss) {
 
 #define SINGULARITY_SATELLITE_COUNT 8
 //#define SINGULARITY_MAX_HEALTH 500
-#define SINGULARITY_MAX_HEALTH 1
+#define SINGULARITY_MAX_HEALTH 250
 
 // Satellite structure for Singularity
 typedef struct {

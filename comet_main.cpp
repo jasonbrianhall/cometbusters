@@ -47,6 +47,7 @@ typedef struct {
     
     bool is_fullscreen;
     bool game_paused;            // Track if game is paused
+    bool finale_music_started;   // Track if finale music has been started
     
     // Volume control dialog
     GtkWidget *volume_dialog;
@@ -1874,6 +1875,16 @@ gboolean game_update_timer(gpointer data) {
     
     // Handle finale splash if active (Wave 30 victory)
     if (gui->visualizer.comet_buster.finale_splash_active) {
+        // Start finale music on first frame of finale splash
+        if (!gui->finale_music_started) {
+            fprintf(stdout, "[FINALE] Starting finale music...\n");
+            audio_stop_music(&gui->audio);
+#ifdef ExternalSound
+            audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
+#endif
+            gui->finale_music_started = true;
+        }
+        
         // Update the finale splash
         comet_buster_update_finale_splash(&gui->visualizer.comet_buster, 1.0 / 60.0);
         
@@ -1887,6 +1898,9 @@ gboolean game_update_timer(gpointer data) {
                 gui->visualizer.comet_buster.finale_waiting_for_input = true;
             }
             
+            // Stop the finale music
+            audio_stop_music(&gui->audio);
+            
             // Clean up finale splash
             gui->visualizer.comet_buster.finale_splash_active = false;
             gui->visualizer.comet_buster.finale_splash_boss_paused = false;
@@ -1897,8 +1911,14 @@ gboolean game_update_timer(gpointer data) {
             gui->visualizer.comet_buster.current_wave++;
             comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
             
-            // Reset input
+            // Reset flags and input
+            gui->finale_music_started = false;
             gui->visualizer.mouse_right_pressed = false;
+            
+            // Start gameplay music rotation
+#ifdef ExternalSound
+            audio_play_random_music(&gui->audio);
+#endif
         }
         
         // Redraw and return early (don't update normal game during finale splash)

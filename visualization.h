@@ -229,6 +229,6 @@ void comet_buster_brown_coat_standard_fire(CometBusterGame *game, int ship_index
 void comet_buster_update_brown_coat_ship(CometBusterGame *game, int ship_index, double dt, Visualizer *visualizer);
 void init_comet_buster_system_with_difficulty(Visualizer *visualizer, int difficulty);
 bool comet_buster_victory_scroll_input_detected(CometBusterGame *game, Visualizer *visualizer);
-;
+void audio_play_intro_music(AudioManager *audio, const char *internal_path);
 
 #endif

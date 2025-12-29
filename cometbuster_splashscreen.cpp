@@ -627,7 +627,7 @@ void comet_buster_show_victory_scroll(CometBusterGame *game) {
     
 #ifdef ExternalSound
     // TODO: Play finale music
-    // audio_play_intro_music(&visualizer->audio, "music/finale.mp3");
+    //audio_play_intro_music(&visualizer->audio, "music/finale.mp3");
 #endif
 }
 
@@ -770,7 +770,7 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
     cairo_set_source_rgb(cr, 0.2, 0.8, 1.0);
     cairo_set_font_size(cr, 15);
     
-    int visible_lines = 24;  // Show 24 lines at a time
+    int visible_lines = 40;  // Show 24 lines at a time
     int start_line = (game->finale_scroll_line_index > visible_lines) ? 
                      (game->finale_scroll_line_index - visible_lines) : 0;
     
