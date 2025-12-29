@@ -145,6 +145,14 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->boss_spawn_timer = 0;
     game->last_boss_wave = 0;  // Track which wave had the boss
     
+    // Finale splash screen (Wave 30 victory)
+    game->finale_splash_active = false;
+    game->finale_splash_boss_paused = false;
+    game->finale_splash_timer = 0.0;
+    game->finale_scroll_line_index = 0;
+    game->finale_scroll_timer = 0.0;
+    game->finale_waiting_for_input = false;
+    
     // PHASE 3: Initialize splash screen only if requested
     // Save difficulty-based settings before splash init (in case splash resets them)
     int saved_difficulty = game->difficulty;

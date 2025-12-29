@@ -1872,6 +1872,35 @@ gboolean game_update_timer(gpointer data) {
         return TRUE;
     }
     
+    // Handle finale splash if active (Wave 30 victory)
+    if (gui->visualizer.comet_buster.finale_splash_active) {
+        // Update the finale splash
+        comet_buster_update_finale_splash(&gui->visualizer.comet_buster, 1.0 / 60.0);
+        
+        // Check if user wants to continue to next wave
+        if (gui->visualizer.comet_buster.mouse_right_pressed && 
+            gui->visualizer.comet_buster.finale_waiting_for_input) {
+            fprintf(stdout, "[FINALE] Player advancing to Wave 31\n");
+            
+            // Clean up finale splash
+            gui->visualizer.comet_buster.finale_splash_active = false;
+            gui->visualizer.comet_buster.finale_splash_boss_paused = false;
+            gui->visualizer.comet_buster.boss.active = false;
+            gui->visualizer.comet_buster.boss_active = false;
+            
+            // Advance to next wave
+            gui->visualizer.comet_buster.current_wave++;
+            comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+            
+            // Reset input
+            gui->visualizer.comet_buster.mouse_right_pressed = false;
+        }
+        
+        // Redraw and return early (don't update normal game during finale splash)
+        gtk_widget_queue_draw(gui->drawing_area);
+        return TRUE;
+    }
+    
     if (!gui->game_paused) {
         // Update game
         update_comet_buster(&gui->visualizer, 1.0 / 60.0);
@@ -1949,6 +1978,11 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     // Draw victory scroll if game is won
     if (gui->visualizer.comet_buster.game_won && gui->visualizer.comet_buster.splash_screen_active) {
         comet_buster_draw_victory_scroll(&gui->visualizer.comet_buster, cr, game_width, game_height);
+    }
+    // Draw finale splash (Wave 30 victory) if active
+    else if (gui->visualizer.comet_buster.finale_splash_active) {
+        draw_comet_buster(&gui->visualizer, cr);  // Draw game in background
+        comet_buster_draw_finale_splash(&gui->visualizer.comet_buster, cr, game_width, game_height);
     }
     // Draw splash screen if active, otherwise draw normal game
     else if (gui->visualizer.comet_buster.splash_screen_active) {

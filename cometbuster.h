@@ -393,7 +393,13 @@ typedef struct {
        double rotation;
    } splash_aliens[20];
 
-    
+    // Finale splash screen (Wave 30 victory)
+    bool finale_splash_active;
+    bool finale_splash_boss_paused;
+    double finale_splash_timer;
+    int finale_scroll_line_index;
+    double finale_scroll_timer;
+    bool finale_waiting_for_input;
     
 } CometBusterGame;
 
@@ -505,7 +511,9 @@ void comet_buster_spawn_enemy_ship_internal(CometBusterGame *game, int screen_wi
 // Splash
 void comet_buster_init_splash_screen(CometBusterGame *game, int width, int height);
 void comet_buster_exit_splash_screen(CometBusterGame *game);
-void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int width, int height);                                 
+void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int width, int height);
+void comet_buster_update_finale_splash(CometBusterGame *game, double dt);
+void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int width, int height);                                 
 
 void comet_buster_spawn_void_nexus(CometBusterGame *game, int screen_width, int screen_height);
 void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width, int height);

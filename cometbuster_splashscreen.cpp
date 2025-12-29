@@ -727,3 +727,70 @@ void comet_buster_exit_victory_scroll(CometBusterGame *game) {
     // Reset game to return to menu
     comet_buster_reset_game(game);
 }
+
+// ============================================================================
+// WAVE 30 FINALE SPLASH SCREEN
+// ============================================================================
+
+void comet_buster_update_finale_splash(CometBusterGame *game, double dt) {
+    if (!game || !game->finale_splash_active) return;
+    
+    game->finale_splash_timer += dt;
+    game->finale_scroll_timer += dt;
+    
+    // Auto-advance text lines every 1.5 seconds
+    if (game->finale_scroll_timer >= 1.5) {
+        game->finale_scroll_line_index++;
+        game->finale_scroll_timer = 0.0;
+        
+        // When we reach the end, wait for input
+        if (game->finale_scroll_line_index >= NUM_VICTORY_LINES) {
+            game->finale_waiting_for_input = true;
+            game->finale_scroll_line_index = NUM_VICTORY_LINES - 1;
+        }
+    }
+}
+
+void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game || !game->finale_splash_active) return;
+    
+    // Semi-transparent dark overlay
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.75);
+    cairo_rectangle(cr, 0, 0, width, height);
+    cairo_fill(cr);
+    
+    // Title
+    cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);
+    cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 36);
+    cairo_text_extents_t extents;
+    
+    const char *title = "WAVE 30 COMPLETE";
+    cairo_text_extents(cr, title, &extents);
+    cairo_move_to(cr, width/2.0 - extents.width/2.0, 80);
+    cairo_show_text(cr, title);
+    
+    // Victory scroll text
+    cairo_set_source_rgb(cr, 0.2, 0.8, 1.0);
+    cairo_set_font_size(cr, 15);
+    
+    double y_pos = 150;
+    for (int i = 0; i <= game->finale_scroll_line_index && i < NUM_VICTORY_LINES; i++) {
+        cairo_text_extents(cr, VICTORY_SCROLL_LINES[i], &extents);
+        cairo_move_to(cr, width/2.0 - extents.width/2.0, y_pos);
+        cairo_show_text(cr, VICTORY_SCROLL_LINES[i]);
+        y_pos += 22;
+    }
+    
+    // Show "RIGHT-CLICK TO CONTINUE" when done scrolling
+    if (game->finale_waiting_for_input) {
+        double pulse = 0.5 + 0.5 * sin(game->finale_splash_timer * 2.5);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, pulse);
+        
+        cairo_set_font_size(cr, 16);
+        const char *continue_text = "RIGHT-CLICK TO CONTINUE TO WAVE 31";
+        cairo_text_extents(cr, continue_text, &extents);
+        cairo_move_to(cr, width/2.0 - extents.width/2.0, height - 50);
+        cairo_show_text(cr, continue_text);
+    }
+}

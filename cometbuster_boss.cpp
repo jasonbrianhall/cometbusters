@@ -21,6 +21,14 @@ void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int h
         return;
     }
     
+    // Pause boss during finale splash (Wave 30 victory)
+    if (game->finale_splash_active && game->finale_splash_boss_paused) {
+        if (boss->damage_flash_timer > 0) {
+            boss->damage_flash_timer -= dt;
+        }
+        return;  // Boss is frozen
+    }
+    
     // Update phase timer
     boss->phase_timer += dt;
     if (boss->phase_timer >= boss->phase_duration) {
@@ -90,10 +98,12 @@ void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int h
             boss->shoot_cooldown = 1.0;
         }
     } else if (boss->phase == 2) {
-        // Enraged phase - fires more frequently (every 0.4 seconds instead of 0.5)
+        // Enraged phase - still faster but reduced from 0.3 to 0.5 seconds
         if (boss->shoot_cooldown <= 0) {
             comet_buster_boss_fire(game);
-            boss->shoot_cooldown = 0.4;
+            // Fire extra bullets in spread pattern
+            comet_buster_boss_fire(game);
+            boss->shoot_cooldown = 0.5;
         }
     }
     
@@ -246,26 +256,29 @@ void comet_buster_boss_fire(CometBusterGame *game) {
     double dy = game->ship_y - boss->y;
     double angle_to_ship = atan2(dy, dx);
     
-    // Add inaccuracy - randomize the angle
-    // More inaccuracy in normal/shield phases, less in enraged phase
-    double max_inaccuracy;
+    // Fire fewer bullets in different patterns
+    int num_bullets;
+    double angle_spread;
+    
     if (boss->phase == 2) {
-        // Enraged phase - ±40 degrees inaccuracy
-        max_inaccuracy = 40.0 * M_PI / 180.0;
+        // Enraged phase - 3 bullets (reduced from 5)
+        num_bullets = 3;
+        angle_spread = 45.0 * M_PI / 180.0;  // Reduced spread from 60 to 45 degrees
     } else {
-        // Normal and shield phases - ±50 degrees inaccuracy
-        max_inaccuracy = 50.0 * M_PI / 180.0;
+        // Normal and shield phases - 2 bullets (reduced from 3)
+        num_bullets = 2;
+        angle_spread = 30.0 * M_PI / 180.0;  // 30 degree spread
     }
     
-    // Apply random inaccuracy
-    double angle_noise = (rand() % 1000) / 1000.0 * max_inaccuracy * 2.0 - max_inaccuracy;
-    double final_angle = angle_to_ship + angle_noise;
+    double start_angle = angle_to_ship - angle_spread / 2.0;
     
-    // Fire a single bullet
-    double vx = cos(final_angle) * bullet_speed;
-    double vy = sin(final_angle) * bullet_speed;
-    
-    comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
+    for (int i = 0; i < num_bullets; i++) {
+        double angle = start_angle + (angle_spread / (num_bullets - 1)) * i;
+        double vx = cos(angle) * bullet_speed;
+        double vy = sin(angle) * bullet_speed;
+        
+        comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
+    }
 }
 
 void draw_comet_buster_boss(BossShip *boss, cairo_t *cr, int width, int height) {
@@ -2196,7 +2209,8 @@ bool comet_buster_check_bullet_harbinger(Bullet *b, BossShip *boss) {
 // ============================================================================
 
 #define SINGULARITY_SATELLITE_COUNT 8
-#define SINGULARITY_MAX_HEALTH 500
+//#define SINGULARITY_MAX_HEALTH 500
+#define SINGULARITY_MAX_HEALTH 1
 
 // Satellite structure for Singularity
 typedef struct {
@@ -2379,15 +2393,16 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                         comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
                     }
                     
-                    // Add actual homing missiles tracking player (only 1 instead of 2)
-                    if (game->missile_count < MAX_MISSILES) {
+                    // Add actual homing missiles tracking player
+                    for (int i = 0; i < 2; i++) {
+                        if (game->missile_count >= MAX_MISSILES) break;
+                        
                         Missile *missile = &game->missiles[game->missile_count];
                         memset(missile, 0, sizeof(Missile));
                         
                         // Spawn from boss center with angle offset
-                        double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x);
-                        // Add random inaccuracy ±40 degrees
-                        spawn_angle += (rand() % 1000) / 1000.0 * 80.0 * M_PI / 180.0 - 40.0 * M_PI / 180.0;
+                        double angle_offset = (i - 0.5) * 0.4;
+                        double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x) + angle_offset;
                         
                         missile->x = boss->x + cos(spawn_angle) * 30.0;
                         missile->y = boss->y + sin(spawn_angle) * 30.0;
@@ -2395,7 +2410,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                         missile->vy = sin(spawn_angle) * 150.0;
                         missile->angle = spawn_angle;
                         
-                        // Target the player with reduced tracking
+                        // Target the player
                         missile->target_x = game->ship_x;
                         missile->target_y = game->ship_y;
                         missile->target_id = -2;  // Player target
@@ -2404,7 +2419,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                         missile->lifetime = 8.0;
                         missile->max_lifetime = 8.0;
                         missile->speed = 150.0;
-                        missile->turn_speed = 60.0;  // Reduced from 120.0 - much slower tracking
+                        missile->turn_speed = 120.0;  // Track player quickly
                         missile->missile_type = 1;  // Homing missile
                         missile->active = true;
                         missile->owner_ship_id = -3;  // Boss-fired
@@ -2412,27 +2427,59 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                         game->missile_count++;
                     }
                 } else {
-                    // Wide sweep - bullets only (missiles handled separately below)
+                    // Wide sweep with missiles mixed in
                     for (int i = 0; i < 7; i++) {
                         double angle = boss->rotation * M_PI / 180.0 + (i - 3) * 30.0 * M_PI / 180.0;
                         double vx = cos(angle) * 300.0;
                         double vy = sin(angle) * 300.0;
-                        comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
+                        
+                        // Every 3rd is a homing missile
+                        if (i % 3 == 0) {
+                            if (game->missile_count >= MAX_MISSILES) continue;
+                            
+                            Missile *missile = &game->missiles[game->missile_count];
+                            memset(missile, 0, sizeof(Missile));
+                            
+                            double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x);
+                            missile->x = boss->x + cos(spawn_angle) * 30.0;
+                            missile->y = boss->y + sin(spawn_angle) * 30.0;
+                            missile->vx = cos(spawn_angle) * 150.0;
+                            missile->vy = sin(spawn_angle) * 150.0;
+                            missile->angle = spawn_angle;
+                            
+                            missile->target_x = game->ship_x;
+                            missile->target_y = game->ship_y;
+                            missile->target_id = -2;
+                            missile->has_target = true;
+                            
+                            missile->lifetime = 8.0;
+                            missile->max_lifetime = 8.0;
+                            missile->speed = 150.0;
+                            missile->turn_speed = 120.0;
+                            missile->missile_type = 1;
+                            missile->active = true;
+                            missile->owner_ship_id = -3;
+                            
+                            game->missile_count++;
+                        } else {
+                            comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
+                        }
                     }
                 }
                 
                 boss->fire_pattern_timer = 0;
             }
             
-            // Homing missile every 4 seconds (only 1 instead of 2)
-            if (fmod(boss->phase_timer, 4.0) < dt) {
-                if (game->missile_count < MAX_MISSILES) {
+            // Homing missiles every 3 seconds
+            if (fmod(boss->phase_timer, 3.0) < dt) {
+                for (int i = 0; i < 2; i++) {
+                    if (game->missile_count >= MAX_MISSILES) break;
+                    
                     Missile *missile = &game->missiles[game->missile_count];
                     memset(missile, 0, sizeof(Missile));
                     
-                    double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x);
-                    // Add random inaccuracy ±45 degrees
-                    spawn_angle += (rand() % 1000) / 1000.0 * 90.0 * M_PI / 180.0 - 45.0 * M_PI / 180.0;
+                    double angle_offset = (i - 0.5) * 0.6;
+                    double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x) + angle_offset;
                     
                     missile->x = boss->x + cos(spawn_angle) * 30.0;
                     missile->y = boss->y + sin(spawn_angle) * 30.0;
@@ -2448,7 +2495,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                     missile->lifetime = 8.0;
                     missile->max_lifetime = 8.0;
                     missile->speed = 150.0;
-                    missile->turn_speed = 60.0;  // Reduced from 120.0
+                    missile->turn_speed = 120.0;
                     missile->missile_type = 1;
                     missile->active = true;
                     missile->owner_ship_id = -3;
@@ -2468,28 +2515,60 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                     comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
                 }
                 
-                // Fragmenting projectiles spiral with occasional missiles mixed in
+                // Fragmenting projectiles spiral with MANY missiles mixed in
                 for (int i = 0; i < 6; i++) {
                     double angle = (boss->rotation + i * 60.0 + boss->phase_timer * 90) * M_PI / 180.0;
                     double vx = cos(angle) * 250.0;
                     double vy = sin(angle) * 250.0;
                     
-                    // Fire bullets only (missiles handled separately below)
-                    comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
+                    // 50% fast bullets, 50% homing missiles
+                    if (i % 2 == 0) {
+                        comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
+                    } else {
+                        // Homing missile toward player
+                        if (game->missile_count >= MAX_MISSILES) continue;
+                        
+                        Missile *missile = &game->missiles[game->missile_count];
+                        memset(missile, 0, sizeof(Missile));
+                        
+                        double homing_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x)
+                                            + sin(boss->phase_timer * 2.0) * 0.3;
+                        missile->x = boss->x + cos(homing_angle) * 30.0;
+                        missile->y = boss->y + sin(homing_angle) * 30.0;
+                        missile->vx = cos(homing_angle) * 150.0;
+                        missile->vy = sin(homing_angle) * 150.0;
+                        missile->angle = homing_angle;
+                        
+                        missile->target_x = game->ship_x;
+                        missile->target_y = game->ship_y;
+                        missile->target_id = -2;
+                        missile->has_target = true;
+                        
+                        missile->lifetime = 8.0;
+                        missile->max_lifetime = 8.0;
+                        missile->speed = 150.0;
+                        missile->turn_speed = 120.0;
+                        missile->missile_type = 1;
+                        missile->active = true;
+                        missile->owner_ship_id = -3;
+                        
+                        game->missile_count++;
+                    }
                 }
                 
                 boss->fire_pattern_timer = 0;
             }
             
-            // Single homing missile every 3 seconds
-            if (fmod(boss->phase_timer, 3.0) < dt) {
-                if (game->missile_count < MAX_MISSILES) {
+            // Heavy homing missile fire every 2 seconds
+            if (fmod(boss->phase_timer, 2.0) < dt) {
+                for (int i = 0; i < 4; i++) {
+                    if (game->missile_count >= MAX_MISSILES) break;
+                    
                     Missile *missile = &game->missiles[game->missile_count];
                     memset(missile, 0, sizeof(Missile));
                     
-                    double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x);
-                    // Add random inaccuracy ±50 degrees
-                    spawn_angle += (rand() % 1000) / 1000.0 * 100.0 * M_PI / 180.0 - 50.0 * M_PI / 180.0;
+                    double angle_offset = (i - 1.5) * 0.5;
+                    double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x) + angle_offset;
                     
                     missile->x = boss->x + cos(spawn_angle) * 30.0;
                     missile->y = boss->y + sin(spawn_angle) * 30.0;
@@ -2505,7 +2584,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                     missile->lifetime = 8.0;
                     missile->max_lifetime = 8.0;
                     missile->speed = 150.0;
-                    missile->turn_speed = 50.0;  // Reduced from 120.0 - very sluggish tracking
+                    missile->turn_speed = 120.0;
                     missile->missile_type = 1;
                     missile->active = true;
                     missile->owner_ship_id = -3;
@@ -2515,8 +2594,8 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
             }
             break;
             
-        case 3: // Phase 3: Challenging assault - single missiles
-            if (boss->fire_pattern_timer >= 1.2) {
+        case 3: // Phase 3: Overwhelming assault - mostly missiles (20/80)
+            if (boss->fire_pattern_timer >= 1.5) {
                 // 4 rotating laser beams (fast bullets)
                 for (int i = 0; i < 4; i++) {
                     double angle = (boss->rotation + i * 90.0) * M_PI / 180.0;
@@ -2525,49 +2604,60 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                     comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
                 }
                 
-                // Fire a single homing missile with reduced accuracy
-                if (game->missile_count < MAX_MISSILES) {
-                    Missile *missile = &game->missiles[game->missile_count];
-                    memset(missile, 0, sizeof(Missile));
+                // Fragmenting projectiles - MOSTLY MISSILES
+                for (int i = 0; i < 8; i++) {
+                    double angle = (boss->rotation + i * 45.0 + boss->phase_timer * 180) * M_PI / 180.0;
                     
-                    double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x);
-                    // Add random inaccuracy ±60 degrees
-                    spawn_angle += (rand() % 1000) / 1000.0 * 120.0 * M_PI / 180.0 - 60.0 * M_PI / 180.0;
-                    
-                    missile->x = boss->x + cos(spawn_angle) * 30.0;
-                    missile->y = boss->y + sin(spawn_angle) * 30.0;
-                    missile->vx = cos(spawn_angle) * 150.0;
-                    missile->vy = sin(spawn_angle) * 150.0;
-                    missile->angle = spawn_angle;
-                    
-                    missile->target_x = game->ship_x;
-                    missile->target_y = game->ship_y;
-                    missile->target_id = -2;
-                    missile->has_target = true;
-                    
-                    missile->lifetime = 8.0;
-                    missile->max_lifetime = 8.0;
-                    missile->speed = 150.0;
-                    missile->turn_speed = 40.0;  // Reduced from 120.0 - very poor tracking
-                    missile->missile_type = 1;
-                    missile->active = true;
-                    missile->owner_ship_id = -3;
-                    
-                    game->missile_count++;
+                    // 87.5% homing missiles, 12.5% fast bullets
+                    if (i % 8 == 0) {
+                        double vx = cos(angle) * 300.0;
+                        double vy = sin(angle) * 300.0;
+                        comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
+                    } else {
+                        // Actual homing missile
+                        if (game->missile_count >= MAX_MISSILES) continue;
+                        
+                        Missile *missile = &game->missiles[game->missile_count];
+                        memset(missile, 0, sizeof(Missile));
+                        
+                        double homing_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x)
+                                            + sin(boss->phase_timer * 3.0 + i) * 0.4;
+                        missile->x = boss->x + cos(homing_angle) * 30.0;
+                        missile->y = boss->y + sin(homing_angle) * 30.0;
+                        missile->vx = cos(homing_angle) * 150.0;
+                        missile->vy = sin(homing_angle) * 150.0;
+                        missile->angle = homing_angle;
+                        
+                        missile->target_x = game->ship_x;
+                        missile->target_y = game->ship_y;
+                        missile->target_id = -2;
+                        missile->has_target = true;
+                        
+                        missile->lifetime = 8.0;
+                        missile->max_lifetime = 8.0;
+                        missile->speed = 150.0;
+                        missile->turn_speed = 120.0;
+                        missile->missile_type = 1;
+                        missile->active = true;
+                        missile->owner_ship_id = -3;
+                        
+                        game->missile_count++;
+                    }
                 }
                 
                 boss->fire_pattern_timer = 0;
             }
             
-            // Single homing missile every 2.5 seconds
-            if (fmod(boss->phase_timer, 2.5) < dt) {
-                if (game->missile_count < MAX_MISSILES) {
+            // CONTINUOUS homing missile barrage (4 missiles every 1 second)
+            if (fmod(boss->phase_timer, 1.0) < dt) {
+                for (int i = 0; i < 4; i++) {
+                    if (game->missile_count >= MAX_MISSILES) break;
+                    
                     Missile *missile = &game->missiles[game->missile_count];
                     memset(missile, 0, sizeof(Missile));
                     
-                    double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x);
-                    // Add random inaccuracy ±55 degrees
-                    spawn_angle += (rand() % 1000) / 1000.0 * 110.0 * M_PI / 180.0 - 55.0 * M_PI / 180.0;
+                    double angle_offset = (i - 1.5) * 0.6;
+                    double spawn_angle = atan2(game->ship_y - boss->y, game->ship_x - boss->x) + angle_offset;
                     
                     missile->x = boss->x + cos(spawn_angle) * 30.0;
                     missile->y = boss->y + sin(spawn_angle) * 30.0;
@@ -2583,7 +2673,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                     missile->lifetime = 8.0;
                     missile->max_lifetime = 8.0;
                     missile->speed = 150.0;
-                    missile->turn_speed = 40.0;  // Very poor tracking
+                    missile->turn_speed = 120.0;
                     missile->missile_type = 1;
                     missile->active = true;
                     missile->owner_ship_id = -3;
@@ -2682,6 +2772,18 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
     
     // ========== CHECK IF BOSS IS DEFEATED ==========
     if (boss->health <= 0) {
+        // Check for Wave 30 finale splash
+        if (game->current_wave == 30) {
+            fprintf(stdout, "[FINALE] Wave 30 Singularity defeated! Showing victory splash...\n");
+            game->finale_splash_active = true;
+            game->finale_splash_boss_paused = true;
+            game->finale_splash_timer = 0.0;
+            game->finale_scroll_line_index = 0;
+            game->finale_scroll_timer = 0.0;
+            game->finale_waiting_for_input = false;
+            return;  // Don't process defeat yet
+        }
+        
         fprintf(stdout, "[SINGULARITY] THE SINGULARITY HAS BEEN DESTROYED!\n");
         
         // MASSIVE EXPLOSION
