@@ -131,10 +131,18 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
             EnemyShip *ship = &game->enemy_ships[i];
             Comet *comet = &game->comets[j];
             
+            // Get ship collision radius based on actual ship size
+            double ship_radius = 12.0;  // Default size
+            if (ship->ship_type == 5) {
+                ship_radius = 36.0;  // Juggernaut: 3x size
+            } else if (ship->ship_type == 4) {
+                ship_radius = 18.0;  // Elite blue (brown coat): 1.5x size
+            }
+            
             double dx = ship->x - comet->x;
             double dy = ship->y - comet->y;
             double dist = sqrt(dx*dx + dy*dy);
-            double collision_dist = 30.0 + comet->radius;
+            double collision_dist = ship_radius + comet->radius;  // Use actual ship size
             
             if (dist < collision_dist) {
                 // Use the REAL destroy functions from collision.cpp
