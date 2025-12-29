@@ -155,8 +155,8 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
     
     comet_buster_spawn_explosion(game, c->x, c->y, c->frequency_band, particle_count);
     
-    // Play explosion sound
-    if (vis) {
+    // Play explosion sound - but NOT during splash screen
+    if (vis && !game->splash_screen_active) {
         Visualizer *visualizer = (Visualizer *)vis;
 #ifdef ExternalSound
         audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
@@ -325,8 +325,8 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
     // Create explosion
     comet_buster_spawn_explosion(game, ship->x, ship->y, 1, 12);  // Mid-frequency explosion
     
-    // Play explosion sound
-    if (vis) {
+    // Play explosion sound - but NOT during splash screen
+    if (vis && !game->splash_screen_active) {
         Visualizer *visualizer = (Visualizer *)vis;
 #ifdef ExternalSound
         audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
@@ -395,8 +395,8 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     // Create large explosion
     comet_buster_spawn_explosion(game, boss->x, boss->y, 1, 60);  // HUGE explosion
     
-    // Play explosion sound
-    if (vis) {
+    // Play explosion sound - but NOT during splash screen
+    if (vis && !game->splash_screen_active) {
         Visualizer *visualizer = (Visualizer *)vis;
 #ifdef ExternalSound
         audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
