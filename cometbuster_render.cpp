@@ -51,6 +51,7 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
     draw_comet_buster_comets(game, cr, width, height);
     draw_comet_buster_bullets(game, cr, width, height);
     draw_comet_buster_enemy_ships(game, cr, width, height);
+    draw_comet_buster_ufos(game, cr, width, height);  // Draw UFO flying saucers
     
     // Draw boss (either Spawn Queen or regular Death Star)
     if (game->boss_active) {
@@ -1213,4 +1214,99 @@ void draw_enemy_ship_burner(cairo_t *cr, double burner_intensity, double ship_si
     cairo_fill(cr);
     
     cairo_pattern_destroy(gradient);
+}
+
+// ============================================================================
+// UFO (FLYING SAUCER) RENDERING
+// ============================================================================
+
+void draw_comet_buster_ufos(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game) return;
+    (void)width;
+    (void)height;
+    
+    for (int i = 0; i < game->ufo_count; i++) {
+        UFO *ufo = &game->ufos[i];
+        if (!ufo->active) continue;
+        
+        cairo_save(cr);
+        cairo_translate(cr, ufo->x, ufo->y);
+        
+        // Set color based on damage state
+        if (ufo->damage_flash_timer > 0) {
+            // Flash white when hit
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        } else {
+            cairo_set_source_rgb(cr, 0.0, 1.0, 1.0);  // Bright cyan
+        }
+        
+        cairo_set_line_width(cr, 1.5);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        
+        // BIGGER DESIGN - Much larger UFO!
+        
+        // Main curved dome/top (smooth arc) - BIGGER!
+        double dome_width = 40.0;  // Was 20.0
+        double dome_height = 20.0;  // Was 10.0
+        
+        // Draw top dome - smooth curved arc
+        cairo_arc(cr, 0, 0, dome_width/2, M_PI, 2*M_PI);  // Top semicircle
+        cairo_stroke(cr);
+        
+        // Bottom of dome (flat line where portholes attach)
+        cairo_move_to(cr, -dome_width/2, 0);
+        cairo_line_to(cr, dome_width/2, 0);
+        cairo_stroke(cr);
+        
+        // THREE PORTHOLES on bottom (classic design) - BIGGER!
+        double porthole_radius = 3.5;  // Was 2.0
+        double porthole_spacing = 14.0;  // Was 8.0
+        
+        // Left porthole
+        cairo_arc(cr, -porthole_spacing, dome_height/2, porthole_radius, 0, 2*M_PI);
+        cairo_stroke(cr);
+        
+        // Center porthole
+        cairo_arc(cr, 0, dome_height/2, porthole_radius, 0, 2*M_PI);
+        cairo_stroke(cr);
+        
+        // Right porthole
+        cairo_arc(cr, porthole_spacing, dome_height/2, porthole_radius, 0, 2*M_PI);
+        cairo_stroke(cr);
+        
+        // Small bottom fins/extensions (like original Asteroids) - BIGGER!
+        double fin_width = 5.0;  // Was 3.0
+        double fin_height = 6.0;  // Was 3.0
+        
+        // Left fin
+        cairo_rectangle(cr, -porthole_spacing - fin_width/2, dome_height/2, fin_width, fin_height);
+        cairo_stroke(cr);
+        
+        // Right fin
+        cairo_rectangle(cr, porthole_spacing - fin_width/2, dome_height/2, fin_width, fin_height);
+        cairo_stroke(cr);
+        
+        // Draw thruster/burner effect (coming from bottom rear)
+        if (ufo->burner_intensity > 0.01) {
+            draw_enemy_ship_burner(cr, ufo->burner_intensity * 0.6, 16.0);  // Also bigger
+        }
+        
+        // Draw health indicator (small dots) - BIGGER!
+        if (ufo->health < ufo->max_health) {
+            for (int h = 0; h < ufo->max_health; h++) {
+                if (h < ufo->health) {
+                    cairo_set_source_rgb(cr, 0.0, 1.0, 1.0);  // Cyan for healthy
+                } else {
+                    cairo_set_source_rgb(cr, 0.3, 0.3, 0.3);  // Dark for missing
+                }
+                
+                double dot_x = -10 + h * 10;
+                cairo_arc(cr, dot_x, -dome_height - 8, 2.0, 0, 2*M_PI);  // Bigger dots
+                cairo_fill(cr);
+            }
+        }
+        
+        cairo_restore(cr);
+    }
 }

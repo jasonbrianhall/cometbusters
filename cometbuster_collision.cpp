@@ -598,3 +598,18 @@ bool comet_buster_check_ship_missile_pickup(CometBusterGame *game, MissilePickup
     
     return dist < 20.0;  // Missile pickup collision radius is 20 pixels
 }
+
+// ============================================================================
+// UFO-COMET COLLISION - Check if UFO collides with asteroid/comet
+// ============================================================================
+
+bool comet_buster_check_ufo_comet(UFO *u, Comet *c) {
+    if (!u->active || !c->active) return false;
+    
+    double dx = u->x - c->x;
+    double dy = u->y - c->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    // UFO collision radius is 25 pixels (matches UFO size)
+    return dist < (c->radius + 25.0);
+}

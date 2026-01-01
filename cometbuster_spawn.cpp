@@ -814,3 +814,223 @@ void comet_buster_spawn_missile_pickup(CometBusterGame *game, double x, double y
     
     game->missile_pickup_count++;
 }
+
+// ============================================================================
+// UFO (FLYING SAUCER) SYSTEM - Classic Asteroids-style encounters
+// ============================================================================
+
+void comet_buster_spawn_ufo(CometBusterGame *game, int screen_width, int screen_height) {
+    if (!game) return;
+    if (game->ufo_count >= MAX_UFOS) return;
+    
+    int slot = game->ufo_count;
+    UFO *ufo = &game->ufos[slot];
+    
+    memset(ufo, 0, sizeof(UFO));
+    
+    // Random entry side (0 = from left, 1 = from right)
+    int entry_side = rand() % 2;
+    
+    // UFO moves horizontally across screen at SLOWER speed
+    // Original Asteroids UFO: ~60 pixels/sec
+    if (entry_side == 0) {
+        // Enter from left
+        ufo->x = -50;
+        ufo->vx = 60.0 + (rand() % 40);  // 60-100 px/sec (much slower!)
+        ufo->direction = 1;
+    } else {
+        // Enter from right
+        ufo->x = screen_width + 50;
+        ufo->vx = -(60.0 + (rand() % 40));
+        ufo->direction = -1;
+    }
+    
+    // Random height (avoid edges) - but this becomes the CENTER height
+    int height_zone = rand() % 3;
+    if (height_zone == 0) {
+        ufo->entry_height = screen_height * 0.25;  // Upper third
+    } else if (height_zone == 1) {
+        ufo->entry_height = screen_height * 0.5;   // Middle
+    } else {
+        ufo->entry_height = screen_height * 0.75;  // Lower third
+    }
+    
+    ufo->y = ufo->entry_height;
+    ufo->vy = 0.0;  // Will be calculated via sine wave
+    
+    // UFO properties
+    ufo->health = 3;
+    ufo->max_health = 3;
+    ufo->angle = (ufo->direction > 0) ? 0 : M_PI;  // Face direction of travel
+    ufo->active = true;
+    ufo->lifetime = 0.0;
+    
+    // Firing - shoots occasionally at player (slower than before)
+    ufo->shoot_cooldown = 2.0 + (rand() % 10) * 0.1;  // 2.0-3.0 seconds between shots
+    ufo->shoot_timer = ufo->shoot_cooldown;
+    
+    // Burner effects
+    ufo->burner_intensity = 0.0;
+    ufo->burner_flicker_timer = 0.0;
+    ufo->damage_flash_timer = 0.0;
+    
+    game->ufo_count++;
+}
+
+void comet_buster_update_ufos(CometBusterGame *game, double dt, int width, int height, Visualizer *visualizer) {
+    if (!game) return;
+    
+    // Update UFO spawn timer
+    if (game->ufo_count < MAX_UFOS) {
+        game->ufo_spawn_timer -= dt;
+        if (game->ufo_spawn_timer <= 0) {
+            comet_buster_spawn_ufo(game, width, height);
+            game->ufo_spawn_timer = game->ufo_spawn_rate + (rand() % 20 - 10);  // Add variance
+        }
+    }
+    
+    // Update all UFOs
+    for (int i = 0; i < game->ufo_count; i++) {
+        UFO *ufo = &game->ufos[i];
+        if (!ufo->active) continue;
+        
+        // Move UFO horizontally
+        ufo->x += ufo->vx * dt;
+        
+        // Add sinusoidal (wavy) vertical movement - REDUCED oscillation
+        // Travels further horizontally with gentler up-down motion
+        double wave_amplitude = 20.0;  // Reduced from 40.0 (gentler waves)
+        double wave_frequency = 0.5;   // Reduced from 2.0 (travels further before oscillating)
+        
+        // Calculate Y position with sine wave - travels much further before bobbing
+        double sine_offset = sin(ufo->lifetime * wave_frequency * M_PI) * wave_amplitude;
+        ufo->y = ufo->entry_height + sine_offset;
+        
+        ufo->lifetime += dt;
+        
+        // Check collision with asteroids - UFO is destroyed on impact!
+        for (int j = 0; j < game->comet_count; j++) {
+            Comet *comet = &game->comets[j];
+            if (!comet->active) continue;
+            
+            if (comet_buster_check_ufo_comet(ufo, comet)) {
+                // UFO hits asteroid and is destroyed!
+                comet_buster_destroy_ufo(game, i, width, height, visualizer);
+                break;  // Exit asteroid loop
+            }
+        }
+        
+        // Skip rest of update if UFO was destroyed by asteroid
+        if (!ufo->active) continue;
+        
+        // Despawn if it goes off screen
+        if ((ufo->vx > 0 && ufo->x > width + 100) ||
+            (ufo->vx < 0 && ufo->x < -100)) {
+            ufo->active = false;
+            continue;
+        }
+        
+        // Update burner effects
+        {
+            double speed = fabs(ufo->vx);
+            double max_speed = 100.0;  // Full intensity at 100 px/sec
+            double target_intensity = (speed > 0) ? fmin(speed / max_speed, 1.0) : 0.0;
+            
+            if (target_intensity > ufo->burner_intensity) {
+                ufo->burner_intensity = fmin(target_intensity, ufo->burner_intensity + dt * 3.0);
+            } else {
+                ufo->burner_intensity = fmax(target_intensity, ufo->burner_intensity - dt * 2.5);
+            }
+            
+            ufo->burner_flicker_timer += dt * 12.0;
+            if (ufo->burner_flicker_timer > 1.0) {
+                ufo->burner_flicker_timer = 0.0;
+            }
+        }
+        
+        // Update damage flash
+        if (ufo->damage_flash_timer > 0) {
+            ufo->damage_flash_timer -= dt;
+        }
+        
+        // UFO fires at player occasionally
+        ufo->shoot_timer -= dt;
+        if (ufo->shoot_timer <= 0) {
+            comet_buster_ufo_fire(game);
+            ufo->shoot_timer = ufo->shoot_cooldown;
+        }
+    }
+    
+    // Remove dead UFOs
+    for (int i = game->ufo_count - 1; i >= 0; i--) {
+        if (!game->ufos[i].active) {
+            if (i != game->ufo_count - 1) {
+                game->ufos[i] = game->ufos[game->ufo_count - 1];
+            }
+            game->ufo_count--;
+        }
+    }
+}
+
+void comet_buster_ufo_fire(CometBusterGame *game) {
+    if (!game || game->ufo_count == 0) return;
+    
+    // Fire from a random UFO
+    UFO *ufo = &game->ufos[0];
+    if (!ufo->active) return;
+    
+    // Fire toward approximate player position with some spread
+    double dx = game->ship_x - ufo->x;
+    double dy = game->ship_y - ufo->y;
+    
+    // Add some inaccuracy (UFOs aren't perfect shots)
+    double spread = 0.3;  // Radians of spread
+    double angle_to_player = atan2(dy, dx);
+    double shot_angle = angle_to_player + (rand() % 100 - 50) * 0.01 * spread;
+    
+    // Bullet velocity
+    double bullet_speed = 200.0;
+    double bvx = cos(shot_angle) * bullet_speed;
+    double bvy = sin(shot_angle) * bullet_speed;
+    
+    // Fire from center of UFO
+    comet_buster_spawn_enemy_bullet_from_ship(game, ufo->x, ufo->y, bvx, bvy, -2);  // -2 = UFO owner ID
+}
+
+bool comet_buster_check_bullet_ufo(Bullet *b, UFO *u) {
+    if (!b || !u || !b->active || !u->active) return false;
+    
+    double dx = u->x - b->x;
+    double dy = u->y - b->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    return dist < 25.0;  // UFO collision radius (bigger UFO = bigger hitbox)
+}
+
+bool comet_buster_check_missile_ufo(Missile *m, UFO *u) {
+    if (!m || !u || !m->active || !u->active) return false;
+    
+    double dx = u->x - m->x;
+    double dy = u->y - m->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    return dist < 30.0;  // Missile hitbox is slightly bigger than bullets
+}
+
+void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, int height, void *vis) {
+    if (!game || ufo_index < 0 || ufo_index >= game->ufo_count) return;
+    
+    UFO *ufo = &game->ufos[ufo_index];
+    if (!ufo->active) return;
+    
+    // Award points - UFOs are worth 250 points (bonus!)
+    game->score += 250;
+    
+    // Explosion
+    comet_buster_spawn_explosion(game, ufo->x, ufo->y, 1, 15);  // Mid-frequency explosion
+    
+    // Create floating text
+    comet_buster_spawn_floating_text(game, ufo->x, ufo->y, "+250", 1.0, 0.8, 0.0);
+    
+    ufo->active = false;
+}

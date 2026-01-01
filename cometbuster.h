@@ -183,6 +183,29 @@ typedef struct {
 #define MAX_ENEMY_SHIPS 4
 #define MAX_ENEMY_BULLETS 64
 
+// UFO (Flying Saucer) structure - appears randomly across screen like Asteroids
+typedef struct {
+    double x, y;                // Position
+    double vx, vy;              // Velocity (usually straight across screen)
+    double angle;               // Direction facing
+    int health;                 // UFO health (3-5 hits to destroy)
+    int max_health;
+    double shoot_cooldown;      // Time until next shot
+    bool active;                // Is the UFO alive?
+    double lifetime;            // How long it's been on screen (despawns after crossing)
+    int direction;              // 1 = right, -1 = left (horizontal movement)
+    double entry_height;        // Y position it enters at (random between top/middle/bottom)
+    double shoot_timer;         // Timer for firing pattern
+    
+    // Visual effects
+    double burner_intensity;    // For thruster flames
+    double burner_flicker_timer;
+    double damage_flash_timer;  // Flash when hit
+    
+} UFO;
+
+#define MAX_UFOS 2  // Only 1-2 UFOs on screen at a time
+
 // Boss (Death Star) structure
 typedef struct {
     double x, y;                // Position
@@ -334,6 +357,12 @@ typedef struct {
     int enemy_ship_count;
     Bullet enemy_bullets[MAX_ENEMY_BULLETS];
     int enemy_bullet_count;
+    
+    // UFO (Flying Saucers) - Random encounters like original Asteroids
+    UFO ufos[MAX_UFOS];
+    int ufo_count;
+    double ufo_spawn_timer;     // Timer for next UFO spawn
+    double ufo_spawn_rate;      // Seconds between UFO spawns (20-40 seconds)
     
     // Boss (Death Star) - appears in wave 5+
     BossShip boss;
@@ -518,6 +547,15 @@ bool comet_buster_is_high_score(CometBusterGame *game, int score);
 // Enemy
 void comet_buster_spawn_enemy_ship_internal(CometBusterGame *game, int screen_width, int screen_height, 
                                             int ship_type, int edge, double speed, int formation_id, int formation_size);
+
+// UFO (Flying Saucer) functions
+void comet_buster_spawn_ufo(CometBusterGame *game, int screen_width, int screen_height);
+void comet_buster_ufo_fire(CometBusterGame *game);
+void draw_comet_buster_ufos(CometBusterGame *game, cairo_t *cr, int width, int height);
+bool comet_buster_check_bullet_ufo(Bullet *b, UFO *u);
+bool comet_buster_check_missile_ufo(Missile *m, UFO *u);  // Missile targeting
+bool comet_buster_check_ufo_comet(UFO *u, Comet *c);    // UFO-asteroid collision
+void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, int height, void *vis);
 
 // Splash
 void comet_buster_init_splash_screen(CometBusterGame *game, int width, int height);

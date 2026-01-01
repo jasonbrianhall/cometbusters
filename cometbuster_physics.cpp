@@ -1625,6 +1625,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     
     comet_buster_update_enemy_ships(game, dt, width, height, visualizer);  // Update enemy ships
     comet_buster_update_enemy_bullets(game, dt, width, height, visualizer);  // Update enemy bullets
+    comet_buster_update_ufos(game, dt, width, height, visualizer);  // Update UFO flying saucers
 
     // Check missiles hitting enemy ships
     for (int i = 0; i < game->missile_count; i++) {
@@ -1871,6 +1872,62 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 // If it was provoked, the bullet just triggers the provocation but doesn't destroy it
                 
                 game->bullets[j].active = false;  // Bullet is consumed either way
+                break;
+            }
+        }
+    }
+    
+    // Check bullet-UFO collisions
+    for (int i = 0; i < game->ufo_count; i++) {
+        for (int j = 0; j < game->bullet_count; j++) {
+            if (comet_buster_check_bullet_ufo(&game->bullets[j], &game->ufos[i])) {
+                UFO *ufo = &game->ufos[i];
+                
+                // UFO takes damage
+                ufo->health--;
+                ufo->damage_flash_timer = 0.1;
+                
+                // Play hit sound
+#ifdef ExternalSound
+                if (visualizer && visualizer->audio.sfx_hit) {
+                    audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+                }
+#endif
+                
+                // Destroy if health reaches 0
+                if (ufo->health <= 0) {
+                    comet_buster_destroy_ufo(game, i, width, height, visualizer);
+                }
+                
+                game->bullets[j].active = false;  // Bullet is consumed
+                break;
+            }
+        }
+    }
+    
+    // Check missile-UFO collisions (UFOs are valid missile targets!)
+    for (int i = 0; i < game->ufo_count; i++) {
+        for (int j = 0; j < game->missile_count; j++) {
+            if (comet_buster_check_missile_ufo(&game->missiles[j], &game->ufos[i])) {
+                UFO *ufo = &game->ufos[i];
+                
+                // UFO takes damage (missiles do more damage than bullets)
+                ufo->health -= 2;  // 2 damage per missile vs 1 per bullet
+                ufo->damage_flash_timer = 0.15;
+                
+                // Play hit sound
+#ifdef ExternalSound
+                if (visualizer && visualizer->audio.sfx_hit) {
+                    audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+                }
+#endif
+                
+                // Destroy if health reaches 0
+                if (ufo->health <= 0) {
+                    comet_buster_destroy_ufo(game, i, width, height, visualizer);
+                }
+                
+                game->missiles[j].active = false;  // Missile is consumed
                 break;
             }
         }

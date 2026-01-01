@@ -140,6 +140,9 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     // NOTE: high_score_count is NOT reset - high scores persist from disk load
     game->enemy_ship_count = 0;
     game->enemy_bullet_count = 0;
+    game->ufo_count = 0;
+    game->ufo_spawn_timer = 15.0;  // First UFO after 15 seconds
+    game->ufo_spawn_rate = 25.0;   // Spawn a UFO every 25 seconds on average
     
     // Initialize boss as inactive (before splash screen so it can be activated by splash)
     game->boss_active = false;
