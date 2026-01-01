@@ -1301,6 +1301,44 @@ void comet_buster_update_enemy_bullets(CometBusterGame *game, double dt, int wid
             continue;
         }
         
+        // Check collision with boss - impact but no damage
+        if (game->boss.active) {
+            if (comet_buster_check_bullet_boss(b, &game->boss)) {
+                // Enemy bullet hits boss and is destroyed, but boss takes no damage
+                b->active = false;
+                
+                // Optional: spawn small particle effect at impact
+                comet_buster_spawn_explosion(game, b->x, b->y, 0, 3);  // Small impact
+                
+                // Swap with last
+                if (i != game->enemy_bullet_count - 1) {
+                    game->enemy_bullets[i] = game->enemy_bullets[game->enemy_bullet_count - 1];
+                }
+                game->enemy_bullet_count--;
+                i--;
+                continue;
+            }
+        }
+        
+        // Check collision with spawn queen - impact but no damage
+        if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
+            if (comet_buster_check_bullet_spawn_queen(b, &game->spawn_queen)) {
+                // Enemy bullet hits spawn queen and is destroyed, but queen takes no damage
+                b->active = false;
+                
+                // Spawn small particle effect at impact
+                comet_buster_spawn_explosion(game, b->x, b->y, 0, 3);  // Small impact
+                
+                // Swap with last
+                if (i != game->enemy_bullet_count - 1) {
+                    game->enemy_bullets[i] = game->enemy_bullets[game->enemy_bullet_count - 1];
+                }
+                game->enemy_bullet_count--;
+                i--;
+                continue;
+            }
+        }
+        
         // Remove if goes off screen
         if (b->x < -50 || b->x > width + 50 ||
             b->y < -50 || b->y > height + 50) {
@@ -1815,10 +1853,10 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
                                            "+SHIELD", 0.0, 1.0, 1.0);  // Cyan
             
-            // Play pickup sound effect
+            // Play a positive sound effect (reuse shield sound or other happy sound)
 #ifdef ExternalSound
-            if (visualizer && visualizer->audio.sfx_energy) {
-                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);
+            if (visualizer && visualizer->audio.sfx_hit) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
             }
 #endif
             
@@ -1853,8 +1891,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                                            "+20 MISSILES", 1.0, 0.8, 0.0);
             
 #ifdef ExternalSound
-            if (visualizer && visualizer->audio.sfx_energy) {
-                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);
+            if (visualizer && visualizer->audio.sfx_hit) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
             }
 #endif
             
@@ -2340,9 +2378,6 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                         
                         // Boss still takes reduced damage (50% damage gets through shield)
                         game->boss.health--;  // Still damage the boss
-                        if (game->boss.health < 0) {
-                            game->boss.health = 0;
-                        }
                         game->boss.damage_flash_timer = 0.1;
                         game->consecutive_hits++;
                         

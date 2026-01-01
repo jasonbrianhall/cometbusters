@@ -192,8 +192,25 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
     
     // Increase multiplier
     if (game->consecutive_hits % 5 == 0) {
+        double old_multiplier = game->score_multiplier;
         game->score_multiplier += 0.1;
         if (game->score_multiplier > 5.0) game->score_multiplier = 5.0;
+        
+        // Only show popup when crossing 0.5 increments (2.0, 2.5, 3.0, etc)
+        if ((int)(game->score_multiplier * 2) != (int)(old_multiplier * 2)) {
+            // Visual feedback for multiplier increase
+            char mult_text[32];
+            snprintf(mult_text, sizeof(mult_text), "Multiplier x%.1f", game->score_multiplier);
+            comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y + 30, mult_text, 1.0, 1.0, 0.0);  // Yellow
+            
+            // Audio feedback for multiplier increase
+#ifdef ExternalSound
+            Visualizer *visualizer = (Visualizer *)vis;
+            if (visualizer && visualizer->audio.sfx_energy) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);
+            }
+#endif
+        }
     }
     
     // Spawn child comets (at parent location, not at screen edge)
@@ -346,8 +363,25 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
     
     // Increase multiplier
     if (game->consecutive_hits % 5 == 0) {
+        double old_multiplier = game->score_multiplier;
         game->score_multiplier += 0.1;
         if (game->score_multiplier > 5.0) game->score_multiplier = 5.0;
+        
+        // Only show popup when crossing 0.5 increments (2.0, 2.5, 3.0, etc)
+        if ((int)(game->score_multiplier * 2) != (int)(old_multiplier * 2)) {
+            // Visual feedback for multiplier increase
+            char mult_text[32];
+            snprintf(mult_text, sizeof(mult_text), "Multiplier x%.1f", game->score_multiplier);
+            comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y + 30, mult_text, 1.0, 1.0, 0.0);  // Yellow
+            
+            // Audio feedback for multiplier increase
+#ifdef ExternalSound
+            Visualizer *visualizer = (Visualizer *)vis;
+            if (visualizer && visualizer->audio.sfx_energy) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);
+            }
+#endif
+        }
     }
     
     // Weapon/Pickup drop chances (difficulty-based)
@@ -417,6 +451,20 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     // Increase multiplier significantly
     game->score_multiplier += 1.0;
     if (game->score_multiplier > 5.0) game->score_multiplier = 5.0;
+    
+    // MAJOR visual feedback for boss multiplier increase - always show for boss kills
+    char mult_text[64];
+    snprintf(mult_text, sizeof(mult_text), "*** Multiplier x%.1f ***", game->score_multiplier);
+    comet_buster_spawn_floating_text(game, boss->x, boss->y - 50, mult_text, 1.0, 0.8, 0.0);  // Gold/Orange
+    
+    // Audio feedback for boss multiplier increase (louder/more dramatic)
+#ifdef ExternalSound
+    Visualizer *visualizer = (Visualizer *)vis;
+    if (visualizer && visualizer->audio.sfx_energy) {
+        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);
+        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);  // Play twice for impact
+    }
+#endif
     
     boss->active = false;
     game->boss_active = false;
@@ -634,9 +682,6 @@ bool comet_buster_check_ship_ufo(CometBusterGame *game, UFO *u) {
 
 bool comet_buster_check_enemy_bullet_ufo(Bullet *b, UFO *u) {
     if (!b->active || !u->active) return false;
-    
-    // Don't let UFOs hit themselves with their own bullets
-    if (b->owner_ship_id == -2) return false;  // -2 = UFO owner ID
     
     double dx = u->x - b->x;
     double dy = u->y - b->y;
