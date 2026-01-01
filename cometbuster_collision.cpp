@@ -613,3 +613,31 @@ bool comet_buster_check_ufo_comet(UFO *u, Comet *c) {
     // UFO collision radius is 25 pixels (matches UFO size)
     return dist < (c->radius + 25.0);
 }
+
+// ============================================================================
+// SHIP-UFO COLLISION - Check if player ship hits UFO
+// ============================================================================
+
+bool comet_buster_check_ship_ufo(CometBusterGame *game, UFO *u) {
+    if (!u->active) return false;
+    
+    double dx = game->ship_x - u->x;
+    double dy = game->ship_y - u->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    return dist < (25.0 + 15.0);  // UFO radius (25) + Ship radius (15)
+}
+
+// ============================================================================
+// ENEMY BULLET-UFO COLLISION - Check if enemy bullets hit UFO
+// ============================================================================
+
+bool comet_buster_check_enemy_bullet_ufo(Bullet *b, UFO *u) {
+    if (!b->active || !u->active) return false;
+    
+    double dx = u->x - b->x;
+    double dy = u->y - b->y;
+    double dist = sqrt(dx*dx + dy*dy);
+    
+    return dist < 25.0;  // UFO collision radius
+}

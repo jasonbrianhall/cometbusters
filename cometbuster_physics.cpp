@@ -1150,57 +1150,84 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
                 }
             }
         } else {
-            // BLUE SHIPS: Shoot at nearest comet
-            if (game->comet_count > 0) {
-                ship->shoot_cooldown -= dt;
-                if (ship->shoot_cooldown <= 0) {
-                    // Find nearest comet
-                    int nearest_comet_idx = -1;
-                    double nearest_dist = 1e9;
+            // BLUE SHIPS: Shoot at nearest UFO first, then nearest comet
+            Comet *target_comet = NULL;
+            UFO *target_ufo = NULL;
+            double nearest_dist = 1e9;
+            
+            // Check for nearest UFO (higher priority!)
+            if (game->ufo_count > 0) {
+                for (int j = 0; j < game->ufo_count; j++) {
+                    UFO *ufo = &game->ufos[j];
+                    if (!ufo->active) continue;
                     
-                    for (int j = 0; j < game->comet_count; j++) {
-                        Comet *comet = &game->comets[j];
-                        if (!comet->active) continue;
-                        
-                        double dx = comet->x - ship->x;
-                        double dy = comet->y - ship->y;
-                        double dist = sqrt(dx*dx + dy*dy);
-                        
-                        if (dist < nearest_dist) {
-                            nearest_dist = dist;
-                            nearest_comet_idx = j;
-                        }
-                    }
+                    double dx = ufo->x - ship->x;
+                    double dy = ufo->y - ship->y;
+                    double dist = sqrt(dx*dx + dy*dy);
                     
-                    // Shoot at nearest comet if in range
-                    if (nearest_comet_idx >= 0 && nearest_dist < 500.0) {
-                        Comet *target = &game->comets[nearest_comet_idx];
-                        double dx = target->x - ship->x;
-                        double dy = target->y - ship->y;
-                        double dist = sqrt(dx*dx + dy*dy);
-                        
-                        if (dist > 0.01) {
-                            double bullet_speed = 150.0;
-                            double vx = (dx / dist) * bullet_speed;
-                            double vy = (dy / dist) * bullet_speed;
-                            
-                            comet_buster_spawn_enemy_bullet_from_ship(game, ship->x, ship->y, vx, vy, i);
-                            
-                            // Play alien fire sound
-#ifdef ExternalSound
-                            if (visualizer && visualizer->audio.sfx_alien_fire && !game->splash_screen_active) {
-                                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_alien_fire);
-                            }
-#endif
-                            
-                            // Blue ships shoot less frequently
-                            ship->shoot_cooldown = 0.8 + (rand() % 100) / 100.0;  // 0.8-1.8 sec
-                        }
-                    } else {
-                        // Reload even if no target in range
-                        ship->shoot_cooldown = 0.5;
+                    if (dist < nearest_dist && dist < 500.0) {
+                        nearest_dist = dist;
+                        target_ufo = ufo;
+                        target_comet = NULL;  // UFO takes priority
                     }
                 }
+            }
+            
+            // If no UFO in range, check for nearest comet
+            if (target_ufo == NULL && game->comet_count > 0) {
+                nearest_dist = 1e9;
+                for (int j = 0; j < game->comet_count; j++) {
+                    Comet *comet = &game->comets[j];
+                    if (!comet->active) continue;
+                    
+                    double dx = comet->x - ship->x;
+                    double dy = comet->y - ship->y;
+                    double dist = sqrt(dx*dx + dy*dy);
+                    
+                    if (dist < nearest_dist && dist < 500.0) {
+                        nearest_dist = dist;
+                        target_comet = comet;
+                    }
+                }
+            }
+            
+            // Fire at the target (UFO or comet)
+            if (target_ufo != NULL || target_comet != NULL) {
+                ship->shoot_cooldown -= dt;
+                if (ship->shoot_cooldown <= 0) {
+                    double dx, dy, dist;
+                    
+                    if (target_ufo != NULL) {
+                        dx = target_ufo->x - ship->x;
+                        dy = target_ufo->y - ship->y;
+                        dist = sqrt(dx*dx + dy*dy);
+                    } else {
+                        dx = target_comet->x - ship->x;
+                        dy = target_comet->y - ship->y;
+                        dist = sqrt(dx*dx + dy*dy);
+                    }
+                    
+                    if (dist > 0.01) {
+                        double bullet_speed = 150.0;
+                        double vx = (dx / dist) * bullet_speed;
+                        double vy = (dy / dist) * bullet_speed;
+                        
+                        comet_buster_spawn_enemy_bullet_from_ship(game, ship->x, ship->y, vx, vy, i);
+                        
+                        // Play alien fire sound
+#ifdef ExternalSound
+                        if (visualizer && visualizer->audio.sfx_alien_fire && !game->splash_screen_active) {
+                            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_alien_fire);
+                        }
+#endif
+                        
+                        // Blue ships shoot less frequently
+                        ship->shoot_cooldown = 0.8 + (rand() % 100) / 100.0;  // 0.8-1.8 sec
+                    }
+                }
+            } else {
+                // Reload even if no target in range
+                ship->shoot_cooldown = 0.5;
             }
         }
     }
@@ -1763,6 +1790,15 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         }
     }
     
+    // Check ship-UFO collisions (UFO damages ship but doesn't get destroyed)
+    for (int i = 0; i < game->ufo_count; i++) {
+        if (comet_buster_check_ship_ufo(game, &game->ufos[i])) {
+            // UFO damages ship
+            comet_buster_on_ship_hit(game, visualizer);
+            break;  // Only one collision per frame
+        }
+    }
+    
     // Check ship-canister collisions
     for (int i = 0; i < game->canister_count; i++) {
         if (comet_buster_check_ship_canister(game, &game->canisters[i])) {
@@ -1996,6 +2032,27 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             game->enemy_bullet_count--;
             i--;
             continue;
+        }
+    }
+    
+    // Check enemy bullet-UFO collisions (enemy ships can damage UFOs!)
+    for (int i = 0; i < game->ufo_count; i++) {
+        for (int j = 0; j < game->enemy_bullet_count; j++) {
+            if (comet_buster_check_enemy_bullet_ufo(&game->enemy_bullets[j], &game->ufos[i])) {
+                UFO *ufo = &game->ufos[i];
+                
+                // UFO takes damage from enemy bullets
+                ufo->health--;
+                ufo->damage_flash_timer = 0.1;
+                
+                // Destroy if health reaches 0
+                if (ufo->health <= 0) {
+                    comet_buster_destroy_ufo(game, i, width, height, visualizer);
+                }
+                
+                game->enemy_bullets[j].active = false;  // Bullet is consumed
+                break;
+            }
         }
     }
     
@@ -2685,6 +2742,24 @@ MissileTarget comet_buster_find_best_missile_target(CometBusterGame *game, doubl
         }
     }
     
+    // Check UFOs (high priority - they're shooting at you!)
+    for (int i = 0; i < game->ufo_count; i++) {
+        UFO *ufo = &game->ufos[i];
+        if (!ufo->active) continue;
+        
+        double dx = ufo->x - x;
+        double dy = ufo->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 2.0 + (angle_penalty * 50.0);  // High priority - lower multiplier
+        
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 4;  // UFO target type
+            best.index = i;
+        }
+    }
+    
     return best;
 }
 
@@ -2970,6 +3045,13 @@ void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
         missile->target_x = comet->x;
         missile->target_y = comet->y;
         missile->target_id = target.index + 1000;  // +1000 to distinguish from ships
+        missile->has_target = true;
+    } else if (target.type == 4) {
+        // UFO target
+        UFO *ufo = &game->ufos[target.index];
+        missile->target_x = ufo->x;
+        missile->target_y = ufo->y;
+        missile->target_id = target.index + 2000;  // +2000 to distinguish from ships and comets
         missile->has_target = true;
     } else {
         // No target

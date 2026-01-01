@@ -555,6 +555,9 @@ void draw_comet_buster_ufos(CometBusterGame *game, cairo_t *cr, int width, int h
 bool comet_buster_check_bullet_ufo(Bullet *b, UFO *u);
 bool comet_buster_check_missile_ufo(Missile *m, UFO *u);  // Missile targeting
 bool comet_buster_check_ufo_comet(UFO *u, Comet *c);    // UFO-asteroid collision
+bool comet_buster_check_ship_ufo(CometBusterGame *game, UFO *u);  // Ship-UFO collision
+bool comet_buster_check_enemy_bullet_ufo(Bullet *b, UFO *u);  // Enemy bullet-UFO collision
+
 void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, int height, void *vis);
 
 // Splash
