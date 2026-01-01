@@ -418,6 +418,11 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width
         cairo_line_to(cr, ship_size - 5, -ship_size);
         cairo_stroke(cr);
         
+        // Draw thruster/burner effect - show if there's any intensity
+        if (ship->burner_intensity > 0.01) {  // Only show if actually has intensity
+            draw_enemy_ship_burner(cr, ship->burner_intensity, ship_size);
+        }
+        
         cairo_restore(cr);
         
         // For Juggernaut, draw a detailed health bar below the ship (in screen coordinates, not rotated)
@@ -710,6 +715,14 @@ void draw_comet_buster_ship(CometBusterGame *game, cairo_t *cr, int width, int h
         cairo_close_path(cr);
         cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, alpha);
         cairo_fill(cr);
+    }
+    
+    // Draw thruster/burner effect - show if there's any intensity
+    if (game->burner_intensity > 0.01) {  // Only show if actually has intensity
+        // Draw big burner - scale based on speed for dramatic effect
+        double speed = sqrt(game->ship_vx * game->ship_vx + game->ship_vy * game->ship_vy);
+        double length_mult = 1.0 + (speed / 150.0) * 0.5;  // 1.0x to 1.5x longer at high speed (updated from 400 to 150)
+        draw_ship_burner(cr, game->burner_intensity, length_mult);
     }
     
     cairo_restore(cr);
@@ -1108,4 +1121,96 @@ void draw_comet_buster_game_over(CometBusterGame *game, cairo_t *cr, int width, 
     cairo_set_font_size(cr, 18);
     cairo_move_to(cr, width / 2 - 100, height / 2 + 100);
     cairo_show_text(cr, "RIGHT CLICK to restart");
+}
+
+// ============================================================================
+// BURNER/THRUSTER EFFECT RENDERING
+// ============================================================================
+
+void draw_ship_burner(cairo_t *cr, double burner_intensity, double length_multiplier) {
+    if (burner_intensity <= 0.0) return;
+    
+    // Flicker effect for more dynamic look
+    double flicker_variation = 0.7 + 0.3 * sin(burner_intensity * 20);
+    double effective_intensity = burner_intensity * flicker_variation;
+    
+    // Main burner flame - back of ship (negative X direction)
+    double flame_length = 30.0 * effective_intensity * length_multiplier;
+    double flame_width = 8.0 * effective_intensity;
+    
+    // Gradient from yellow/orange to red
+    cairo_pattern_t *gradient = cairo_pattern_create_linear(-flame_length, 0, 0, 0);
+    
+    // Yellow core at the engine
+    cairo_pattern_add_color_stop_rgba(gradient, 0.0, 1.0, 1.0, 0.0, effective_intensity * 0.8);
+    // Orange middle
+    cairo_pattern_add_color_stop_rgba(gradient, 0.5, 1.0, 0.7, 0.0, effective_intensity * 0.5);
+    // Red tail (fading out)
+    cairo_pattern_add_color_stop_rgba(gradient, 1.0, 1.0, 0.2, 0.0, 0.0);
+    
+    cairo_set_source(cr, gradient);
+    
+    // Draw main burner as a tapered flame
+    cairo_move_to(cr, 0, -flame_width);
+    cairo_line_to(cr, -flame_length, -flame_width * 0.3);
+    cairo_line_to(cr, -flame_length, flame_width * 0.3);
+    cairo_line_to(cr, 0, flame_width);
+    cairo_close_path(cr);
+    cairo_fill(cr);
+    
+    cairo_pattern_destroy(gradient);
+    
+    // Secondary smaller burst effect (more turbulent look)
+    if (effective_intensity > 0.3) {
+        double secondary_length = flame_length * 0.7;
+        double secondary_width = flame_width * 0.5;
+        
+        cairo_pattern_t *gradient2 = cairo_pattern_create_linear(-secondary_length, 0, 0, 0);
+        cairo_pattern_add_color_stop_rgba(gradient2, 0.0, 1.0, 0.5, 0.0, effective_intensity * 0.6);
+        cairo_pattern_add_color_stop_rgba(gradient2, 1.0, 1.0, 0.0, 0.0, 0.0);
+        
+        cairo_set_source(cr, gradient2);
+        
+        // Offset flame for turbulence
+        double offset = 3.0 * sin(burner_intensity * 25);
+        cairo_move_to(cr, 0, -secondary_width + offset);
+        cairo_line_to(cr, -secondary_length, -secondary_width * 0.2 + offset * 0.5);
+        cairo_line_to(cr, -secondary_length, secondary_width * 0.2 + offset * 0.5);
+        cairo_line_to(cr, 0, secondary_width + offset);
+        cairo_close_path(cr);
+        cairo_fill(cr);
+        
+        cairo_pattern_destroy(gradient2);
+    }
+}
+
+void draw_enemy_ship_burner(cairo_t *cr, double burner_intensity, double ship_size) {
+    if (burner_intensity <= 0.0) return;
+    
+    // Burner length scales with ship size
+    double length_multiplier = ship_size / 12.0;
+    
+    // Flicker for variation
+    double flicker = 0.6 + 0.4 * sin(burner_intensity * 18);
+    double effective_intensity = burner_intensity * flicker;
+    
+    double flame_length = 25.0 * effective_intensity * length_multiplier;
+    double flame_width = 6.0 * effective_intensity;
+    
+    // Red/orange gradient for enemy ships
+    cairo_pattern_t *gradient = cairo_pattern_create_linear(-flame_length, 0, 0, 0);
+    cairo_pattern_add_color_stop_rgba(gradient, 0.0, 1.0, 0.8, 0.0, effective_intensity * 0.7);
+    cairo_pattern_add_color_stop_rgba(gradient, 0.6, 1.0, 0.4, 0.0, effective_intensity * 0.3);
+    cairo_pattern_add_color_stop_rgba(gradient, 1.0, 0.8, 0.0, 0.0, 0.0);
+    
+    cairo_set_source(cr, gradient);
+    
+    cairo_move_to(cr, 0, -flame_width);
+    cairo_line_to(cr, -flame_length, -flame_width * 0.2);
+    cairo_line_to(cr, -flame_length, flame_width * 0.2);
+    cairo_line_to(cr, 0, flame_width);
+    cairo_close_path(cr);
+    cairo_fill(cr);
+    
+    cairo_pattern_destroy(gradient);
 }

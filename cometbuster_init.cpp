@@ -44,6 +44,10 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->ship_lives = 3;
     game->invulnerability_time = 0;
     
+    // Burner effect initialization
+    game->burner_flicker_timer = 0.0;
+    game->burner_intensity = 0.0;
+    
     // Difficulty-based shield and life settings
     int initial_shield = 3;
     int initial_lives = 3;

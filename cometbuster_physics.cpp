@@ -1603,6 +1603,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     comet_buster_update_missile_pickups(game, dt);  // Update missile pickups
     comet_buster_update_missiles(game, dt, width, height);  // Update missiles
     comet_buster_update_fuel(game, dt);  // Update fuel system
+    comet_buster_update_burner_effects(game, dt);  // Update thruster/burner effects
     
     // Update shield regeneration
     if (game->shield_health < game->max_shield_health) {
@@ -3105,6 +3106,63 @@ void comet_buster_update_missile_pickups(CometBusterGame *game, double dt) {
                 game->missile_pickups[i] = game->missile_pickups[game->missile_pickup_count - 1];
             }
             game->missile_pickup_count--;
+        }
+    }
+}
+
+// ============================================================================
+// BURNER/THRUSTER EFFECT SYSTEM
+// ============================================================================
+
+void comet_buster_update_burner_effects(CometBusterGame *game, double dt) {
+    if (!game) return;
+    
+    // Update player ship burner
+    {
+        double speed = sqrt(game->ship_vx * game->ship_vx + game->ship_vy * game->ship_vy);
+        
+        // Burner intensity based on speed - MUCH LOWER thresholds for visible burners
+        // At 50 px/sec = full intensity, so any reasonable speed shows good flames
+        double max_speed = 150.0;  // Full intensity at 150 px/sec (was 400)
+        double target_intensity = (speed > 0) ? fmin(speed / max_speed, 1.0) : 0.0;
+        
+        // Smooth transition to target intensity
+        if (target_intensity > game->burner_intensity) {
+            game->burner_intensity = fmin(target_intensity, game->burner_intensity + dt * 3.0);
+        } else {
+            game->burner_intensity = fmax(target_intensity, game->burner_intensity - dt * 2.5);
+        }
+        
+        // Flicker timer for flame effect
+        game->burner_flicker_timer += dt * 15.0;  // Fast flicker
+        if (game->burner_flicker_timer > 1.0) {
+            game->burner_flicker_timer = 0.0;
+        }
+    }
+    
+    // Update enemy ship burners
+    for (int i = 0; i < game->enemy_ship_count; i++) {
+        EnemyShip *ship = &game->enemy_ships[i];
+        if (!ship->active) continue;
+        
+        double speed = sqrt(ship->vx * ship->vx + ship->vy * ship->vy);
+        
+        // Burner intensity based on speed - MUCH LOWER thresholds
+        // At 30 px/sec = full intensity
+        double max_speed = 100.0;  // Full intensity at 100 px/sec (was 300)
+        double target_intensity = (speed > 0) ? fmin(speed / max_speed, 1.0) : 0.0;
+        
+        // Smooth transition to target intensity
+        if (target_intensity > ship->burner_intensity) {
+            ship->burner_intensity = fmin(target_intensity, ship->burner_intensity + dt * 3.0);
+        } else {
+            ship->burner_intensity = fmax(target_intensity, ship->burner_intensity - dt * 2.5);
+        }
+        
+        // Flicker timer for flame effect
+        ship->burner_flicker_timer += dt * 12.0;  // Slightly different timing than player
+        if (ship->burner_flicker_timer > 1.0) {
+            ship->burner_flicker_timer = 0.0;
         }
     }
 }

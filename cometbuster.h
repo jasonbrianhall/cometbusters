@@ -174,6 +174,10 @@ typedef struct {
     double proximity_detection_timer; // Timer to check for nearby targets
     int burst_count_this_wave;      // Track how many bursts fired this encounter
     
+    // THRUSTER/BURNER EFFECT FIELDS
+    double burner_flicker_timer;    // For flickering flame effect
+    double burner_intensity;        // How bright/large the burner is (0.0-1.0)
+    
 } EnemyShip;
 
 #define MAX_ENEMY_SHIPS 4
@@ -277,6 +281,10 @@ typedef struct {
     double ship_rotation_angle; // Target angle toward mouse
     int ship_lives;
     double invulnerability_time; // Seconds of invincibility after being hit
+    
+    // THRUSTER/BURNER EFFECT FIELDS
+    double burner_flicker_timer;    // For flickering flame effect
+    double burner_intensity;        // How bright/large the burner is (0.0-1.0)
     
     // Shield system
     int shield_health;          // Current shield points (0 means no shield)
@@ -417,6 +425,7 @@ void comet_buster_update_particles(CometBusterGame *game, double dt);
 void comet_buster_update_floating_text(CometBusterGame *game, double dt);
 void comet_buster_update_fuel(CometBusterGame *game, double dt);  // Advanced thrusters fuel system
 void comet_buster_update_enemy_bullets(CometBusterGame *game, double dt, int width, int height, void *vis);
+void comet_buster_update_burner_effects(CometBusterGame *game, double dt);  // Burner/thruster effects
 
 // Spawning
 void comet_buster_spawn_comet(CometBusterGame *game, int frequency_band, int screen_width, int screen_height);
@@ -495,6 +504,8 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
 void draw_comet_buster_game_over(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_enemy_bullets(CometBusterGame *game, cairo_t *cr, int width, int height);
+void draw_ship_burner(cairo_t *cr, double burner_intensity, double length_multiplier);
+void draw_enemy_ship_burner(cairo_t *cr, double burner_intensity, double ship_size);
 
 // Helper functions
 void comet_buster_wrap_position(double *x, double *y, int width, int height);
