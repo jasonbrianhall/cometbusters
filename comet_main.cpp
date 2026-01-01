@@ -67,6 +67,10 @@ typedef struct {
     GtkWidget *joystick_drawing_area;
     guint joystick_update_timer;
     
+    // Cheat menu visibility
+    GtkWidget *cheat_menu_item;
+    bool cheat_menu_visible;
+    
     int music_volume;
     int sfx_volume;
     
@@ -2178,6 +2182,21 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
                 return TRUE;
             }
             break;
+        case GDK_KEY_k:
+        case GDK_KEY_K:
+            // CTRL+K to toggle cheat menu visibility
+            if ((event->state & GDK_CONTROL_MASK)) {
+                gui->cheat_menu_visible = !gui->cheat_menu_visible;
+                if (gui->cheat_menu_visible) {
+                    gtk_widget_show(gui->cheat_menu_item);
+                    fprintf(stdout, "[*] Cheat menu shown (CTRL+K to hide)\n");
+                } else {
+                    gtk_widget_hide(gui->cheat_menu_item);
+                    fprintf(stdout, "[*] Cheat menu hidden\n");
+                }
+                return TRUE;
+            }
+            break;
     }
     
     return FALSE;
@@ -2486,6 +2505,8 @@ int main(int argc, char *argv[]) {
     // Cheat menu
     GtkWidget *cheat_menu = gtk_menu_new();
     GtkWidget *cheat_item = gtk_menu_item_new_with_label("Cheats");
+    gui.cheat_menu_item = cheat_item;  // Save reference to cheat menu item
+    gui.cheat_menu_visible = false;    // Hidden by default
     
     GtkWidget *cheat_boss_level_item = gtk_menu_item_new_with_label("Select Boss Level (5, 10, 15, 20, 25, 30)");
     g_signal_connect(cheat_boss_level_item, "activate", G_CALLBACK(on_cheat_boss_level_selector), &gui);
@@ -2553,6 +2574,7 @@ int main(int argc, char *argv[]) {
     gtk_box_pack_start(GTK_BOX(vbox), gui.drawing_area, TRUE, TRUE, 0);
     
     gtk_widget_show_all(gui.window);
+    gtk_widget_hide(gui.cheat_menu_item);  // Hide the cheat menu by default (after show_all)
     
     // Grab keyboard focus on drawing area so key events go there
     gtk_widget_grab_focus(gui.drawing_area);
