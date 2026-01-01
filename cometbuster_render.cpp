@@ -850,7 +850,7 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
     }
     
     // Render floating text popups
-    cairo_set_font_size(cr, 24);
+    cairo_set_font_size(cr, 16);
     for (int i = 0; i < game->floating_text_count; i++) {
         FloatingText *ft = &game->floating_texts[i];
         if (ft->active) {

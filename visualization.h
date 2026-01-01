@@ -111,6 +111,9 @@ typedef struct {
     bool mouse_right_pressed;
     bool mouse_middle_pressed;
     
+    // Scroll wheel input
+    int scroll_direction;           // 1 for scroll up, -1 for scroll down, 0 for none
+    
     // Arcade-style keyboard input
     bool key_a_pressed;
     bool key_d_pressed;

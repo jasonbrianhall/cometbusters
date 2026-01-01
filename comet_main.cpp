@@ -1285,6 +1285,7 @@ void on_new_game_easy(GtkWidget *widget, gpointer data) {
     gui->visualizer.mouse_left_pressed = false;
     gui->visualizer.mouse_right_pressed = false;
     gui->visualizer.mouse_middle_pressed = false;
+    gui->visualizer.scroll_direction = 0;  // Initialize scroll wheel state
     
     // Reset keyboard state
     gui->visualizer.key_a_pressed = false;
@@ -1333,6 +1334,7 @@ void on_new_game_medium(GtkWidget *widget, gpointer data) {
     gui->visualizer.mouse_left_pressed = false;
     gui->visualizer.mouse_right_pressed = false;
     gui->visualizer.mouse_middle_pressed = false;
+    gui->visualizer.scroll_direction = 0;  // Initialize scroll wheel state
     
     // Reset keyboard state
     gui->visualizer.key_a_pressed = false;
@@ -1381,6 +1383,7 @@ void on_new_game_hard(GtkWidget *widget, gpointer data) {
     gui->visualizer.mouse_left_pressed = false;
     gui->visualizer.mouse_right_pressed = false;
     gui->visualizer.mouse_middle_pressed = false;
+    gui->visualizer.scroll_direction = 0;  // Initialize scroll wheel state
     
     // Reset keyboard state
     gui->visualizer.key_a_pressed = false;
@@ -1934,6 +1937,9 @@ gboolean game_update_timer(gpointer data) {
         // Update game
         update_comet_buster(&gui->visualizer, 1.0 / 60.0);
         
+        // Reset scroll wheel input after processing
+        gui->visualizer.scroll_direction = 0;
+        
         // Check if game just ended and it's a high score
         if (gui->visualizer.comet_buster.game_over || gui->visualizer.comet_buster.ship_lives<=0) {
             // Check if this is a high score
@@ -2087,6 +2093,39 @@ gboolean on_button_release(GtkWidget *widget, GdkEventButton *event, gpointer da
     if (event->button == 2) gui->visualizer.mouse_middle_pressed = false;
     if (event->button == 3) gui->visualizer.mouse_right_pressed = false;
     
+    return FALSE;
+}
+
+gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui || !event) return FALSE;
+    
+    fprintf(stdout, "[SCROLL] Event received - type: %d, direction: %d\n", event->type, event->direction);
+    
+    // Handle scroll wheel events for weapon switching
+    if (event->direction == GDK_SCROLL_UP) {
+        gui->visualizer.scroll_direction = 1;
+        fprintf(stdout, "[SCROLL] UP detected - setting scroll_direction to 1\n");
+        return TRUE;
+    } else if (event->direction == GDK_SCROLL_DOWN) {
+        gui->visualizer.scroll_direction = -1;
+        fprintf(stdout, "[SCROLL] DOWN detected - setting scroll_direction to -1\n");
+        return TRUE;
+    } else if (event->direction == GDK_SCROLL_SMOOTH) {
+        // Handle smooth scrolling (modern mice/trackpads)
+        fprintf(stdout, "[SCROLL] SMOOTH scroll - delta_y: %.2f\n", event->delta_y);
+        if (event->delta_y < 0) {
+            gui->visualizer.scroll_direction = 1;
+            fprintf(stdout, "[SCROLL] SMOOTH UP - setting scroll_direction to 1\n");
+            return TRUE;
+        } else if (event->delta_y > 0) {
+            gui->visualizer.scroll_direction = -1;
+            fprintf(stdout, "[SCROLL] SMOOTH DOWN - setting scroll_direction to -1\n");
+            return TRUE;
+        }
+    }
+    
+    fprintf(stdout, "[SCROLL] Unknown scroll direction: %d\n", event->direction);
     return FALSE;
 }
 
@@ -2309,6 +2348,7 @@ int main(int argc, char *argv[]) {
     gui.visualizer.key_space_pressed = false;
     gui.visualizer.key_ctrl_pressed = false;
     gui.visualizer.key_q_pressed = false;  // Weapon toggle
+    gui.visualizer.scroll_direction = 0;   // Initialize scroll wheel input
     
     // Initialize joystick manager
     joystick_manager_init(&gui.visualizer.joystick_manager);
@@ -2562,10 +2602,12 @@ int main(int argc, char *argv[]) {
                          GDK_BUTTON_RELEASE_MASK | 
                          GDK_POINTER_MOTION_MASK |
                          GDK_KEY_PRESS_MASK |
-                         GDK_KEY_RELEASE_MASK);
+                         GDK_KEY_RELEASE_MASK |
+                         GDK_SCROLL_MASK);
     g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
     g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
     g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
+    g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
     g_signal_connect(gui.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
     g_signal_connect(gui.drawing_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
     g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);

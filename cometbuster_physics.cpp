@@ -1437,13 +1437,32 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         }
     }
     
-    // Q key to toggle between missiles and bullets
-    if (game->keyboard.key_q_pressed) {
+    // Q key or scroll wheel to toggle between missiles and bullets
+    bool toggle_requested = game->keyboard.key_q_pressed || game->scroll_direction != 0;
+    
+    if (toggle_requested) {
         if (game->weapon_toggle_cooldown <= 0) {
             if (game->missile_ammo > 0) {
                 // Toggle between missiles and bullets
                 game->using_missiles = !game->using_missiles;
                 game->weapon_toggle_cooldown = 0.3;  // Prevent rapid toggling
+                
+                // Show floating text below ship indicating weapon change
+                const char *weapon_name = game->using_missiles ? "Missiles" : "Bullets";
+                double text_color_r, text_color_g, text_color_b;
+                if (game->using_missiles) {
+                    // Yellow for missiles
+                    text_color_r = 1.0;
+                    text_color_g = 1.0;
+                    text_color_b = 0.0;
+                } else {
+                    // Cyan for bullets
+                    text_color_r = 0.0;
+                    text_color_g = 1.0;
+                    text_color_b = 1.0;
+                }
+                comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y + 40, 
+                                                weapon_name, text_color_r, text_color_g, text_color_b);
             }
         }
     }
@@ -1572,6 +1591,11 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     game->mouse_left_pressed = visualizer->mouse_left_pressed;
     game->mouse_right_pressed = visualizer->mouse_right_pressed;
     game->mouse_middle_pressed = visualizer->mouse_middle_pressed;
+    game->scroll_direction = visualizer->scroll_direction;  // Transfer scroll wheel input
+    
+    if (game->scroll_direction != 0) {
+        fprintf(stdout, "[GAME] Scroll transferred: direction=%d\n", game->scroll_direction);
+    }
     
 #ifdef ExternalSound
     // Copy arcade-style keyboard input state from visualizer

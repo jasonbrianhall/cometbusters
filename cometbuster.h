@@ -402,6 +402,7 @@ typedef struct {
     bool mouse_middle_pressed;     // Middle mouse button state (omnidirectional fire)
     double omni_fire_cooldown;     // Cooldown for omnidirectional fire
     double weapon_toggle_cooldown; // Cooldown for weapon switching (Q key)
+    int scroll_direction;          // Scroll wheel input: 1 for up, -1 for down, 0 for none
     double energy_amount;          // Current energy [0.0 - 100.0]
     double max_energy;             // Maximum energy capacity
     double energy_burn_rate;        // Energy burned per second at max thrust
