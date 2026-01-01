@@ -2473,7 +2473,11 @@ int main(int argc, char *argv[]) {
     
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(options_item), options_menu);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), options_item);
-    
+
+    GtkWidget *fullscreen_item = gtk_menu_item_new_with_label("Toggle Fullscreen (F11)");
+    g_signal_connect(fullscreen_item, "activate", G_CALLBACK(on_toggle_fullscreen), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(options_menu), fullscreen_item);
+        
 #ifdef DEBUG
     // Debug menu
     GtkWidget *debug_menu = gtk_menu_new();
@@ -2526,14 +2530,8 @@ int main(int argc, char *argv[]) {
     GtkWidget *help_menu = gtk_menu_new();
     GtkWidget *help_item = gtk_menu_item_new_with_label("Help");
     
-    GtkWidget *fullscreen_item = gtk_menu_item_new_with_label("Toggle Fullscreen (F11)");
-    g_signal_connect(fullscreen_item, "activate", G_CALLBACK(on_toggle_fullscreen), &gui);
-    gtk_menu_shell_append(GTK_MENU_SHELL(help_menu), fullscreen_item);
     
-    GtkWidget *help_separator = gtk_separator_menu_item_new();
-    gtk_menu_shell_append(GTK_MENU_SHELL(help_menu), help_separator);
-    
-    GtkWidget *about_item = gtk_menu_item_new_with_label("About CometBuster");
+    GtkWidget *about_item = gtk_menu_item_new_with_label("About, Controls, License, etc.");
     // Create help data structure for the callback
     CometHelpUserData *help_data = g_new(CometHelpUserData, 1);
     help_data->window = gui.window;
