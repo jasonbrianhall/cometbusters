@@ -1815,10 +1815,10 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
                                            "+SHIELD", 0.0, 1.0, 1.0);  // Cyan
             
-            // Play a positive sound effect (reuse shield sound or other happy sound)
+            // Play pickup sound effect
 #ifdef ExternalSound
-            if (visualizer && visualizer->audio.sfx_hit) {
-                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+            if (visualizer && visualizer->audio.sfx_energy) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);
             }
 #endif
             
@@ -1853,8 +1853,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                                            "+20 MISSILES", 1.0, 0.8, 0.0);
             
 #ifdef ExternalSound
-            if (visualizer && visualizer->audio.sfx_hit) {
-                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+            if (visualizer && visualizer->audio.sfx_energy) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_energy);
             }
 #endif
             

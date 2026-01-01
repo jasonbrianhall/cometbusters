@@ -1029,6 +1029,14 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
     // Explosion
     comet_buster_spawn_explosion(game, ufo->x, ufo->y, 1, 15);  // Mid-frequency explosion
     
+    // Play explosion sound
+    if (vis && !game->splash_screen_active) {
+        Visualizer *visualizer = (Visualizer *)vis;
+#ifdef ExternalSound
+        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+#endif
+    }
+    
     // Create floating text
     comet_buster_spawn_floating_text(game, ufo->x, ufo->y, "+250", 1.0, 0.8, 0.0);
     
