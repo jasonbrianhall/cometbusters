@@ -243,6 +243,17 @@ void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int h
             // Particles burst from boss
         }
     }
+    
+    // ========== CLAMP HEALTH AND CHECK IF BOSS IS DEFEATED ==========
+    // Ensure health never goes below 0
+    if (boss->health < 0) {
+        boss->health = 0;
+    }
+    
+    // Check for death
+    if (boss->health <= 0) {
+        comet_buster_destroy_boss(game, width, height, NULL);
+    }
 }
 
 void comet_buster_boss_fire(CometBusterGame *game) {

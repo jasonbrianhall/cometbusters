@@ -635,6 +635,9 @@ bool comet_buster_check_ship_ufo(CometBusterGame *game, UFO *u) {
 bool comet_buster_check_enemy_bullet_ufo(Bullet *b, UFO *u) {
     if (!b->active || !u->active) return false;
     
+    // Don't let UFOs hit themselves with their own bullets
+    if (b->owner_ship_id == -2) return false;  // -2 = UFO owner ID
+    
     double dx = u->x - b->x;
     double dy = u->y - b->y;
     double dist = sqrt(dx*dx + dy*dy);

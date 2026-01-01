@@ -1023,8 +1023,10 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
     UFO *ufo = &game->ufos[ufo_index];
     if (!ufo->active) return;
     
-    // Award points - UFOs are worth 250 points (bonus!)
-    game->score += 250;
+    // Award points - UFOs are worth 250 points (bonus!) with multiplier applied
+    int base_points = 250;
+    int score_add = (int)(base_points * game->score_multiplier);
+    game->score += score_add;
     
     // Explosion
     comet_buster_spawn_explosion(game, ufo->x, ufo->y, 1, 15);  // Mid-frequency explosion
@@ -1037,8 +1039,10 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
 #endif
     }
     
-    // Create floating text
-    comet_buster_spawn_floating_text(game, ufo->x, ufo->y, "+250", 1.0, 0.8, 0.0);
+    // Create floating text with actual score value
+    char score_text[32];
+    snprintf(score_text, sizeof(score_text), "+%d", score_add);
+    comet_buster_spawn_floating_text(game, ufo->x, ufo->y, score_text, 1.0, 0.8, 0.0);
     
     ufo->active = false;
 }

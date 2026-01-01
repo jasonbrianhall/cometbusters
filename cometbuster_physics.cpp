@@ -2340,6 +2340,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                         
                         // Boss still takes reduced damage (50% damage gets through shield)
                         game->boss.health--;  // Still damage the boss
+                        if (game->boss.health < 0) {
+                            game->boss.health = 0;
+                        }
                         game->boss.damage_flash_timer = 0.1;
                         game->consecutive_hits++;
                         
