@@ -811,7 +811,7 @@ void comet_buster_spawn_queen_fire(CometBusterGame *game) {
             double fire_angle = angle_to_ship + (spread * (i - num_bullets/2.0));
             double vx = cos(fire_angle) * bullet_speed;
             double vy = sin(fire_angle) * bullet_speed;
-            comet_buster_spawn_enemy_bullet(game, queen->x, queen->y, vx, vy);
+            comet_buster_spawn_enemy_bullet_from_ship(game, queen->x, queen->y, vx, vy, -4);  // -4 = Spawn Queen
         }
         
     } else if (queen->phase == 1) {
@@ -824,7 +824,7 @@ void comet_buster_spawn_queen_fire(CometBusterGame *game) {
             double fire_angle = start_angle + (spread / (num_bullets - 1)) * i;
             double vx = cos(fire_angle) * bullet_speed;
             double vy = sin(fire_angle) * bullet_speed;
-            comet_buster_spawn_enemy_bullet(game, queen->x, queen->y, vx, vy);
+            comet_buster_spawn_enemy_bullet_from_ship(game, queen->x, queen->y, vx, vy, -4);  // -4 = Spawn Queen
         }
         
     } else {
@@ -834,7 +834,7 @@ void comet_buster_spawn_queen_fire(CometBusterGame *game) {
             double fire_angle = 2.0 * M_PI * i / num_bullets;
             double vx = cos(fire_angle) * (bullet_speed + 50.0);
             double vy = sin(fire_angle) * (bullet_speed + 50.0);
-            comet_buster_spawn_enemy_bullet(game, queen->x, queen->y, vx, vy);
+            comet_buster_spawn_enemy_bullet_from_ship(game, queen->x, queen->y, vx, vy, -4);  // -4 = Spawn Queen
         }
     }
 }

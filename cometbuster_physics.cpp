@@ -1304,6 +1304,9 @@ void comet_buster_update_enemy_bullets(CometBusterGame *game, double dt, int wid
         // Check collision with boss - impact but no damage
         if (game->boss.active) {
             if (comet_buster_check_bullet_boss(b, &game->boss)) {
+                // ← FIX: Don't let boss damage itself with its own bullets (owner_ship_id == -3)
+                if (b->owner_ship_id == -3) continue;
+                
                 // Enemy bullet hits boss and is destroyed, but boss takes no damage
                 b->active = false;
                 
@@ -1323,6 +1326,12 @@ void comet_buster_update_enemy_bullets(CometBusterGame *game, double dt, int wid
         // Check collision with spawn queen - impact but no damage
         if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
             if (comet_buster_check_bullet_spawn_queen(b, &game->spawn_queen)) {
+                // ← FIX: Don't let spawn queen damage itself (if using dedicated owner_ship_id)
+                // NOTE: Currently spawn queen uses owner_ship_id = -1, so this check may not be needed
+                // until spawn queen is updated to use owner_ship_id = -4 in cometbuster_boss.cpp
+                // Keeping this as a placeholder for consistency with boss fix
+                if (b->owner_ship_id == -4) continue;
+                
                 // Enemy bullet hits spawn queen and is destroyed, but queen takes no damage
                 b->active = false;
                 
