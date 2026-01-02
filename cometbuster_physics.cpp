@@ -1890,11 +1890,21 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         }
     }
     
-    // Check ship-UFO collisions (UFO damages ship but doesn't get destroyed)
+    // Check ship-UFO collisions (both take damage)
     for (int i = 0; i < game->ufo_count; i++) {
         if (comet_buster_check_ship_ufo(game, &game->ufos[i])) {
             // UFO damages ship
             comet_buster_on_ship_hit(game, visualizer);
+            
+            // Ship damages UFO in return
+            game->ufos[i].health--;
+            game->ufos[i].damage_flash_timer = 0.1;
+            
+            // Destroy UFO if health reaches 0
+            if (game->ufos[i].health <= 0) {
+                comet_buster_destroy_ufo(game, i, width, height, visualizer);
+            }
+            
             break;  // Only one collision per frame
         }
     }
