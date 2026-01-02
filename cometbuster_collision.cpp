@@ -386,29 +386,32 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
     
     // Weapon/Pickup drop chances (difficulty-based)
     int drop_roll = rand() % 100;
-    int missile_chance, shield_chance;
+    int missile_chance, shield_chance, bomb_chance;
     
     if (game->difficulty == 0) {
         // Easy: 20% missile, 20% shield, 60% nothing
         missile_chance = 20;
         shield_chance = 40;
+        bomb_chance = 10;
     } else if (game->difficulty == 2) {
         // Hard: 5% missile, 5% shield, 90% nothing
         missile_chance = 5;
         shield_chance = 10;
+        bomb_chance = 5;
     } else {
         // Medium: 10% missile, 10% shield, 80% nothing
         missile_chance = 10;
         shield_chance = 20;
+        bomb_chance = 5;
     }
-    
+
     if (drop_roll < missile_chance) {
         // Chance to spawn missile pickup
         comet_buster_spawn_missile_pickup(game, ship->x, ship->y);
-    } else if (drop_roll < (missile_chance + 5)) {
+    } else if (drop_roll < (missile_chance + bomb_chance)) {
         // Chance to spawn bomb pickup
         comet_buster_spawn_bomb_pickup(game, ship->x, ship->y);
-    } else if (drop_roll < shield_chance) {
+    } else if (drop_roll < (missile_chance + bomb_chance + shield_chance)) {
         // Chance to spawn shield canister
         comet_buster_spawn_canister(game, ship->x, ship->y);
     }
