@@ -14,6 +14,12 @@
 #define MAX_CANISTERS 32
 #define MAX_MISSILES 64
 #define MAX_MISSILE_PICKUPS 16
+#define MAX_BOMBS 16
+#define MAX_BOMB_PICKUPS 8
+#define BOMB_COUNTDOWN_TIME 3.0
+#define BOMB_WAVE_MAX_RADIUS 600.0
+#define BOMB_WAVE_DAMAGE 20
+#define BOMB_WAVE_SPEED 1200.0
 #define MAX_HIGH_SCORES 25
 
 // PI
@@ -113,6 +119,30 @@ typedef struct {
     double rotation_speed;      // Rotation speed
     bool active;
 } MissilePickup;
+
+typedef struct {
+    double x, y;                // Position
+    double vx, vy;              // Velocity (usually 0, placed statically)
+    double lifetime;            // Seconds remaining until detonation
+    double max_lifetime;        // 3 seconds
+    double rotation;            // Visual rotation
+    double rotation_speed;      // Rotation speed
+    bool active;                // Is the bomb active?
+    bool detonated;             // Has it exploded?
+    double wave_radius;         // Current radius of the explosion wave
+    double wave_max_radius;     // Maximum wave radius (~300 pixels)
+} Bomb;
+
+typedef struct {
+    double x, y;                // Position
+    double vx, vy;              // Velocity (drifts slowly)
+    double lifetime;            // Seconds remaining
+    double max_lifetime;        // Total lifetime (10 seconds, like missile pickups)
+    double rotation;            // Visual rotation
+    double rotation_speed;      // Rotation speed
+    bool active;
+    int bomb_count;             // How many bombs this pickup gives (usually 1)
+} BombPickup;
 
 typedef struct {
     int score;
@@ -351,7 +381,19 @@ typedef struct {
     // Weapon system
     int missile_ammo;                // How many missiles player has (max 100)
     bool using_missiles;             // Currently in missile mode?
+    bool using_bombs;                // Currently in bomb mode?
     double missile_generation_timer; // Accumulates missiles when energy is full (5 per second)
+    
+    // Bomb system
+    Bomb bombs[MAX_BOMBS];
+    int bomb_count;
+    int bomb_ammo;                      // How many bombs player has
+    
+    BombPickup bomb_pickups[MAX_BOMB_PICKUPS];
+    int bomb_pickup_count;
+    
+    double bomb_drop_cooldown;          // Cooldown between dropping bombs
+
     
     EnemyShip enemy_ships[MAX_ENEMY_SHIPS];
     int enemy_ship_count;
@@ -486,6 +528,21 @@ void comet_buster_fire_missile(CometBusterGame *game, void *vis);
 void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, int height);
 void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, int height);
 EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, double y);
+
+// Bomb functions
+void comet_buster_spawn_bomb_pickup(CometBusterGame *game, double x, double y);
+void comet_buster_update_bomb_pickups(CometBusterGame *game, double dt);
+void draw_comet_buster_bomb_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
+bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p);
+void comet_buster_drop_bomb(CometBusterGame *game, int width, int height, void *vis);
+void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int height, void *vis);
+void draw_comet_buster_bombs(CometBusterGame *game, cairo_t *cr, int width, int height);
+bool comet_buster_check_bomb_wave_comet(Bomb *bomb, Comet *comet);
+bool comet_buster_check_bomb_wave_enemy_ship(Bomb *bomb, EnemyShip *ship);
+bool comet_buster_check_bomb_wave_ufo(Bomb *bomb, UFO *ufo);
+bool comet_buster_check_bomb_wave_boss(Bomb *bomb, BossShip *boss);
+bool comet_buster_check_bomb_wave_bullet(Bomb *bomb, Bullet *bullet);
+
 
 // Boss functions
 void comet_buster_spawn_boss(CometBusterGame *game, int screen_width, int screen_height);

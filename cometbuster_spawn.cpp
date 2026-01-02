@@ -237,6 +237,12 @@ double comet_buster_get_wave_speed_multiplier(int wave) {
 void comet_buster_spawn_bullet(CometBusterGame *game, void *vis) {
     if (!game) return;
     
+    // Check if we should fire a bomb instead
+    if (game->using_bombs && game->bomb_ammo > 0) {
+        comet_buster_drop_bomb(game, 1920, 1080, vis);  // 1920x1080 is standard game resolution
+        return;
+    }
+    
     // Check if we should fire a missile instead
     if (game->using_missiles && game->missile_ammo > 0) {
         comet_buster_fire_missile(game, vis);
@@ -1043,6 +1049,21 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
     char score_text[32];
     snprintf(score_text, sizeof(score_text), "+%d", score_add);
     comet_buster_spawn_floating_text(game, ufo->x, ufo->y, score_text, 1.0, 0.8, 0.0);
+    
+    // Weapon/Pickup drop chances for UFOs
+    int drop_roll = rand() % 100;
+    
+    if (drop_roll < 10) {
+        // 10% chance to spawn bomb pickup from UFO
+        comet_buster_spawn_bomb_pickup(game, ufo->x, ufo->y);
+    } else if (drop_roll < 20) {
+        // 10% chance to spawn missile pickup
+        comet_buster_spawn_missile_pickup(game, ufo->x, ufo->y);
+    } else if (drop_roll < 30) {
+        // 10% chance to spawn shield canister
+        comet_buster_spawn_canister(game, ufo->x, ufo->y);
+    }
+    // 70% chance to drop nothing
     
     ufo->active = false;
 }

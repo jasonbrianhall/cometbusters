@@ -77,7 +77,9 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
     draw_comet_buster_enemy_bullets(game, cr, width, height);
     draw_comet_buster_canisters(game, cr, width, height);
     draw_comet_buster_missile_pickups(game, cr, width, height);
+    draw_comet_buster_bomb_pickups(game, cr, width, height);
     draw_comet_buster_missiles(game, cr, width, height);
+    draw_comet_buster_bombs(game, cr, width, height);
     draw_comet_buster_particles(game, cr, width, height);
     draw_comet_buster_ship(game, cr, width, height);
     
@@ -951,6 +953,50 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
         cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
         cairo_set_line_width(cr, 1.0);
         cairo_rectangle(cr, missile_bar_x, missile_bar_y, missile_bar_width, missile_bar_height);
+        cairo_stroke(cr);
+    }
+    
+    // Bomb ammo display
+    if (game->bomb_ammo > 0 || game->bomb_count > 0) {
+        cairo_set_font_size(cr, 14);
+        cairo_set_source_rgb(cr, 1.0, 0.6, 0.0);  // Orange for bombs
+        char bomb_text[32];
+        sprintf(bomb_text, "BOMBS: %d", game->bomb_ammo);
+        
+        cairo_move_to(cr, 20, height - 65);  // Below missiles
+        cairo_show_text(cr, bomb_text);
+        
+        // Show active bombs
+        if (game->bomb_count > 0) {
+            cairo_set_font_size(cr, 12);
+            cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);  // Yellow for active
+            char active_text[32];
+            sprintf(active_text, "Armed: %d", game->bomb_count);
+            cairo_move_to(cr, 20, height - 50);
+            cairo_show_text(cr, active_text);
+        }
+        
+        // Draw bomb bar
+        double bomb_bar_width = 150;
+        double bomb_bar_height = 12;
+        double bomb_bar_x = 20;
+        double bomb_bar_y = game->bomb_count > 0 ? (height - 35) : (height - 50);
+        
+        // Background
+        cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
+        cairo_rectangle(cr, bomb_bar_x, bomb_bar_y, bomb_bar_width, bomb_bar_height);
+        cairo_fill(cr);
+        
+        // Bomb bar
+        double bomb_percent = (game->bomb_ammo > 10) ? 1.0 : (game->bomb_ammo / 10.0);
+        cairo_set_source_rgb(cr, 1.0, 0.6, 0.0);  // Orange
+        cairo_rectangle(cr, bomb_bar_x, bomb_bar_y, bomb_bar_width * bomb_percent, bomb_bar_height);
+        cairo_fill(cr);
+        
+        // Border
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        cairo_set_line_width(cr, 1.0);
+        cairo_rectangle(cr, bomb_bar_x, bomb_bar_y, bomb_bar_width, bomb_bar_height);
         cairo_stroke(cr);
     }
 }

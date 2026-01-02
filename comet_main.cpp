@@ -1782,6 +1782,64 @@ void on_cheat_set_lives(GtkWidget *widget, gpointer data) {
     gtk_widget_destroy(dialog);
 }
 
+void on_cheat_set_bombs(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // Pause the game
+    gui->game_paused = true;
+    
+    // Create dialog
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        "Set Number of Bombs",
+        GTK_WINDOW(gui->window),
+        GTK_DIALOG_MODAL,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Set Bombs", GTK_RESPONSE_OK,
+        NULL);
+    
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 300, 150);
+    
+    // Create main vbox
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    
+    // Create label
+    GtkWidget *label = gtk_label_new("Enter number of bombs (0-20):");
+    gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+    
+    // Create spin button for bombs
+    GtkWidget *bombs_spin = gtk_spin_button_new_with_range(0, 20, 1);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(bombs_spin), 
+                              (double)gui->visualizer.comet_buster.bomb_ammo);
+    gtk_box_pack_start(GTK_BOX(vbox), bombs_spin, FALSE, FALSE, 0);
+    
+    // Add vbox to dialog
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_add(GTK_CONTAINER(content_area), vbox);
+    
+    gtk_widget_show_all(dialog);
+    
+    // Run dialog
+    gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+    
+    if (response == GTK_RESPONSE_OK) {
+        int new_bombs = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(bombs_spin));
+        gui->visualizer.comet_buster.bomb_ammo = new_bombs;
+        fprintf(stdout, "[CHEAT] Bombs set to: %d\n", new_bombs);
+    }
+    
+    // Resume game if cancelled
+    if (response != GTK_RESPONSE_OK) {
+        gui->game_paused = false;
+        fprintf(stdout, "[CHEAT] Bombs adjustment cancelled\n");
+    } else {
+        gui->game_paused = false;
+    }
+    
+    gtk_widget_destroy(dialog);
+}
+
 void on_toggle_fullscreen(GtkWidget *widget, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return;
@@ -2562,6 +2620,10 @@ int main(int argc, char *argv[]) {
     GtkWidget *cheat_lives_item = gtk_menu_item_new_with_label("Set Lives (1-10)");
     g_signal_connect(cheat_lives_item, "activate", G_CALLBACK(on_cheat_set_lives), &gui);
     gtk_menu_shell_append(GTK_MENU_SHELL(cheat_menu), cheat_lives_item);
+    
+    GtkWidget *cheat_bombs_item = gtk_menu_item_new_with_label("Set Bombs (0-20)");
+    g_signal_connect(cheat_bombs_item, "activate", G_CALLBACK(on_cheat_set_bombs), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(cheat_menu), cheat_bombs_item);
     
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(cheat_item), cheat_menu);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), cheat_item);

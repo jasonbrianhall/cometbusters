@@ -1437,33 +1437,71 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         }
     }
     
-    // Q key or scroll wheel to toggle between missiles and bullets
+    // Q key or scroll wheel to toggle between bullets, missiles, and bombs
     bool toggle_requested = game->keyboard.key_q_pressed || game->scroll_direction != 0;
     
     if (toggle_requested) {
         if (game->weapon_toggle_cooldown <= 0) {
-            if (game->missile_ammo > 0) {
-                // Toggle between missiles and bullets
-                game->using_missiles = !game->using_missiles;
-                game->weapon_toggle_cooldown = 0.3;  // Prevent rapid toggling
-                
-                // Show floating text below ship indicating weapon change
-                const char *weapon_name = game->using_missiles ? "Missiles" : "Bullets";
-                double text_color_r, text_color_g, text_color_b;
-                if (game->using_missiles) {
-                    // Yellow for missiles
+            // Cycle: Bullets → Missiles → Bombs → Bullets
+            // Count available weapons
+            bool has_missiles = game->missile_ammo > 0;
+            bool has_bombs = game->bomb_ammo > 0;
+            
+            const char *weapon_name = "Bullets";
+            double text_color_r = 0.0, text_color_g = 1.0, text_color_b = 1.0;  // Cyan for bullets
+            
+            if (game->using_missiles && !game->using_bombs) {
+                // Currently on missiles, try to go to bombs
+                if (has_bombs) {
+                    game->using_missiles = false;
+                    game->using_bombs = true;
+                    weapon_name = "Bombs";
                     text_color_r = 1.0;
-                    text_color_g = 1.0;
-                    text_color_b = 0.0;
+                    text_color_g = 0.6;
+                    text_color_b = 0.0;  // Orange for bombs
                 } else {
-                    // Cyan for bullets
+                    // No bombs, go back to bullets
+                    game->using_missiles = false;
+                    game->using_bombs = false;
+                    weapon_name = "Bullets";
                     text_color_r = 0.0;
                     text_color_g = 1.0;
-                    text_color_b = 1.0;
+                    text_color_b = 1.0;  // Cyan for bullets
                 }
-                comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y + 40, 
-                                                weapon_name, text_color_r, text_color_g, text_color_b);
+            } else if (game->using_bombs) {
+                // Currently on bombs, go back to bullets
+                game->using_missiles = false;
+                game->using_bombs = false;
+                weapon_name = "Bullets";
+                text_color_r = 0.0;
+                text_color_g = 1.0;
+                text_color_b = 1.0;  // Cyan for bullets
+            } else {
+                // Currently on bullets, try to go to missiles
+                if (has_missiles) {
+                    game->using_missiles = true;
+                    game->using_bombs = false;
+                    weapon_name = "Missiles";
+                    text_color_r = 1.0;
+                    text_color_g = 1.0;
+                    text_color_b = 0.0;  // Yellow for missiles
+                } else if (has_bombs) {
+                    // No missiles but have bombs, go to bombs
+                    game->using_missiles = false;
+                    game->using_bombs = true;
+                    weapon_name = "Bombs";
+                    text_color_r = 1.0;
+                    text_color_g = 0.6;
+                    text_color_b = 0.0;  // Orange for bombs
+                }
+                // If neither missiles nor bombs available, stay on bullets
             }
+            
+            game->weapon_toggle_cooldown = 0.3;  // Prevent rapid toggling
+            
+            // Show floating text below ship indicating weapon change
+            comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y + 40, 
+                                            weapon_name, text_color_r, text_color_g, text_color_b);
         }
     }
     
@@ -2498,6 +2536,15 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 }
             }
         }
+    }
+    
+    // Update bomb system
+    comet_buster_update_bomb_pickups(game, dt);
+    comet_buster_update_bombs(game, dt, width, height, visualizer);
+    
+    // Check if ship picked up a bomb
+    for (int i = 0; i < game->bomb_pickup_count; i++) {
+        comet_buster_check_ship_bomb_pickup(game, &game->bomb_pickups[i]);
     }
     
     // Update timers

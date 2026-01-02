@@ -405,6 +405,9 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
     if (drop_roll < missile_chance) {
         // Chance to spawn missile pickup
         comet_buster_spawn_missile_pickup(game, ship->x, ship->y);
+    } else if (drop_roll < (missile_chance + 5)) {
+        // Chance to spawn bomb pickup
+        comet_buster_spawn_bomb_pickup(game, ship->x, ship->y);
     } else if (drop_roll < shield_chance) {
         // Chance to spawn shield canister
         comet_buster_spawn_canister(game, ship->x, ship->y);

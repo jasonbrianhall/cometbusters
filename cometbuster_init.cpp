@@ -127,8 +127,23 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     // Weapon system (missile ammo)
     game->missile_ammo = 0;             // Start with no missiles
     game->using_missiles = false;       // Start with normal bullets
+    game->using_bombs = false;          // Start without bombs
     game->missile_generation_timer = 0; // No passive missile generation yet
     
+    // Bomb system initialization
+    game->bomb_ammo = 1;                // Start with 1 bomb
+    game->bomb_count = 0;               // No active bombs yet
+    game->bomb_drop_cooldown = 0;       // No cooldown initially
+    game->bomb_pickup_count = 0;        // No bomb pickups on screen
+    
+    // Clear bomb arrays
+    for (int i = 0; i < MAX_BOMBS; i++) {
+        memset(&game->bombs[i], 0, sizeof(Bomb));
+    }
+    for (int i = 0; i < MAX_BOMB_PICKUPS; i++) {
+        memset(&game->bomb_pickups[i], 0, sizeof(BombPickup));
+    }
+
     // PHASE 2: Clear object arrays
     // IMPORTANT: Do this BEFORE splash screen spawning so we have a clean slate
     game->comet_count = 0;
