@@ -368,7 +368,7 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
         if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
             // Simple distance check for spawn queen
             double dist = comet_buster_distance(bomb->x, bomb->y, game->spawn_queen.x, game->spawn_queen.y);
-            if (dist <= bomb->wave_radius + 60.0) {  // Spawn queen is larger
+            if (dist <= bomb->wave_max_radius + 60.0) {  // Check against MAX radius, Spawn queen is larger
                 // Damage spawn queen: shield first, then health
                 int damage_remaining = BOMB_WAVE_DAMAGE;
                 
@@ -520,13 +520,8 @@ bool comet_buster_check_bomb_wave_comet(Bomb *bomb, Comet *comet) {
     
     double dist = comet_buster_distance(bomb->x, bomb->y, comet->x, comet->y);
     
-    // Check if comet is within the current wave radius
-    if (dist <= bomb->wave_radius && dist >= bomb->wave_radius - 30.0) {
-        return true;
-    }
-    
-    // Also check if comet center is within wave
-    if (dist <= bomb->wave_radius) {
+    // Check if comet is within the MAX explosion radius (not current expanding radius)
+    if (dist <= bomb->wave_max_radius) {
         return true;
     }
     
@@ -538,8 +533,8 @@ bool comet_buster_check_bomb_wave_enemy_ship(Bomb *bomb, EnemyShip *ship) {
     
     double dist = comet_buster_distance(bomb->x, bomb->y, ship->x, ship->y);
     
-    // Check if ship is within wave (accounting for ship size)
-    if (dist <= bomb->wave_radius + 20.0) {
+    // Check if ship is within the MAX explosion radius
+    if (dist <= bomb->wave_max_radius + 20.0) {
         return true;
     }
     
@@ -551,8 +546,8 @@ bool comet_buster_check_bomb_wave_ufo(Bomb *bomb, UFO *ufo) {
     
     double dist = comet_buster_distance(bomb->x, bomb->y, ufo->x, ufo->y);
     
-    // Check if UFO is within wave (accounting for UFO size)
-    if (dist <= bomb->wave_radius + 25.0) {
+    // Check if UFO is within the MAX explosion radius
+    if (dist <= bomb->wave_max_radius + 25.0) {
         return true;
     }
     
@@ -564,8 +559,8 @@ bool comet_buster_check_bomb_wave_boss(Bomb *bomb, BossShip *boss) {
     
     double dist = comet_buster_distance(bomb->x, bomb->y, boss->x, boss->y);
     
-    // Check if boss is within wave (accounting for boss size)
-    if (dist <= bomb->wave_radius + 50.0) {
+    // Check if boss is within the MAX explosion radius
+    if (dist <= bomb->wave_max_radius + 50.0) {
         return true;
     }
     
@@ -577,8 +572,8 @@ bool comet_buster_check_bomb_wave_bullet(Bomb *bomb, Bullet *bullet) {
     
     double dist = comet_buster_distance(bomb->x, bomb->y, bullet->x, bullet->y);
     
-    // Check if bullet is within wave
-    if (dist <= bomb->wave_radius) {
+    // Check if bullet is within the MAX explosion radius
+    if (dist <= bomb->wave_max_radius) {
         return true;
     }
     
