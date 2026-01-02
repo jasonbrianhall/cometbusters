@@ -2138,10 +2138,15 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check enemy bullet-UFO collisions (enemy ships can damage UFOs!)
     for (int i = 0; i < game->ufo_count; i++) {
         for (int j = 0; j < game->enemy_bullet_count; j++) {
-            if (comet_buster_check_enemy_bullet_ufo(&game->enemy_bullets[j], &game->ufos[i])) {
+            Bullet *bullet = &game->enemy_bullets[j];
+            
+            // CRITICAL: Skip if bullet came from this UFO (prevent self-damage)
+            if (bullet->owner_ship_id == -2) continue;  // -2 = UFO owner ID
+            
+            if (comet_buster_check_enemy_bullet_ufo(bullet, &game->ufos[i])) {
                 UFO *ufo = &game->ufos[i];
                 
-                // UFO takes damage from enemy bullets
+                // UFO takes damage from enemy bullets (but not from its own)
                 ufo->health--;
                 ufo->damage_flash_timer = 0.1;
                 
@@ -2150,7 +2155,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                     comet_buster_destroy_ufo(game, i, width, height, visualizer);
                 }
                 
-                game->enemy_bullets[j].active = false;  // Bullet is consumed
+                bullet->active = false;  // Bullet is consumed
                 break;
             }
         }
