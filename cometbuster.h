@@ -129,6 +129,7 @@ typedef struct {
     double rotation_speed;      // Rotation speed
     bool active;                // Is the bomb active?
     bool detonated;             // Has it exploded?
+    bool damage_applied;        // Has damage been applied from this explosion?
     double wave_radius;         // Current radius of the explosion wave
     double wave_max_radius;     // Maximum wave radius (~300 pixels)
 } Bomb;

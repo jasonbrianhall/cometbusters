@@ -197,6 +197,7 @@ void comet_buster_drop_bomb(CometBusterGame *game, int width, int height, void *
     
     bomb->active = true;
     bomb->detonated = false;
+    bomb->damage_applied = false;
     bomb->wave_radius = 0;
     bomb->wave_max_radius = BOMB_WAVE_MAX_RADIUS;
     
@@ -277,7 +278,10 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
     // Collision detection for detonating bombs
     for (int i = 0; i < game->bomb_count; i++) {
         Bomb *bomb = &game->bombs[i];
-        if (!bomb->active || !bomb->detonated) continue;
+        if (!bomb->active || !bomb->detonated || bomb->damage_applied) continue;  // Skip if damage already applied
+        
+        // Apply damage only once when bomb first detonates
+        bool damage_this_frame = false;
         
         // Check bomb wave vs comets
         for (int j = 0; j < game->comet_count; j++) {
@@ -291,6 +295,7 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
                     comet_buster_destroy_comet(game, j, width, height, NULL);
                     j--;
                 }
+                damage_this_frame = true;
             }
         }
         
@@ -306,6 +311,7 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
                     comet_buster_destroy_enemy_ship(game, j, width, height, NULL);
                     j--;
                 }
+                damage_this_frame = true;
             }
         }
         
@@ -321,6 +327,74 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
                     comet_buster_destroy_ufo(game, j, width, height, NULL);
                     j--;
                 }
+                damage_this_frame = true;
+            }
+        }
+        
+        // Check bomb wave vs boss
+        if (game->boss_active && game->boss.active) {
+            if (comet_buster_check_bomb_wave_boss(bomb, &game->boss)) {
+                // Damage boss: shield first, then health
+                int damage_remaining = BOMB_WAVE_DAMAGE;
+                
+                // Apply to shield first
+                if (game->boss.shield_health > 0) {
+                    if (game->boss.shield_health >= damage_remaining) {
+                        game->boss.shield_health -= damage_remaining;
+                        damage_remaining = 0;
+                    } else {
+                        damage_remaining -= game->boss.shield_health;
+                        game->boss.shield_health = 0;
+                    }
+                }
+                
+                // Apply remaining damage to health
+                if (damage_remaining > 0) {
+                    game->boss.health -= damage_remaining;
+                }
+                
+                // Check if boss is dead
+                if (game->boss.health <= 0) {
+                    game->boss.active = false;
+                    game->boss_active = false;
+                    // Boss will be cleaned up by normal game logic
+                }
+                
+                damage_this_frame = true;
+            }
+        }
+        
+        // Check bomb wave vs spawn queen boss
+        if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
+            // Simple distance check for spawn queen
+            double dist = comet_buster_distance(bomb->x, bomb->y, game->spawn_queen.x, game->spawn_queen.y);
+            if (dist <= bomb->wave_radius + 60.0) {  // Spawn queen is larger
+                // Damage spawn queen: shield first, then health
+                int damage_remaining = BOMB_WAVE_DAMAGE;
+                
+                // Apply to shield first
+                if (game->spawn_queen.shield_health > 0) {
+                    if (game->spawn_queen.shield_health >= damage_remaining) {
+                        game->spawn_queen.shield_health -= damage_remaining;
+                        damage_remaining = 0;
+                    } else {
+                        damage_remaining -= game->spawn_queen.shield_health;
+                        game->spawn_queen.shield_health = 0;
+                    }
+                }
+                
+                // Apply remaining damage to health
+                if (damage_remaining > 0) {
+                    game->spawn_queen.health -= damage_remaining;
+                }
+                
+                // Check if spawn queen is dead
+                if (game->spawn_queen.health <= 0) {
+                    game->spawn_queen.active = false;
+                    // Spawn queen will be cleaned up by normal game logic
+                }
+                
+                damage_this_frame = true;
             }
         }
         
@@ -332,6 +406,11 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
             if (comet_buster_check_bomb_wave_bullet(bomb, bullet)) {
                 bullet->active = false;
             }
+        }
+        
+        // Mark damage as applied if we hit anything
+        if (damage_this_frame) {
+            bomb->damage_applied = true;
         }
     }
     
