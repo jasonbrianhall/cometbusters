@@ -1465,10 +1465,12 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
     
     if (toggle_requested) {
         if (game->weapon_toggle_cooldown <= 0) {
-            // Cycle: Bullets → Spread Fire → Missiles → Bombs → Bullets
+            // Cycle: On Easy/Medium: Bullets → Spread Fire → Missiles → Bombs → Bullets
+            //        On Hard: Bullets → Missiles → Bombs → Bullets (no Spread Fire)
             // Count available weapons
             bool has_missiles = game->missile_ammo > 0;
             bool has_bombs = game->bomb_ammo > 0;
+            bool spread_fire_enabled = (game->difficulty != 2);  // Enabled on Easy (0) & Medium (1), disabled on Hard (2)
             
             const char *weapon_name = "Bullets";
             double text_color_r = 0.0, text_color_g = 1.0, text_color_b = 1.0;  // Cyan for bullets
@@ -1528,14 +1530,36 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                 text_color_g = 1.0;
                 text_color_b = 1.0;  // Cyan for bullets
             } else {
-                // Currently on bullets, go to spread fire
-                game->using_spread_fire = true;
-                game->using_missiles = false;
-                game->using_bombs = false;
-                weapon_name = "Spread Fire";
-                text_color_r = 1.0;
-                text_color_g = 0.5;
-                text_color_b = 1.0;  // Magenta for spread fire
+                // Currently on bullets
+                // On Hard difficulty: skip spread fire and go straight to missiles
+                if (!spread_fire_enabled && has_missiles) {
+                    // Hard mode: go directly to missiles, skip spread fire
+                    game->using_missiles = true;
+                    game->using_bombs = false;
+                    game->using_spread_fire = false;
+                    weapon_name = "Missiles";
+                    text_color_r = 1.0;
+                    text_color_g = 1.0;
+                    text_color_b = 0.0;  // Yellow for missiles
+                } else if (spread_fire_enabled) {
+                    // Easy/Medium: go to spread fire
+                    game->using_spread_fire = true;
+                    game->using_missiles = false;
+                    game->using_bombs = false;
+                    weapon_name = "Spread Fire";
+                    text_color_r = 1.0;
+                    text_color_g = 0.5;
+                    text_color_b = 1.0;  // Magenta for spread fire
+                } else if (has_bombs) {
+                    // Hard mode with no missiles: go to bombs
+                    game->using_missiles = false;
+                    game->using_bombs = true;
+                    game->using_spread_fire = false;
+                    weapon_name = "Bombs";
+                    text_color_r = 1.0;
+                    text_color_g = 0.6;
+                    text_color_b = 0.0;  // Orange for bombs
+                }
             }
             
             game->weapon_toggle_cooldown = 0.3;  // Prevent rapid toggling

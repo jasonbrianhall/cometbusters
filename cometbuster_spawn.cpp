@@ -250,7 +250,8 @@ void comet_buster_spawn_bullet(CometBusterGame *game, void *vis) {
     }
     
     // Check if we should fire spread fire instead
-    if (game->using_spread_fire) {
+    // Spread fire is disabled on hard difficulty (difficulty == 2)
+    if (game->using_spread_fire && game->difficulty != 2) {
         comet_buster_spawn_spread_fire(game, vis);
         return;
     }
