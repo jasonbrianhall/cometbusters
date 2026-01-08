@@ -383,6 +383,8 @@ typedef struct {
     int missile_ammo;                // How many missiles player has (max 100)
     bool using_missiles;             // Currently in missile mode?
     bool using_bombs;                // Currently in bomb mode?
+    bool using_spread_fire;          // Currently in spread fire mode?
+    double spread_fire_cooldown;     // Cooldown between spread fire shots (5x normal cooldown)
     double missile_generation_timer; // Accumulates missiles when energy is full (5 per second)
     
     // Bomb system
@@ -508,6 +510,7 @@ int comet_buster_get_wave_comet_count(int wave);
 double comet_buster_get_wave_speed_multiplier(int wave);
 void comet_buster_spawn_bullet(CometBusterGame *game, void *vis);
 void comet_buster_spawn_omnidirectional_fire(CometBusterGame *game);
+void comet_buster_spawn_spread_fire(CometBusterGame *game, void *vis);
 void comet_buster_spawn_explosion(CometBusterGame *game, double x, double y, int frequency_band, int particle_count);
 void comet_buster_spawn_floating_text(CometBusterGame *game, double x, double y, const char *text, double r, double g, double b);
 void comet_buster_spawn_enemy_ship(CometBusterGame *game, int screen_width, int screen_height);

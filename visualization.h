@@ -234,5 +234,6 @@ void init_comet_buster_system_with_difficulty(Visualizer *visualizer, int diffic
 bool comet_buster_victory_scroll_input_detected(CometBusterGame *game, Visualizer *visualizer);
 void audio_play_intro_music(AudioManager *audio, const char *internal_path);
 void comet_buster_update_ufos(CometBusterGame *game, double dt, int width, int height, Visualizer *visualizer);
+void comet_buster_spawn_spread_fire(CometBusterGame *game, void *vis);
 
 #endif

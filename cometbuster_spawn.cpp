@@ -249,6 +249,12 @@ void comet_buster_spawn_bullet(CometBusterGame *game, void *vis) {
         return;
     }
     
+    // Check if we should fire spread fire instead
+    if (game->using_spread_fire) {
+        comet_buster_spawn_spread_fire(game, vis);
+        return;
+    }
+    
     // Otherwise, fire a normal bullet
     if (game->bullet_count >= MAX_BULLETS) {
         return;
@@ -320,6 +326,49 @@ void comet_buster_spawn_omnidirectional_fire(CometBusterGame *game) {
     
     // Muzzle flash
     game->muzzle_flash_timer = 0.15;
+}
+
+void comet_buster_spawn_spread_fire(CometBusterGame *game, void *vis) {
+    // Fire 5 bullets in a spread pattern in front of the ship
+    // Costs 5x normal bullet energy (1.25 energy per spread shot)
+    // Energy deduction is handled by the caller
+    if (!game) return;
+    
+    double bullet_speed = 400.0;
+    int num_bullets = 5;  // Fire 5 bullets
+    double spread_angle = 30.0 * (M_PI / 180.0);  // 30 degree total spread (±15 degrees)
+    
+    // Calculate angle offset from center
+    double angle_step = spread_angle / (num_bullets - 1);
+    double base_angle = game->ship_angle - (spread_angle / 2.0);
+    
+    for (int i = 0; i < num_bullets; i++) {
+        if (game->bullet_count >= MAX_BULLETS) break;
+        
+        int slot = game->bullet_count;
+        Bullet *bullet = &game->bullets[slot];
+        
+        memset(bullet, 0, sizeof(Bullet));
+        
+        bullet->x = game->ship_x;
+        bullet->y = game->ship_y;
+        
+        // Calculate angle for this bullet in the spread
+        double bullet_angle = base_angle + (i * angle_step);
+        
+        bullet->vx = cos(bullet_angle) * bullet_speed;
+        bullet->vy = sin(bullet_angle) * bullet_speed;
+        
+        bullet->angle = bullet_angle;
+        bullet->lifetime = 1.5;
+        bullet->max_lifetime = 1.5;
+        bullet->active = true;
+        
+        game->bullet_count++;
+    }
+    
+    // Muzzle flash (slightly larger for spread fire)
+    game->muzzle_flash_timer = 0.12;
 }
 
 void comet_buster_spawn_explosion(CometBusterGame *game, double x, double y,

@@ -128,6 +128,8 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->missile_ammo = 0;             // Start with no missiles
     game->using_missiles = false;       // Start with normal bullets
     game->using_bombs = false;          // Start without bombs
+    game->using_spread_fire = false;    // Start without spread fire
+    game->spread_fire_cooldown = 0;     // No cooldown initially
     game->missile_generation_timer = 0; // No passive missile generation yet
     
     // Bomb system initialization

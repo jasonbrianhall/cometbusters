@@ -1385,11 +1385,18 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
     // If left mouse button is held down, fire continuously (costs fuel)
     if (game->mouse_left_pressed) {
         if (game->mouse_fire_cooldown <= 0) {
-            // Normal fire costs 0.25 fuel per bullet
-            if (game->energy_amount >= 0.25) {
+            double energy_cost = 0.25;  // Normal bullet cost
+            if (game->using_spread_fire) {
+                energy_cost = 1.25;  // Spread fire costs 5x (0.25 * 5)
+            }
+            
+            // Check if we have enough energy
+            if (game->energy_amount >= energy_cost) {
                 bool was_using_missiles = game->using_missiles;
                 comet_buster_spawn_bullet(game, vis);
-                game->energy_amount -= 0.25;  // Consume 0.25 fuel
+                
+                // Deduct energy for all weapons
+                game->energy_amount -= energy_cost;  // Consume fuel
                 game->mouse_fire_cooldown = 0.05;  // ~20 bullets per second
                 
                 // Play fire sound (only for bullets, not missiles - missiles have their own sound)
@@ -1408,11 +1415,18 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
     // CTRL key fire (keyboard-based)
     if (game->keyboard.key_ctrl_pressed) {
         if (game->mouse_fire_cooldown <= 0) {
-            // Normal fire costs 0.25 fuel per bullet
-            if (game->energy_amount >= 0.25) {
+            double energy_cost = 0.25;  // Normal bullet cost
+            if (game->using_spread_fire) {
+                energy_cost = 1.25;  // Spread fire costs 5x (0.25 * 5)
+            }
+            
+            // Check if we have enough energy
+            if (game->energy_amount >= energy_cost) {
                 bool was_using_missiles = game->using_missiles;
                 comet_buster_spawn_bullet(game, vis);
-                game->energy_amount -= 0.25;  // Consume 0.25 fuel
+                
+                // Deduct energy for all weapons
+                game->energy_amount -= energy_cost;  // Consume fuel
                 game->mouse_fire_cooldown = 0.05;  // ~20 bullets per second
                 
                 // Play fire sound (only for bullets, not missiles - missiles have their own sound)
@@ -1446,12 +1460,12 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         }
     }
     
-    // Q key or scroll wheel to toggle between bullets, missiles, and bombs
+    // Q key or scroll wheel to toggle between bullets, spread fire, missiles, and bombs
     bool toggle_requested = game->keyboard.key_q_pressed || game->scroll_direction != 0;
     
     if (toggle_requested) {
         if (game->weapon_toggle_cooldown <= 0) {
-            // Cycle: Bullets → Missiles → Bombs → Bullets
+            // Cycle: Bullets → Spread Fire → Missiles → Bombs → Bullets
             // Count available weapons
             bool has_missiles = game->missile_ammo > 0;
             bool has_bombs = game->bomb_ammo > 0;
@@ -1459,34 +1473,9 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
             const char *weapon_name = "Bullets";
             double text_color_r = 0.0, text_color_g = 1.0, text_color_b = 1.0;  // Cyan for bullets
             
-            if (game->using_missiles && !game->using_bombs) {
-                // Currently on missiles, try to go to bombs
-                if (has_bombs) {
-                    game->using_missiles = false;
-                    game->using_bombs = true;
-                    weapon_name = "Bombs";
-                    text_color_r = 1.0;
-                    text_color_g = 0.6;
-                    text_color_b = 0.0;  // Orange for bombs
-                } else {
-                    // No bombs, go back to bullets
-                    game->using_missiles = false;
-                    game->using_bombs = false;
-                    weapon_name = "Bullets";
-                    text_color_r = 0.0;
-                    text_color_g = 1.0;
-                    text_color_b = 1.0;  // Cyan for bullets
-                }
-            } else if (game->using_bombs) {
-                // Currently on bombs, go back to bullets
-                game->using_missiles = false;
-                game->using_bombs = false;
-                weapon_name = "Bullets";
-                text_color_r = 0.0;
-                text_color_g = 1.0;
-                text_color_b = 1.0;  // Cyan for bullets
-            } else {
-                // Currently on bullets, try to go to missiles
+            if (game->using_spread_fire) {
+                // Currently on spread fire, try to go to missiles
+                game->using_spread_fire = false;
                 if (has_missiles) {
                     game->using_missiles = true;
                     game->using_bombs = false;
@@ -1502,8 +1491,51 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     text_color_r = 1.0;
                     text_color_g = 0.6;
                     text_color_b = 0.0;  // Orange for bombs
+                } else {
+                    // No other weapons, go back to bullets
+                    game->using_missiles = false;
+                    game->using_bombs = false;
+                    weapon_name = "Bullets";
+                    text_color_r = 0.0;
+                    text_color_g = 1.0;
+                    text_color_b = 1.0;  // Cyan for bullets
                 }
-                // If neither missiles nor bombs available, stay on bullets
+            } else if (game->using_missiles && !game->using_bombs) {
+                // Currently on missiles, try to go to bombs
+                game->using_missiles = false;
+                game->using_spread_fire = false;
+                if (has_bombs) {
+                    game->using_bombs = true;
+                    weapon_name = "Bombs";
+                    text_color_r = 1.0;
+                    text_color_g = 0.6;
+                    text_color_b = 0.0;  // Orange for bombs
+                } else {
+                    // No bombs, go back to bullets
+                    game->using_bombs = false;
+                    weapon_name = "Bullets";
+                    text_color_r = 0.0;
+                    text_color_g = 1.0;
+                    text_color_b = 1.0;  // Cyan for bullets
+                }
+            } else if (game->using_bombs) {
+                // Currently on bombs, go back to bullets
+                game->using_missiles = false;
+                game->using_bombs = false;
+                game->using_spread_fire = false;
+                weapon_name = "Bullets";
+                text_color_r = 0.0;
+                text_color_g = 1.0;
+                text_color_b = 1.0;  // Cyan for bullets
+            } else {
+                // Currently on bullets, go to spread fire
+                game->using_spread_fire = true;
+                game->using_missiles = false;
+                game->using_bombs = false;
+                weapon_name = "Spread Fire";
+                text_color_r = 1.0;
+                text_color_g = 0.5;
+                text_color_b = 1.0;  // Magenta for spread fire
             }
             
             game->weapon_toggle_cooldown = 0.3;  // Prevent rapid toggling
