@@ -497,10 +497,18 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
 void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     if (game->invulnerability_time > 0) return;
     
-    // No sound effect for collision - removed as requested
-    
     // Priority 1: Try to use 80% energy to absorb the hit
     if (game->energy_amount >= 80.0) {
+        // Create impact explosion at ship location
+        comet_buster_spawn_explosion(game, game->ship_x, game->ship_y, 0, 20);  // 20 particles, red (bass frequency)
+        
+        // Play collision impact sound
+#ifdef ExternalSound
+        if (visualizer && visualizer->audio.sfx_explosion) {
+            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+        }
+#endif
+        
         game->energy_amount -= 80.0;
         
         // Floating text for energy absorption
@@ -514,6 +522,16 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     
     // If energy is less than 80%, it drains to zero (but still allows shield check)
     if (game->energy_amount > 0) {
+        // Create impact explosion at ship location
+        comet_buster_spawn_explosion(game, game->ship_x, game->ship_y, 0, 20);  // 20 particles, red (bass frequency)
+        
+        // Play collision impact sound
+#ifdef ExternalSound
+        if (visualizer && visualizer->audio.sfx_explosion) {
+            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+        }
+#endif
+        
         game->energy_amount = 0;
         
         // Floating text for energy drain
@@ -525,6 +543,16 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     
     // Priority 2: Use shield if available (either after energy drain or if energy was already 0)
     if (game->shield_health > 0) {
+        // Create impact explosion at ship location
+        comet_buster_spawn_explosion(game, game->ship_x, game->ship_y, 0, 20);  // 20 particles, red (bass frequency)
+        
+        // Play collision impact sound
+#ifdef ExternalSound
+        if (visualizer && visualizer->audio.sfx_explosion) {
+            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+        }
+#endif
+        
         game->shield_health--;
         game->shield_regen_timer = 0;  // Reset regen timer
         
@@ -568,8 +596,8 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
         game->game_over = true;
         game->game_over_timer = 3.0;
         
-        // Create a MASSIVE explosion when the ship dies
-        // Uses special function with longer-lasting particles for dramatic effect
+        // Create ABSOLUTELY MASSIVE explosion when the ship dies
+        // This is the big one - 1500 giant yellow particles!
         comet_buster_spawn_ship_death_explosion(game, game->ship_x, game->ship_y);
         
         // Play game over sound effect

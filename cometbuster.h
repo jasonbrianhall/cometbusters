@@ -10,7 +10,7 @@
 // Static memory allocation constants
 #define MAX_COMETS 128
 #define MAX_BULLETS 128
-#define MAX_PARTICLES 512
+#define MAX_PARTICLES 2048  // Increased for massive explosions
 #define MAX_FLOATING_TEXT 32
 #define MAX_CANISTERS 32
 #define MAX_MISSILES 64

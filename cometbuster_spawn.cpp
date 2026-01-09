@@ -417,11 +417,12 @@ void comet_buster_spawn_explosion(CometBusterGame *game, double x, double y,
     }
 }
 
-// Special explosion for ship death - longer lasting particles for dramatic effect
+// Special explosion for ship death - ABSOLUTELY UNMISSABLE MASSIVE explosion
 void comet_buster_spawn_ship_death_explosion(CometBusterGame *game, double x, double y) {
-    int particle_count = 300;
+    // Create a MASSIVE explosion in multiple waves for visual impact
+    int total_particles = 1500;  // 1500 total particles!
     
-    for (int i = 0; i < particle_count; i++) {
+    for (int i = 0; i < total_particles; i++) {
         if (game->particle_count >= MAX_PARTICLES) {
             break;
         }
@@ -431,17 +432,23 @@ void comet_buster_spawn_ship_death_explosion(CometBusterGame *game, double x, do
         
         memset(p, 0, sizeof(Particle));
         
-        double angle = (2.0 * M_PI * i) / particle_count + 
-                       ((rand() % 100) / 100.0) * 0.3;
-        double speed = 150.0 + (rand() % 150);  // Faster particles
+        double angle = (2.0 * M_PI * i) / total_particles + 
+                       ((rand() % 100) / 100.0) * 0.5;
+        
+        // Slower particles so they stay visible longer on screen
+        double speed = 80.0 + (rand() % 150);  // 80-230 px/sec (much slower for visibility)
         
         p->x = x;
         p->y = y;
         p->vx = cos(angle) * speed;
         p->vy = sin(angle) * speed;
-        p->lifetime = 1.2 + (rand() % 50) / 100.0;  // MUCH longer lifetime: 1.2-1.7 seconds
+        
+        // EXTREMELY long lifetime - visible for a long time
+        p->lifetime = 3.5 + (rand() % 100) / 100.0;  // 3.5-4.5 seconds (MASSIVE duration)
         p->max_lifetime = p->lifetime;
-        p->size = 3.0 + (rand() % 5);  // Larger particles
+        
+        // VERY LARGE particles - 8-16 pixels (huge and unmissable)
+        p->size = 8.0 + (rand() % 9);  // 8-16 pixel particles
         p->active = true;
         
         // Use frequency band 1 (yellow/mid frequency) for ship explosions

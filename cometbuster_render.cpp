@@ -916,15 +916,7 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
     cairo_set_line_width(cr, 1.0);
     cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
     cairo_stroke(cr);
-    
-    // Boost indicator
-    if (game->is_boosting && game->boost_thrust_timer > 0) {
-        cairo_set_font_size(cr, 16);
-        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, 0.8);
-        cairo_move_to(cr, bar_x + bar_width + 20, height - 25);
-        cairo_show_text(cr, "⚡ BOOST ⚡");
-    }
-    
+        
     // Missile ammo display (bottom left, above Energy)
     if (game->missile_ammo > 0 || game->using_missiles) {
         cairo_set_font_size(cr, 14);
