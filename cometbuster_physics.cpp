@@ -710,23 +710,100 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
             comet_buster_update_brown_coat_ship(game, i, dt, visualizer);
         } else if (ship->ship_type == 5) {
             // JUGGERNAUT: Always chases player, fires rapidly
-            double dx = game->ship_x - ship->x;
-            double dy = game->ship_y - ship->y;
-            double dist_to_player = sqrt(dx*dx + dy*dy);
+            // EXCEPTION: During splash screen, behave like slow patrol ships
             
-            // Always chase player (no range limit for Juggernaut)
-            if (dist_to_player > 0.1) {
+            if (game->splash_screen_active) {
+                // SPLASH SCREEN MODE: Juggernaut just slowly patrols (very massive movement)
+                ship->patrol_behavior_timer += dt;
+                if (ship->patrol_behavior_timer >= ship->patrol_behavior_duration) {
+                    ship->patrol_behavior_timer = 0.0;
+                    ship->patrol_behavior_duration = 3.0 + (rand() % 40) / 10.0;  // 3-7 seconds (slower)
+                    
+                    int behavior_roll = rand() % 100;
+                    if (behavior_roll < 75) {
+                        ship->patrol_behavior_type = 0;  // 75% straight movement
+                    } else if (behavior_roll < 90) {
+                        ship->patrol_behavior_type = 1;  // 15% slow circular movement
+                        double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                        if (base_speed > 0.1) {
+                            ship->patrol_circle_center_x = ship->x + (ship->base_vx / base_speed) * 200.0;
+                            ship->patrol_circle_center_y = ship->y + (ship->base_vy / base_speed) * 200.0;
+                        }
+                        ship->patrol_circle_angle = 0.0;
+                    } else {
+                        ship->patrol_behavior_type = 2;  // 10% slow direction change
+                        double rand_angle = (rand() % 360) * (M_PI / 180.0);
+                        double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                        if (base_speed < 1.0) base_speed = 60.0;  // Slower for massive ship
+                        ship->base_vx = cos(rand_angle) * base_speed;
+                        ship->base_vy = sin(rand_angle) * base_speed;
+                    }
+                }
+                
                 double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
-                if (base_speed < 1.0) base_speed = 80.0;  // Juggernaut speed
+                double target_vx, target_vy;
                 
-                double target_vx = (dx / dist_to_player) * base_speed;
-                double target_vy = (dy / dist_to_player) * base_speed;
+                if (ship->patrol_behavior_type == 0) {
+                    // Straight movement with minimal wave
+                    if (base_speed > 0.1) {
+                        double dir_x = ship->base_vx / base_speed;
+                        double dir_y = ship->base_vy / base_speed;
+                        double perp_x = -dir_y;
+                        double perp_y = dir_x;
+                        double wave_amplitude = 20.0;  // Very small for massive ship
+                        double wave_frequency = 0.8;
+                        double sine_offset = sin(ship->path_time * wave_frequency * M_PI) * wave_amplitude;
+                        target_vx = dir_x * base_speed + perp_x * sine_offset;
+                        target_vy = dir_y * base_speed + perp_y * sine_offset;
+                    } else {
+                        target_vx = ship->vx;
+                        target_vy = ship->vy;
+                    }
+                    ship->path_time += dt;
+                } else if (ship->patrol_behavior_type == 1) {
+                    // Very slow circular movement
+                    ship->patrol_circle_angle += (base_speed / ship->patrol_circle_radius) * dt * 0.5;  // Half speed
+                    double target_x = ship->patrol_circle_center_x + cos(ship->patrol_circle_angle) * ship->patrol_circle_radius;
+                    double target_y = ship->patrol_circle_center_y + sin(ship->patrol_circle_angle) * ship->patrol_circle_radius;
+                    double dx_circle = target_x - ship->x;
+                    double dy_circle = target_y - ship->y;
+                    double dist_to_target = sqrt(dx_circle*dx_circle + dy_circle*dy_circle);
+                    if (dist_to_target > 0.1) {
+                        target_vx = (dx_circle / dist_to_target) * base_speed;
+                        target_vy = (dy_circle / dist_to_target) * base_speed;
+                    } else {
+                        target_vx = -sin(ship->patrol_circle_angle) * base_speed;
+                        target_vy = cos(ship->patrol_circle_angle) * base_speed;
+                    }
+                    ship->angle = atan2(target_vy, target_vx);
+                } else {
+                    target_vx = ship->base_vx;
+                    target_vy = ship->base_vy;
+                }
                 
-                // Smooth but slow turning for massive ship
-                double turn_rate = 0.08;  // Slower turning than other ships
+                // Very slow, heavy turning for massive ship
+                double turn_rate = 0.06;  // Even slower than normal
                 ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
                 ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
                 ship->angle = atan2(ship->vy, ship->vx);
+            } else {
+                // NORMAL GAMEPLAY: Juggernaut always chases player
+                double dx = game->ship_x - ship->x;
+                double dy = game->ship_y - ship->y;
+                double dist_to_player = sqrt(dx*dx + dy*dy);
+                
+                if (dist_to_player > 0.1) {
+                    double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                    if (base_speed < 1.0) base_speed = 80.0;
+                    
+                    double target_vx = (dx / dist_to_player) * base_speed;
+                    double target_vy = (dy / dist_to_player) * base_speed;
+                    
+                    double turn_rate = 0.08;
+                    ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
+                    ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
+                    ship->angle = atan2(ship->vy, ship->vx);
+                }
             }
         } else {
             // PATROL BLUE SHIP: More dynamic patrol with occasional evasive maneuvers
