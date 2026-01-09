@@ -1938,6 +1938,15 @@ gboolean game_update_timer(gpointer data) {
 #endif
         }
         
+        // Update frame counter for FPS display during splash screen
+        gui->frame_count++;
+        gui->total_time += 16.67;  // Approximately 60 FPS
+        
+        // Update status every 60 frames
+        if (gui->frame_count % 60 == 0) {
+            update_status_text(gui);
+        }
+        
         // Redraw and return early (don't update normal game during splash)
         gtk_widget_queue_draw(gui->drawing_area);
         return TRUE;
@@ -1962,6 +1971,15 @@ gboolean game_update_timer(gpointer data) {
 #ifdef ExternalSound
             audio_play_random_music(&gui->audio);
 #endif
+        }
+        
+        // Update frame counter for FPS display during victory scroll
+        gui->frame_count++;
+        gui->total_time += 16.67;  // Approximately 60 FPS
+        
+        // Update status every 60 frames
+        if (gui->frame_count % 60 == 0) {
+            update_status_text(gui);
         }
         
         // Redraw and return early (don't update normal game during victory scroll)
@@ -2015,6 +2033,15 @@ gboolean game_update_timer(gpointer data) {
 #ifdef ExternalSound
             audio_play_random_music(&gui->audio);
 #endif
+        }
+        
+        // Update frame counter for FPS display during finale splash
+        gui->frame_count++;
+        gui->total_time += 16.67;  // Approximately 60 FPS
+        
+        // Update status every 60 frames
+        if (gui->frame_count % 60 == 0) {
+            update_status_text(gui);
         }
         
         // Redraw and return early (don't update normal game during finale splash)
