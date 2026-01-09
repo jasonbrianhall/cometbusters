@@ -2236,21 +2236,25 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
     switch (event->keyval) {
         case GDK_KEY_a:
         case GDK_KEY_A:
+        case GDK_KEY_Left:  // Arrow left = turn left
             gui->visualizer.key_a_pressed = true;
             gui->visualizer.mouse_just_moved = false;  // Disable mouse when keyboard is used
             break;
         case GDK_KEY_d:
         case GDK_KEY_D:
+        case GDK_KEY_Right:  // Arrow right = turn right
             gui->visualizer.key_d_pressed = true;
             gui->visualizer.mouse_just_moved = false;  // Disable mouse when keyboard is used
             break;
         case GDK_KEY_w:
         case GDK_KEY_W:
+        case GDK_KEY_Up:  // Arrow up = forward thrust
             gui->visualizer.key_w_pressed = true;
             gui->visualizer.mouse_just_moved = false;  // Disable mouse when keyboard is used
             break;
         case GDK_KEY_s:
         case GDK_KEY_S:
+        case GDK_KEY_Down:  // Arrow down = backward thrust
             gui->visualizer.key_s_pressed = true;
             gui->visualizer.mouse_just_moved = false;  // Disable mouse when keyboard is used
             break;
@@ -2329,18 +2333,22 @@ gboolean on_key_release(GtkWidget *widget, GdkEventKey *event, gpointer data) {
     switch (event->keyval) {
         case GDK_KEY_a:
         case GDK_KEY_A:
+        case GDK_KEY_Left:  // Arrow left
             gui->visualizer.key_a_pressed = false;
             break;
         case GDK_KEY_d:
         case GDK_KEY_D:
+        case GDK_KEY_Right:  // Arrow right
             gui->visualizer.key_d_pressed = false;
             break;
         case GDK_KEY_w:
         case GDK_KEY_W:
+        case GDK_KEY_Up:  // Arrow up
             gui->visualizer.key_w_pressed = false;
             break;
         case GDK_KEY_s:
         case GDK_KEY_S:
+        case GDK_KEY_Down:  // Arrow down
             gui->visualizer.key_s_pressed = false;
             break;
         case GDK_KEY_z:
