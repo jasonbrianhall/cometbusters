@@ -572,6 +572,10 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     
     // Priority 3: If energy is zero and shield is down, take actual damage (lose life)
     game->ship_lives--;
+    
+    // Create MASSIVE explosion effect when the ship dies (loses a life)
+    comet_buster_spawn_ship_death_explosion(game, game->ship_x, game->ship_y);
+    
     game->consecutive_hits = 0;
     game->score_multiplier = 1.0;
     game->shield_regen_timer = 0;  // Reset shield regen after taking life damage
@@ -595,10 +599,6 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     if (game->ship_lives <= 0) {
         game->game_over = true;
         game->game_over_timer = 3.0;
-        
-        // Create ABSOLUTELY MASSIVE explosion when the ship dies
-        // This is the big one - 1500 giant yellow particles!
-        comet_buster_spawn_ship_death_explosion(game, game->ship_x, game->ship_y);
         
         // Play game over sound effect
         #ifdef ExternalSound

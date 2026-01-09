@@ -417,48 +417,136 @@ void comet_buster_spawn_explosion(CometBusterGame *game, double x, double y,
     }
 }
 
-// Special explosion for ship death - ABSOLUTELY UNMISSABLE MASSIVE explosion
+// Special explosion for ship death - ABSOLUTELY UNMISSABLE
 void comet_buster_spawn_ship_death_explosion(CometBusterGame *game, double x, double y) {
-    // Create a MASSIVE explosion in multiple waves for visual impact
-    int total_particles = 1500;  // 1500 total particles!
+    if (!game) return;
     
-    for (int i = 0; i < total_particles; i++) {
-        if (game->particle_count >= MAX_PARTICLES) {
-            break;
-        }
+    // Spawn purple/blue explosion particles
+    // Core burst - 100 particles
+    for (int burst = 0; burst < 100; burst++) {
+        if (game->particle_count >= MAX_PARTICLES - 50) break;
         
         int slot = game->particle_count;
         Particle *p = &game->particles[slot];
-        
         memset(p, 0, sizeof(Particle));
         
-        double angle = (2.0 * M_PI * i) / total_particles + 
-                       ((rand() % 100) / 100.0) * 0.5;
-        
-        // Slower particles so they stay visible longer on screen
-        double speed = 80.0 + (rand() % 150);  // 80-230 px/sec (much slower for visibility)
+        double angle = (2.0 * M_PI * burst) / 100.0 + ((rand() % 100) / 100.0) * 0.3;
+        double speed = 120.0 + (rand() % 100);  // 120-220 px/sec
         
         p->x = x;
         p->y = y;
         p->vx = cos(angle) * speed;
         p->vy = sin(angle) * speed;
-        
-        // EXTREMELY long lifetime - visible for a long time
-        p->lifetime = 3.5 + (rand() % 100) / 100.0;  // 3.5-4.5 seconds (MASSIVE duration)
+        p->lifetime = 0.8 + (rand() % 20) / 100.0;  // 0.8-1.0 seconds
         p->max_lifetime = p->lifetime;
-        
-        // VERY LARGE particles - 8-16 pixels (huge and unmissable)
-        p->size = 8.0 + (rand() % 9);  // 8-16 pixel particles
+        p->size = 4.0 + (rand() % 5);  // 4-9 pixels
         p->active = true;
         
-        // Use frequency band 1 (yellow/mid frequency) for ship explosions
-        comet_buster_get_frequency_color(1,
-                                        &p->color[0],
-                                        &p->color[1],
-                                        &p->color[2]);
+        // Purple/blue core
+        p->color[0] = 0.6;
+        p->color[1] = 0.3;
+        p->color[2] = 1.0;
         
         game->particle_count++;
     }
+    
+    // Trailing debris - 70 particles
+    for (int burst = 0; burst < 70; burst++) {
+        if (game->particle_count >= MAX_PARTICLES - 30) break;
+        
+        int slot = game->particle_count;
+        Particle *p = &game->particles[slot];
+        memset(p, 0, sizeof(Particle));
+        
+        double angle = (2.0 * M_PI * burst) / 70.0 + ((rand() % 100) / 100.0) * 0.5;
+        double speed = 80.0 + (rand() % 60);  // 80-140 px/sec
+        
+        p->x = x;
+        p->y = y;
+        p->vx = cos(angle) * speed;
+        p->vy = sin(angle) * speed;
+        p->lifetime = 1.0 + (rand() % 20) / 100.0;  // 1.0-1.2 seconds
+        p->max_lifetime = p->lifetime;
+        p->size = 3.0 + (rand() % 4);  // 3-7 pixels
+        p->active = true;
+        
+        // Light blue trailing smoke
+        p->color[0] = 0.4;
+        p->color[1] = 0.6;
+        p->color[2] = 1.0;
+        
+        game->particle_count++;
+    }
+    
+    // Apply explosion damage in radius - up to 20 damage based on distance
+    double explosion_radius = 250.0;  // Damage radius
+    double max_damage = 20.0;
+    
+    // Damage comets within radius
+    for (int i = 0; i < game->comet_count; i++) {
+        Comet *c = &game->comets[i];
+        if (!c->active) continue;
+        
+        double dx = c->x - x;
+        double dy = c->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        if (dist < explosion_radius) {
+            // Damage decreases with distance (inverse relationship)
+            // At center (dist=0): 20 damage, at radius edge: 1 damage
+            double damage = max_damage * (1.0 - (dist / explosion_radius));
+            damage = (damage < 1.0) ? 1.0 : damage;  // Minimum 1 damage
+            c->health -= (int)damage;
+            
+            if (c->health <= 0) {
+                c->active = false;
+                game->comets_destroyed++;
+            }
+        }
+    }
+    
+    // Damage enemy ships within radius
+    for (int i = 0; i < game->enemy_ship_count; i++) {
+        EnemyShip *e = &game->enemy_ships[i];
+        if (!e->active) continue;
+        
+        double dx = e->x - x;
+        double dy = e->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        if (dist < explosion_radius) {
+            double damage = max_damage * (1.0 - (dist / explosion_radius));
+            damage = (damage < 1.0) ? 1.0 : damage;
+            e->health -= (int)damage;
+            
+            if (e->health <= 0) {
+                e->active = false;
+            }
+        }
+    }
+    
+    // Damage UFOs within radius
+    for (int i = 0; i < game->ufo_count; i++) {
+        UFO *u = &game->ufos[i];
+        if (!u->active) continue;
+        
+        double dx = u->x - x;
+        double dy = u->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        
+        if (dist < explosion_radius) {
+            double damage = max_damage * (1.0 - (dist / explosion_radius));
+            damage = (damage < 1.0) ? 1.0 : damage;
+            u->health -= (int)damage;
+            
+            if (u->health <= 0) {
+                u->active = false;
+            }
+        }
+    }
+    
+    fprintf(stdout, "[Explosion] Ship destroyed at (%.0f, %.0f) - dealt damage in %.0f pixel radius\n", 
+            x, y, explosion_radius);
 }
 
 void comet_buster_spawn_enemy_ship_internal(CometBusterGame *game, int screen_width, int screen_height, 
