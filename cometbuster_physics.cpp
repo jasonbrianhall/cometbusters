@@ -1997,6 +1997,14 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         if (comet_buster_check_ship_comet(game, &game->comets[i])) {
             // Destroy the comet when ship hits it
             comet_buster_destroy_comet(game, i, width, height, visualizer);
+            
+            // Play collision impact sound
+#ifdef ExternalSound
+            if (visualizer && visualizer->audio.sfx_explosion) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+            }
+#endif
+            
             // Damage the ship
             comet_buster_on_ship_hit(game, visualizer);
             break;  // Exit loop since we just modified comet_count

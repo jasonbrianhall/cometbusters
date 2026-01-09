@@ -234,6 +234,9 @@ typedef struct {
     double burner_flicker_timer;
     double damage_flash_timer;  // Flash when hit
     
+    // Audio effects
+    double sound_timer;         // Timer for periodic UFO sound effect
+    
 } UFO;
 
 #define MAX_UFOS 2  // Only 1-2 UFOs on screen at a time
@@ -516,6 +519,7 @@ void comet_buster_spawn_bullet(CometBusterGame *game, void *vis);
 void comet_buster_spawn_omnidirectional_fire(CometBusterGame *game);
 void comet_buster_spawn_spread_fire(CometBusterGame *game, void *vis);
 void comet_buster_spawn_explosion(CometBusterGame *game, double x, double y, int frequency_band, int particle_count);
+void comet_buster_spawn_ship_death_explosion(CometBusterGame *game, double x, double y);
 void comet_buster_spawn_floating_text(CometBusterGame *game, double x, double y, const char *text, double r, double g, double b);
 void comet_buster_spawn_enemy_ship(CometBusterGame *game, int screen_width, int screen_height);
 void comet_buster_spawn_enemy_bullet(CometBusterGame *game, double x, double y, double vx, double vy);

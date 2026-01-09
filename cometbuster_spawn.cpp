@@ -417,6 +417,43 @@ void comet_buster_spawn_explosion(CometBusterGame *game, double x, double y,
     }
 }
 
+// Special explosion for ship death - longer lasting particles for dramatic effect
+void comet_buster_spawn_ship_death_explosion(CometBusterGame *game, double x, double y) {
+    int particle_count = 300;
+    
+    for (int i = 0; i < particle_count; i++) {
+        if (game->particle_count >= MAX_PARTICLES) {
+            break;
+        }
+        
+        int slot = game->particle_count;
+        Particle *p = &game->particles[slot];
+        
+        memset(p, 0, sizeof(Particle));
+        
+        double angle = (2.0 * M_PI * i) / particle_count + 
+                       ((rand() % 100) / 100.0) * 0.3;
+        double speed = 150.0 + (rand() % 150);  // Faster particles
+        
+        p->x = x;
+        p->y = y;
+        p->vx = cos(angle) * speed;
+        p->vy = sin(angle) * speed;
+        p->lifetime = 1.2 + (rand() % 50) / 100.0;  // MUCH longer lifetime: 1.2-1.7 seconds
+        p->max_lifetime = p->lifetime;
+        p->size = 3.0 + (rand() % 5);  // Larger particles
+        p->active = true;
+        
+        // Use frequency band 1 (yellow/mid frequency) for ship explosions
+        comet_buster_get_frequency_color(1,
+                                        &p->color[0],
+                                        &p->color[1],
+                                        &p->color[2]);
+        
+        game->particle_count++;
+    }
+}
+
 void comet_buster_spawn_enemy_ship_internal(CometBusterGame *game, int screen_width, int screen_height, 
                                             int ship_type, int edge, double speed, int formation_id, int formation_size) {
     if (!game || game->enemy_ship_count >= MAX_ENEMY_SHIPS) {
@@ -941,6 +978,9 @@ void comet_buster_spawn_ufo(CometBusterGame *game, int screen_width, int screen_
     ufo->burner_flicker_timer = 0.0;
     ufo->damage_flash_timer = 0.0;
     
+    // Audio effects - UFO sound plays periodically
+    ufo->sound_timer = 0.5;  // Start sound after 0.5 seconds
+    
     game->ufo_count++;
 }
 
@@ -1018,6 +1058,17 @@ void comet_buster_update_ufos(CometBusterGame *game, double dt, int width, int h
         // Update damage flash
         if (ufo->damage_flash_timer > 0) {
             ufo->damage_flash_timer -= dt;
+        }
+        
+        // Play UFO sound effect periodically (not too annoying)
+        ufo->sound_timer -= dt;
+        if (ufo->sound_timer <= 0) {
+#ifdef ExternalSound
+            if (visualizer && visualizer->audio.sfx_ufo) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_ufo);
+            }
+#endif
+            ufo->sound_timer = 0.4;  // Repeat every 0.4 seconds - faster than before
         }
         
         // UFO fires at player occasionally

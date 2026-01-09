@@ -568,9 +568,9 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
         game->game_over = true;
         game->game_over_timer = 3.0;
         
-        // Create a HUGE explosion when the ship dies (5x bigger than normal)
-        // Normal explosions use 15-30 particles, ship uses 150 for 5x bigger effect
-        comet_buster_spawn_explosion(game, game->ship_x, game->ship_y, 1, 150);
+        // Create a MASSIVE explosion when the ship dies
+        // Uses special function with longer-lasting particles for dramatic effect
+        comet_buster_spawn_ship_death_explosion(game, game->ship_x, game->ship_y);
         
         // Play game over sound effect
         #ifdef ExternalSound

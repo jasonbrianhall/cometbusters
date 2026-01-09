@@ -101,6 +101,7 @@ bool audio_init(AudioManager *audio) {
     audio->sfx_wave_complete = NULL;
     audio->sfx_missile = NULL;
     audio->sfx_bossexplosion = NULL;
+    audio->sfx_ufo = NULL;
 
     
     memset(&audio->wad, 0, sizeof(WadArchive));
@@ -144,6 +145,7 @@ bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
     audio->sfx_missile = load_sound_from_wad(&audio->wad, "sounds/missile.mp3");
     audio->sfx_energy = load_sound_from_wad(&audio->wad, "sounds/energy.mp3");
     audio->sfx_bossexplosion = load_sound_from_wad(&audio->wad, "sounds/bossexplosion.mp3");
+    audio->sfx_ufo = load_sound_from_wad(&audio->wad, "sounds/ufo.mp3");
 
 
     
@@ -158,8 +160,9 @@ bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
     if (audio->sfx_missile) loaded++;
     if (audio->sfx_energy) loaded++;
     if (audio->sfx_bossexplosion) loaded++;
+    if (audio->sfx_ufo) loaded++;
     
-    fprintf(stdout, "[OK] Loaded %d/%d sounds from WAD\n", loaded, 7);
+    fprintf(stdout, "[OK] Loaded %d/%d sounds from WAD\n", loaded, 11);
     
     return loaded > 0;
 }
@@ -190,7 +193,9 @@ void audio_cleanup(AudioManager *audio) {
     if (audio->sfx_game_over) Mix_FreeChunk(audio->sfx_game_over);
     if (audio->sfx_wave_complete) Mix_FreeChunk(audio->sfx_wave_complete);
     if (audio->sfx_missile) Mix_FreeChunk(audio->sfx_missile);
+    if (audio->sfx_energy) Mix_FreeChunk(audio->sfx_energy);
     if (audio->sfx_bossexplosion) Mix_FreeChunk(audio->sfx_bossexplosion);
+    if (audio->sfx_ufo) Mix_FreeChunk(audio->sfx_ufo);
     
     // Close WAD
     wad_close(&audio->wad);
