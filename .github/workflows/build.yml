@@ -395,15 +395,53 @@ jobs:
         # Copy executable, DLLs, and all assets from extracted source
         Copy-Item "msix-source/*" -Destination "msix-package/Files/" -Recurse -Force
         
-        # Copy or create icon for MSIX
-        if (Test-Path "msix-source/icon.png") {
-          Copy-Item "msix-source/icon.png" "msix-package/Assets/CometBusterLogo.scale-100.png"
-          Copy-Item "msix-source/icon.png" "msix-package/Assets/CometBuster44x44.scale-100.png"
+        # Verify executable exists
+        if (-not (Test-Path "msix-package/Files/cometbuster.exe")) {
+          Write-Error "cometbuster.exe not found in package!"
+          exit 1
         }
         
         # Verify files
         Write-Host "📦 MSIX package contents:"
         Get-ChildItem "msix-package/Files/" -File | ForEach-Object { Write-Host "  - $_" }
+
+    - name: Create MSIX Store Compliant Assets
+      run: |
+        $iconPath = "msix-source/icon.png"
+        
+        # Verify icon exists
+        if (-not (Test-Path $iconPath)) {
+          Write-Error "icon.png not found - cannot create Store assets"
+          exit 1
+        }
+        
+        Write-Host "Creating Microsoft Store compliant assets..."
+        
+        # Store Logo (50x50) - Required in Properties
+        & magick "$iconPath" -resize 50x50 "msix-package/Assets/StoreLogo.scale-100.png"
+        & magick "$iconPath" -resize 63x63 "msix-package/Assets/StoreLogo.scale-125.png"
+        & magick "$iconPath" -resize 75x75 "msix-package/Assets/StoreLogo.scale-150.png"
+        & magick "$iconPath" -resize 100x100 "msix-package/Assets/StoreLogo.scale-200.png"
+        
+        # Square 44x44 Logo (small tile)
+        & magick "$iconPath" -resize 44x44 "msix-package/Assets/CometBuster44x44.scale-100.png"
+        & magick "$iconPath" -resize 55x55 "msix-package/Assets/CometBuster44x44.scale-125.png"
+        & magick "$iconPath" -resize 66x66 "msix-package/Assets/CometBuster44x44.scale-150.png"
+        & magick "$iconPath" -resize 88x88 "msix-package/Assets/CometBuster44x44.scale-200.png"
+        
+        # Square 150x150 Logo (main tile)
+        & magick "$iconPath" -resize 150x150 "msix-package/Assets/CometBusterLogo.scale-100.png"
+        & magick "$iconPath" -resize 188x188 "msix-package/Assets/CometBusterLogo.scale-125.png"
+        & magick "$iconPath" -resize 225x225 "msix-package/Assets/CometBusterLogo.scale-150.png"
+        & magick "$iconPath" -resize 300x300 "msix-package/Assets/CometBusterLogo.scale-200.png"
+        
+        # Wide 310x150 Logo (wide tile)
+        & magick "$iconPath" -resize 150x150 -background "#1a1a2e" -gravity center -extent 310x150 "msix-package/Assets/CometBusterWide.scale-100.png"
+        & magick "$iconPath" -resize 188x188 -background "#1a1a2e" -gravity center -extent 388x188 "msix-package/Assets/CometBusterWide.scale-125.png"
+        & magick "$iconPath" -resize 225x225 -background "#1a1a2e" -gravity center -extent 465x225 "msix-package/Assets/CometBusterWide.scale-150.png"
+        & magick "$iconPath" -resize 300x300 -background "#1a1a2e" -gravity center -extent 620x300 "msix-package/Assets/CometBusterWide.scale-200.png"
+        
+        Write-Host "✅ All Microsoft Store assets created successfully"
 
     - name: Create MSIX Manifest
       working-directory: msix-package
@@ -415,14 +453,16 @@ jobs:
                  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
           
           <Identity
-            Name="CometBuster"
-            Publisher="CN=Jason Brian Hall"
-            Version="${{ needs.build-linux.outputs.version }}.0" />
+            Name="JasonBrianHall.CometBusters"
+            Publisher="CN=7A3CF65F-504C-42F2-BABD-6A0512A0A017"
+            Version="${{ needs.build-linux.outputs.version }}.0"
+            ProcessorArchitecture="x86" />
           
           <Properties>
             <DisplayName>Comet Busters</DisplayName>
             <PublisherDisplayName>Jason Brian Hall</PublisherDisplayName>
-            <Logo>Assets\CometBusterLogo.scale-100.png</Logo>
+            <Description>Blast asteroids and comets in this action-packed arcade game!</Description>
+            <Logo>Assets\StoreLogo.scale-100.png</Logo>
           </Properties>
           
           <Dependencies>
@@ -440,7 +480,7 @@ jobs:
                                   Square150x150Logo="Assets\CometBusterLogo.scale-100.png"
                                   Square44x44Logo="Assets\CometBuster44x44.scale-100.png"
                                   BackgroundColor="#1a1a2e">
-                <uap:DefaultTile Wide310x150Logo="Assets\CometBusterLogo.scale-100.png"
+                <uap:DefaultTile Wide310x150Logo="Assets\CometBusterWide.scale-100.png"
                                 ShortName="Comet Busters">
                   <uap:ShowNameOnTiles>
                     <uap:ShowOn Tile="square150x150Logo"/>
