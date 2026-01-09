@@ -57,12 +57,17 @@ GTK_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags gtk+-3.0 2>/dev/null || ech
 GTK_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs gtk+-3.0 2>/dev/null || echo "")
 SDL2_MIXER_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
+CAIRO_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags cairo 2>/dev/null || echo "")
+CAIRO_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs cairo 2>/dev/null || echo "-lcairo")
 
-CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
-CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
+# Add path to newly built Cairo headers
+CAIRO_CFLAGS_WIN += -I/usr/local/include/cairo
 
-# WINDOWS LINKER FLAGS - NOW INCLUDES SDL2 AND SDL2_MIXER!
-LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm -lcairo -ld2d1 -lgdi32 -ldwrite
+CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(CAIRO_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
+CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(CAIRO_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
+
+# WINDOWS LINKER FLAGS - NOW INCLUDES SDL2, SDL2_MIXER, AND CAIRO!
+LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(CAIRO_LIBS_WIN) -lm -lstdc++ -lwinmm -ld2d1 -lgdi32 -ldwrite
 
 # KEY WINDOWS OPTIMIZATION FLAGS:
 CXXFLAGS_WIN += -O3 -ffast-math -march=native -ffunction-sections -fdata-sections
