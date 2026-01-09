@@ -1163,7 +1163,7 @@ void comet_buster_update_ufos(CometBusterGame *game, double dt, int width, int h
                 audio_play_sound(&visualizer->audio, visualizer->audio.sfx_ufo);
             }
 #endif
-            ufo->sound_timer = 0.4;  // Repeat every 0.4 seconds - faster than before
+            ufo->sound_timer = 0.2;  // Repeat every 0.3 seconds
         }
         
         // UFO fires at player occasionally
