@@ -30,7 +30,7 @@ typedef struct {
     Mix_Chunk *sfx_wave_complete;
     Mix_Chunk *sfx_missile;
     Mix_Chunk *sfx_energy;
-    Mix_Chunk *sfx_boss_explosion;
+    Mix_Chunk *sfx_bossexplosion;
 
     
     WadArchive wad;          // WAD file archive

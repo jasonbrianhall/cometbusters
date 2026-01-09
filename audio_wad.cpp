@@ -155,6 +155,9 @@ bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
     if (audio->sfx_boost) loaded++;
     if (audio->sfx_game_over) loaded++;
     if (audio->sfx_wave_complete) loaded++;
+    if (audio->sfx_missile) loaded++;
+    if (audio->sfx_energy) loaded++;
+    if (audio->sfx_bossexplosion) loaded++;
     
     fprintf(stdout, "[OK] Loaded %d/%d sounds from WAD\n", loaded, 7);
     
@@ -187,6 +190,7 @@ void audio_cleanup(AudioManager *audio) {
     if (audio->sfx_game_over) Mix_FreeChunk(audio->sfx_game_over);
     if (audio->sfx_wave_complete) Mix_FreeChunk(audio->sfx_wave_complete);
     if (audio->sfx_missile) Mix_FreeChunk(audio->sfx_missile);
+    if (audio->sfx_bossexplosion) Mix_FreeChunk(audio->sfx_bossexplosion);
     
     // Close WAD
     wad_close(&audio->wad);
