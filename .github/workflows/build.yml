@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
 
 env:
-  PRODUCT_VERSION: "1.0.0.${{ github.run_number }}"
+  PRODUCT_VERSION: "1.0.${{ github.run_number }}.0"
   UPGRADE_CODE: "A8F2B5C3-9D47-44E2-8B6A-7C3F1E9A2D5B"
 
 jobs:
@@ -455,7 +455,7 @@ jobs:
           <Identity
             Name="JasonBrianHall.CometBusters"
             Publisher="CN=7A3CF65F-504C-42F2-BABD-6A0512A0A017"
-            Version="${{ needs.build-linux.outputs.version }}.0"
+            Version="${{ needs.build-linux.outputs.version }}"
             ProcessorArchitecture="x86" />
           
           <Properties>
