@@ -456,7 +456,7 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     if (vis && !game->splash_screen_active) {
         Visualizer *visualizer = (Visualizer *)vis;
 #ifdef ExternalSound
-        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_bossexplosion);
+        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
 #endif
     }
     
