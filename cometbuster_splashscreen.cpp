@@ -321,6 +321,20 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
             }
         }
     }
+    
+    // Cleanup pass: compact comet array by removing inactive comets
+    // This prevents array from filling with dead comets and allows proper destruction/breakup animations
+    int write_index = 0;
+    for (int i = 0; i < game->comet_count; i++) {
+        if (game->comets[i].active) {
+            // Move active comet to write position
+            if (i != write_index) {
+                game->comets[write_index] = game->comets[i];
+            }
+            write_index++;
+        }
+    }
+    game->comet_count = write_index;
 }
 
 // Draw splash screen with proper line-by-line scrolling crawl
