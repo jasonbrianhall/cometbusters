@@ -1604,7 +1604,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
     }
 }
 
-void comet_buster_update_fuel(CometBusterGame *game, double dt) {
+void comet_buster_update_fuel(CometBusterGame *game, double dt, void *vis) {
     if (!game) return;
     
     // Update boost timer for visual effects
@@ -1620,6 +1620,18 @@ void comet_buster_update_fuel(CometBusterGame *game, double dt) {
             game->energy_amount = 0;
             game->is_boosting = false;
         }
+        
+        // Play boost sound continuously while boosting
+#ifdef ExternalSound
+        if (vis) {
+            Visualizer *visualizer = (Visualizer *)vis;
+            // Play boost sound repeatedly (every 0.2 seconds)
+            if (game->boost_thrust_timer <= 0) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_boost);
+                game->boost_thrust_timer = 0.2;  // Reset timer for next boost sound
+            }
+        }
+#endif
     } else if (!game->mouse_left_pressed && !game->keyboard.key_ctrl_pressed) {
         // Recharging fuel when not boosting AND not firing (either mouse or keyboard)
         if (game->energy_amount < game->max_energy) {
@@ -1809,7 +1821,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     comet_buster_update_canisters(game, dt);  // Update shield canisters
     comet_buster_update_missile_pickups(game, dt);  // Update missile pickups
     comet_buster_update_missiles(game, dt, width, height);  // Update missiles
-    comet_buster_update_fuel(game, dt);  // Update fuel system
+    comet_buster_update_fuel(game, dt, visualizer);  // Update fuel system
     comet_buster_update_burner_effects(game, dt);  // Update thruster/burner effects
     
     // Update shield regeneration
@@ -1951,9 +1963,6 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 game->current_wave, game->boss_active, game->comet_count);
         comet_buster_spawn_boss(game, width, height);
     }*/
-    
-    // Update fuel system
-    comet_buster_update_fuel(game, dt);
     
     // Handle wave completion and progression (only if not already counting down)
     // BUT: Don't progress if boss is active (boss must be defeated first)
