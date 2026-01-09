@@ -226,6 +226,9 @@ void comet_buster_update_comets(CometBusterGame *game, double dt, int width, int
     for (int i = 0; i < game->comet_count; i++) {
         Comet *c = &game->comets[i];
         
+        // Skip inactive (destroyed) comets - DO NOT UPDATE THEM
+        if (!c->active) continue;
+        
         // ========== GRAVITY WELL EFFECT ==========
         // If boss is active and pulling, affect comets within void radius
         if (game->boss_active && game->boss.active && game->boss.gravity_pull_strength > 0) {

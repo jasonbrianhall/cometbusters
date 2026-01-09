@@ -445,7 +445,7 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     
     GtkWidget *thanks_label = gtk_label_new(NULL);
     gtk_label_set_markup(GTK_LABEL(thanks_label), 
-        "<span weight='bold' foreground='#2E7D32'>Thank you for making CometBuster better!</span>");
+        "<span weight='bold' foreground='#2E7D32'>Thank you for making Comet Busters better!</span>");
     gtk_widget_set_halign(thanks_label, GTK_ALIGN_CENTER);
     gtk_box_pack_start(GTK_BOX(contrib_box), thanks_label, FALSE, FALSE, 0);
     

@@ -104,6 +104,9 @@ void draw_comet_buster_comets(CometBusterGame *game, cairo_t *cr, int width, int
     for (int i = 0; i < game->comet_count; i++) {
         Comet *c = &game->comets[i];
         
+        // Skip inactive (destroyed) comets - DO NOT RENDER THEM
+        if (!c->active) continue;
+        
         cairo_save(cr);
         cairo_translate(cr, c->x, c->y);
         cairo_rotate(cr, c->base_angle + c->rotation * M_PI / 180.0);
