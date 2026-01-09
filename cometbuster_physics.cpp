@@ -226,9 +226,6 @@ void comet_buster_update_comets(CometBusterGame *game, double dt, int width, int
     for (int i = 0; i < game->comet_count; i++) {
         Comet *c = &game->comets[i];
         
-        // Skip inactive (destroyed) comets - DO NOT UPDATE THEM
-        if (!c->active) continue;
-        
         // ========== GRAVITY WELL EFFECT ==========
         // If boss is active and pulling, affect comets within void radius
         if (game->boss_active && game->boss.active && game->boss.gravity_pull_strength > 0) {
@@ -441,39 +438,21 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
             }
         } else if (ship->ship_type == 2) {
             // HUNTER GREEN SHIP: Follow sine wave, but chase player if close
-            double dx = game->ship_x - ship->x;
-            double dy = game->ship_y - ship->y;
-            double dist_to_player = sqrt(dx*dx + dy*dy);
+            // EXCEPTION: During splash screen, behave like blue patrol ships (just go straight)
             
-            double chase_range = 300.0;  // Switch to chasing if player within 300px
-            
-            if (dist_to_player < chase_range && dist_to_player > 0.1) {
-                // Chase player - with smooth turning
-                double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
-                if (base_speed < 1.0) base_speed = 90.0;
-                
-                double target_vx = (dx / dist_to_player) * base_speed;
-                double target_vy = (dy / dist_to_player) * base_speed;
-                
-                // Smooth turning: blend current velocity with target direction
-                double turn_rate = 0.15;  // 0.0-1.0, higher = snappier, lower = smoother
-                ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
-                ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
-                ship->angle = atan2(ship->vy, ship->vx);
-            } else {
-                // Update patrol behavior
+            if (game->splash_screen_active) {
+                // SPLASH SCREEN MODE: Green ships just patrol straight like blue ships
+                // Simplified patrol behavior - no chasing the player
                 ship->patrol_behavior_timer += dt;
                 if (ship->patrol_behavior_timer >= ship->patrol_behavior_duration) {
-                    // Time to change behavior
                     ship->patrol_behavior_timer = 0.0;
-                    ship->patrol_behavior_duration = 2.0 + (rand() % 30) / 10.0;  // 2-5 seconds
+                    ship->patrol_behavior_duration = 2.0 + (rand() % 30) / 10.0;
                     
                     int behavior_roll = rand() % 100;
-                    if (behavior_roll < 70) {
-                        ship->patrol_behavior_type = 0;  // 70% straight movement
-                    } else if (behavior_roll < 90) {
-                        ship->patrol_behavior_type = 1;  // 20% circular movement
-                        // Set circle center ahead of current direction
+                    if (behavior_roll < 80) {
+                        ship->patrol_behavior_type = 0;  // 80% straight movement
+                    } else if (behavior_roll < 95) {
+                        ship->patrol_behavior_type = 1;  // 15% circular movement
                         double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
                         if (base_speed > 0.1) {
                             ship->patrol_circle_center_x = ship->x + (ship->base_vx / base_speed) * 150.0;
@@ -481,8 +460,7 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
                         }
                         ship->patrol_circle_angle = 0.0;
                     } else {
-                        ship->patrol_behavior_type = 2;  // 10% sudden direction change
-                        // Pick a new random direction
+                        ship->patrol_behavior_type = 2;  // 5% direction change
                         double rand_angle = (rand() % 360) * (M_PI / 180.0);
                         double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
                         if (base_speed < 1.0) base_speed = 90.0;
@@ -491,19 +469,17 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
                     }
                 }
                 
-                // Apply patrol behavior
                 double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
                 double target_vx, target_vy;
                 
                 if (ship->patrol_behavior_type == 0) {
-                    // Straight movement with gentle sine wave
                     if (base_speed > 0.1) {
                         double dir_x = ship->base_vx / base_speed;
                         double dir_y = ship->base_vy / base_speed;
                         double perp_x = -dir_y;
                         double perp_y = dir_x;
-                        double wave_amplitude = 40.0;
-                        double wave_frequency = 1.2;
+                        double wave_amplitude = 30.0;
+                        double wave_frequency = 1.0;
                         double sine_offset = sin(ship->path_time * wave_frequency * M_PI) * wave_amplitude;
                         target_vx = dir_x * base_speed + perp_x * sine_offset;
                         target_vy = dir_y * base_speed + perp_y * sine_offset;
@@ -511,19 +487,15 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
                         target_vx = ship->vx;
                         target_vy = ship->vy;
                     }
+                    ship->path_time += dt;
+                    ship->path_time += dt;
                 } else if (ship->patrol_behavior_type == 1) {
-                    // Circular movement - move smoothly instead of teleporting
                     ship->patrol_circle_angle += (base_speed / ship->patrol_circle_radius) * dt;
-                    
-                    // Calculate target position on circle
                     double target_x = ship->patrol_circle_center_x + cos(ship->patrol_circle_angle) * ship->patrol_circle_radius;
                     double target_y = ship->patrol_circle_center_y + sin(ship->patrol_circle_angle) * ship->patrol_circle_radius;
-                    
-                    // Move toward target instead of teleporting
                     double dx_circle = target_x - ship->x;
                     double dy_circle = target_y - ship->y;
                     double dist_to_target = sqrt(dx_circle*dx_circle + dy_circle*dy_circle);
-                    
                     if (dist_to_target > 0.1) {
                         target_vx = (dx_circle / dist_to_target) * base_speed;
                         target_vy = (dy_circle / dist_to_target) * base_speed;
@@ -531,19 +503,106 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
                         target_vx = -sin(ship->patrol_circle_angle) * base_speed;
                         target_vy = cos(ship->patrol_circle_angle) * base_speed;
                     }
-                    
-                    ship->angle = atan2(target_vy, target_vx);  // Face direction of movement
+                    ship->angle = atan2(target_vy, target_vx);
                 } else {
-                    // Evasive turns - use base_vx/base_vy for new direction
                     target_vx = ship->base_vx;
                     target_vy = ship->base_vy;
                 }
                 
-                // Smooth turning towards target velocity
-                double turn_rate = 0.12;  // Smoother for patrol behaviors
+                double turn_rate = 0.12;
                 ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
                 ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
                 ship->angle = atan2(ship->vy, ship->vx);
+            } else {
+                // NORMAL GAMEPLAY: Green ships chase player
+                double dx = game->ship_x - ship->x;
+                double dy = game->ship_y - ship->y;
+                double dist_to_player = sqrt(dx*dx + dy*dy);
+                
+                double chase_range = 300.0;
+                
+                if (dist_to_player < chase_range && dist_to_player > 0.1) {
+                    double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                    if (base_speed < 1.0) base_speed = 90.0;
+                    
+                    double target_vx = (dx / dist_to_player) * base_speed;
+                    double target_vy = (dy / dist_to_player) * base_speed;
+                    
+                    double turn_rate = 0.15;
+                    ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
+                    ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
+                    ship->angle = atan2(ship->vy, ship->vx);
+                } else {
+                    // Update patrol behavior
+                    ship->patrol_behavior_timer += dt;
+                    if (ship->patrol_behavior_timer >= ship->patrol_behavior_duration) {
+                        ship->patrol_behavior_timer = 0.0;
+                        ship->patrol_behavior_duration = 2.0 + (rand() % 30) / 10.0;
+                        
+                        int behavior_roll = rand() % 100;
+                        if (behavior_roll < 70) {
+                            ship->patrol_behavior_type = 0;
+                        } else if (behavior_roll < 90) {
+                            ship->patrol_behavior_type = 1;
+                            double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                            if (base_speed > 0.1) {
+                                ship->patrol_circle_center_x = ship->x + (ship->base_vx / base_speed) * 150.0;
+                                ship->patrol_circle_center_y = ship->y + (ship->base_vy / base_speed) * 150.0;
+                            }
+                            ship->patrol_circle_angle = 0.0;
+                        } else {
+                            ship->patrol_behavior_type = 2;
+                            double rand_angle = (rand() % 360) * (M_PI / 180.0);
+                            double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                            if (base_speed < 1.0) base_speed = 90.0;
+                            ship->base_vx = cos(rand_angle) * base_speed;
+                            ship->base_vy = sin(rand_angle) * base_speed;
+                        }
+                    }
+                    
+                    double base_speed = sqrt(ship->base_vx*ship->base_vx + ship->base_vy*ship->base_vy);
+                    double target_vx, target_vy;
+                    
+                    if (ship->patrol_behavior_type == 0) {
+                        if (base_speed > 0.1) {
+                            double dir_x = ship->base_vx / base_speed;
+                            double dir_y = ship->base_vy / base_speed;
+                            double perp_x = -dir_y;
+                            double perp_y = dir_x;
+                            double wave_amplitude = 40.0;
+                            double wave_frequency = 1.2;
+                            double sine_offset = sin(ship->path_time * wave_frequency * M_PI) * wave_amplitude;
+                            target_vx = dir_x * base_speed + perp_x * sine_offset;
+                            target_vy = dir_y * base_speed + perp_y * sine_offset;
+                        } else {
+                            target_vx = ship->vx;
+                            target_vy = ship->vy;
+                        }
+                    } else if (ship->patrol_behavior_type == 1) {
+                        ship->patrol_circle_angle += (base_speed / ship->patrol_circle_radius) * dt;
+                        double target_x = ship->patrol_circle_center_x + cos(ship->patrol_circle_angle) * ship->patrol_circle_radius;
+                        double target_y = ship->patrol_circle_center_y + sin(ship->patrol_circle_angle) * ship->patrol_circle_radius;
+                        double dx_circle = target_x - ship->x;
+                        double dy_circle = target_y - ship->y;
+                        double dist_to_target = sqrt(dx_circle*dx_circle + dy_circle*dy_circle);
+                        if (dist_to_target > 0.1) {
+                            target_vx = (dx_circle / dist_to_target) * base_speed;
+                            target_vy = (dy_circle / dist_to_target) * base_speed;
+                        } else {
+                            target_vx = -sin(ship->patrol_circle_angle) * base_speed;
+                            target_vy = cos(ship->patrol_circle_angle) * base_speed;
+                        }
+                        ship->angle = atan2(target_vy, target_vx);
+                    } else {
+                        target_vx = ship->base_vx;
+                        target_vy = ship->base_vy;
+                    }
+                    
+                    double turn_rate = 0.12;
+                    ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
+                    ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
+                    ship->angle = atan2(ship->vy, ship->vx);
+                }
             }
         } else if (ship->ship_type == 3) {
             // SENTINEL PURPLE SHIP: Formation-based with occasional coordinated maneuvers
