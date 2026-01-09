@@ -10,6 +10,7 @@
 typedef struct {
     GtkWidget *window;
     bool *game_paused;
+    void *audio_manager;  // Pointer to AudioManager (void* to avoid circular includes)
 } CometHelpUserData;
 
 /**

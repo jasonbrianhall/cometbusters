@@ -1441,7 +1441,14 @@ void on_toggle_pause(GtkWidget *widget, gpointer data) {
     // Only allow pause if game is not over
     if (!gui->visualizer.comet_buster.game_over) {
         gui->game_paused = !gui->game_paused;
-        fprintf(stdout, "%s\n", gui->game_paused ? "[*] Game Paused" : "[*] Game Resumed");
+        
+        // Stop music immediately when pausing
+        if (gui->game_paused) {
+            audio_stop_music(&gui->audio);
+            fprintf(stdout, "%s\n", "[*] Game Paused");
+        } else {
+            fprintf(stdout, "%s\n", "[*] Game Resumed");
+        }
     }
 }
 
@@ -2037,7 +2044,7 @@ gboolean game_update_timer(gpointer data) {
         
         // Check if current music track has finished and queue the next one
 #ifdef ExternalSound
-        if (!audio_is_music_playing(&gui->audio)) {
+        if (!gui->game_paused && !audio_is_music_playing(&gui->audio)) {
             fprintf(stdout, "[AUDIO] Current track finished, queuing next track...\n");
             audio_play_random_music(&gui->audio);
         }
@@ -2229,6 +2236,39 @@ gboolean on_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpointer dat
     return FALSE;
 }
 
+/**
+ * Callback for when the window loses focus (minimized, switched away, etc.)
+ */
+gboolean on_focus_out(GtkWidget *widget, GdkEvent *event, gpointer data) {
+    (void)widget;  // Unused
+    (void)event;   // Unused
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return FALSE;
+    
+    // Stop music immediately when window loses focus
+    if (!gui->game_paused) {
+        gui->game_paused = true;
+        audio_stop_music(&gui->audio);
+    }
+    return FALSE;
+}
+
+/**
+ * Callback for when the window regains focus
+ */
+gboolean on_focus_in(GtkWidget *widget, GdkEvent *event, gpointer data) {
+    (void)widget;  // Unused
+    (void)event;   // Unused
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return FALSE;
+    
+    // Resume the game when window regains focus (music will restart naturally from game loop)
+    if (gui->game_paused) {
+        gui->game_paused = false;
+    }
+    return FALSE;
+}
+
 gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return FALSE;
@@ -2294,7 +2334,12 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
         case GDK_KEY_P:
         case GDK_KEY_Escape:
             gui->game_paused = !gui->game_paused;
-            fprintf(stdout, "%s\n", gui->game_paused ? "[*] Game Paused" : "[*] Game Resumed");
+            if (gui->game_paused) {
+                audio_stop_music(&gui->audio);
+                fprintf(stdout, "%s\n", "[*] Game Paused");
+            } else {
+                fprintf(stdout, "%s\n", "[*] Game Resumed");
+            }
             return TRUE;
             break;
         case GDK_KEY_c:
@@ -2526,6 +2571,8 @@ int main(int argc, char *argv[]) {
     gtk_window_set_resizable(GTK_WINDOW(gui.window), TRUE);
     gtk_window_maximize(GTK_WINDOW(gui.window));
     g_signal_connect(gui.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    g_signal_connect(gui.window, "focus-out-event", G_CALLBACK(on_focus_out), &gui);
+    g_signal_connect(gui.window, "focus-in-event", G_CALLBACK(on_focus_in), &gui);
     g_signal_connect(gui.window, "key-press-event", G_CALLBACK(on_key_press), &gui);
     g_signal_connect(gui.window, "key-release-event", G_CALLBACK(on_key_release), &gui);
     
@@ -2669,6 +2716,7 @@ int main(int argc, char *argv[]) {
     CometHelpUserData *help_data = g_new(CometHelpUserData, 1);
     help_data->window = gui.window;
     help_data->game_paused = &gui.game_paused;
+    help_data->audio_manager = &gui.audio;
     g_signal_connect(about_item, "activate", G_CALLBACK(on_menu_about_comet), help_data);
     gtk_menu_shell_append(GTK_MENU_SHELL(help_menu), about_item);
     

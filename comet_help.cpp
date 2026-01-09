@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "comet_help.h"
+#include "audio_wad.h"
 
 // Define fallback version if not provided by Makefile
 #ifndef VERSION
@@ -40,10 +41,16 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     CometHelpUserData *help_data = (CometHelpUserData*)user_data;
     GtkWidget *parent_window = help_data->window;
     bool *game_paused = help_data->game_paused;
+    AudioManager *audio = (AudioManager*)help_data->audio_manager;
     
     // Pause the game before showing help dialog
     bool was_paused = *game_paused;
     *game_paused = true;
+    
+    // Stop music immediately
+    if (audio) {
+        audio_stop_music(audio);
+    }
     
     // Create main dialog window
     GtkWidget *dialog = gtk_dialog_new_with_buttons(
@@ -453,7 +460,7 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
     
-    // Resume game if it wasn't paused before
+    // Resume game if it wasn't paused before (music will restart naturally from game loop)
     if (!was_paused) {
         *game_paused = false;
     }
