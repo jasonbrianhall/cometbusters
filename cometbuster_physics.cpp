@@ -1387,6 +1387,9 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         if (game->mouse_fire_cooldown <= 0) {
             double energy_cost = 0.25;  // Normal bullet cost
             if (game->using_spread_fire) {
+                // Spread fire always costs 5x energy (1.25)
+                // On Medium: fires 3 bullets but still costs 5x (tradeoff: faster energy drain for less firepower)
+                // On Easy/Hard: fires 5 bullets and costs 5x
                 energy_cost = 1.25;  // Spread fire costs 5x (0.25 * 5)
             }
             
@@ -1417,6 +1420,9 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
         if (game->mouse_fire_cooldown <= 0) {
             double energy_cost = 0.25;  // Normal bullet cost
             if (game->using_spread_fire) {
+                // Spread fire always costs 5x energy (1.25)
+                // On Medium: fires 3 bullets but still costs 5x (tradeoff: faster energy drain for less firepower)
+                // On Easy/Hard: fires 5 bullets and costs 5x
                 energy_cost = 1.25;  // Spread fire costs 5x (0.25 * 5)
             }
             

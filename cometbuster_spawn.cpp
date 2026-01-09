@@ -330,13 +330,24 @@ void comet_buster_spawn_omnidirectional_fire(CometBusterGame *game) {
 }
 
 void comet_buster_spawn_spread_fire(CometBusterGame *game, void *vis) {
-    // Fire 5 bullets in a spread pattern in front of the ship
-    // Costs 5x normal bullet energy (1.25 energy per spread shot)
-    // Energy deduction is handled by the caller
+    // Fire bullets in a spread pattern in front of the ship
+    // Energy cost is always 5x (1.25 energy per shot)
+    // 
+    // On Medium difficulty: fires only 3 bullets (but still costs 5x energy)
+    //   This creates a tradeoff: less firepower, but faster energy drain
+    // On Easy/Hard difficulty: fires 5 bullets (and costs 5x energy)
+    //
+    // Hard difficulty does NOT have spread fire available at all
     if (!game) return;
     
     double bullet_speed = 400.0;
-    int num_bullets = 5;  // Fire 5 bullets
+    int num_bullets = 5;  // Default: 5 bullets
+    
+    // On medium difficulty, fire only 3 bullets (but same 5x energy cost)
+    if (game->difficulty == 1) {  // MEDIUM difficulty
+        num_bullets = 3;
+    }
+    
     double spread_angle = 30.0 * (M_PI / 180.0);  // 30 degree total spread (±15 degrees)
     
     // Calculate angle offset from center

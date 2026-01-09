@@ -1635,8 +1635,8 @@ void on_cheat_boss_level_selected(GtkComboBox *widget, gpointer data) {
     gui->high_score_dialog_shown = false;
     gui->game_paused = false;
     
-    // Initialize game WITHOUT splash screen
-    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, false, 1);  // Medium difficulty
+    // Initialize game WITHOUT splash screen, set to EASY difficulty when selecting a boss
+    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, false, 0);  // EASY difficulty
     
     // Jump to selected boss level
     CometBusterGame *game = &gui->visualizer.comet_buster;
