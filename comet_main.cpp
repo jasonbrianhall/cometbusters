@@ -1438,8 +1438,9 @@ void on_toggle_pause(GtkWidget *widget, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return;
     
-    // Only allow pause if game is not over
-    if (!gui->visualizer.comet_buster.game_over) {
+    // Only allow pause if game is not over AND splash screen is not active
+    if (!gui->visualizer.comet_buster.game_over && 
+        !gui->visualizer.comet_buster.splash_screen_active) {
         gui->game_paused = !gui->game_paused;
         
         // Stop music immediately when pausing
@@ -2245,6 +2246,11 @@ gboolean on_focus_out(GtkWidget *widget, GdkEvent *event, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return FALSE;
     
+    // Don't pause if splash screen is active (intro, victory scroll, finale)
+    if (gui->visualizer.comet_buster.splash_screen_active) {
+        return FALSE;
+    }
+    
     // Stop music immediately when window loses focus
     if (!gui->game_paused) {
         gui->game_paused = true;
@@ -2333,12 +2339,15 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
         case GDK_KEY_p:
         case GDK_KEY_P:
         case GDK_KEY_Escape:
-            gui->game_paused = !gui->game_paused;
-            if (gui->game_paused) {
-                audio_stop_music(&gui->audio);
-                fprintf(stdout, "%s\n", "[*] Game Paused");
-            } else {
-                fprintf(stdout, "%s\n", "[*] Game Resumed");
+            // Don't allow pause during splash screens (intro, victory scroll, finale)
+            if (!gui->visualizer.comet_buster.splash_screen_active) {
+                gui->game_paused = !gui->game_paused;
+                if (gui->game_paused) {
+                    audio_stop_music(&gui->audio);
+                    fprintf(stdout, "%s\n", "[*] Game Paused");
+                } else {
+                    fprintf(stdout, "%s\n", "[*] Game Resumed");
+                }
             }
             return TRUE;
             break;
