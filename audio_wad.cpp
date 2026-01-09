@@ -100,6 +100,8 @@ bool audio_init(AudioManager *audio) {
     audio->sfx_game_over = NULL;
     audio->sfx_wave_complete = NULL;
     audio->sfx_missile = NULL;
+    audio->sfx_bossexplosion = NULL;
+
     
     memset(&audio->wad, 0, sizeof(WadArchive));
     
@@ -141,6 +143,8 @@ bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
     audio->sfx_wave_complete = load_sound_from_wad(&audio->wad, "sounds/wave_complete.mp3");
     audio->sfx_missile = load_sound_from_wad(&audio->wad, "sounds/missile.mp3");
     audio->sfx_energy = load_sound_from_wad(&audio->wad, "sounds/energy.mp3");
+    audio->sfx_bossexplosion = load_sound_from_wad(&audio->wad, "sounds/bossexplosion.mp3");
+
 
     
     int loaded = 0;
