@@ -83,6 +83,9 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
     draw_comet_buster_particles(game, cr, width, height);
     draw_comet_buster_ship(game, cr, width, height);
     
+    // Draw boss explosion effect
+    boss_explosion_draw(&game->boss_explosion_effect, cr);
+    
     // Draw HUD
     draw_comet_buster_hud(game, cr, width, height);
     

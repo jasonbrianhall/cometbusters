@@ -435,6 +435,21 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     // Create large explosion
     comet_buster_spawn_explosion(game, boss->x, boss->y, 1, 60);  // HUGE explosion
     
+    // Create radial neon burst explosion effect
+    const char *boss_type = "death_star";  // Default
+    if (game->spawn_queen.is_spawn_queen) {
+        boss_type = "spawn_queen";
+    } else if (game->current_wave % 30 == 15) {
+        boss_type = "void_nexus";
+    } else if (game->current_wave % 30 == 20) {
+        boss_type = "harbinger";
+    } else if (game->current_wave % 30 == 25) {
+        boss_type = "star_vortex";
+    } else if (game->current_wave % 30 == 0) {
+        boss_type = "singularity";
+    }
+    boss_explosion_create(&game->boss_explosion_effect, boss->x, boss->y, boss_type);
+    
     // Play explosion sound - but NOT during splash screen
     if (vis && !game->splash_screen_active) {
         Visualizer *visualizer = (Visualizer *)vis;

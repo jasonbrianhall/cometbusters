@@ -1903,7 +1903,23 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         } else if (game->current_wave % 30 == 0) {
             comet_buster_update_singularity(game, dt, width, height); // Singularity (wave 30, 60, 90, etc)
         }
-    } 
+    }
+    
+    // Update boss explosion effect
+    boss_explosion_update(&game->boss_explosion_effect, dt);
+    
+    // Check if Wave 30 Singularity explosion is done - if so, show finale splash
+    if (game->current_wave == 30 && !game->boss_active && !boss_explosion_is_active(&game->boss_explosion_effect)) {
+        if (!game->finale_splash_active && !game->game_won) {
+            fprintf(stdout, "[FINALE] Wave 30 Singularity explosion complete! Showing victory splash...\n");
+            game->finale_splash_active = true;
+            game->finale_splash_boss_paused = true;
+            game->finale_splash_timer = 0.0;
+            game->finale_scroll_line_index = 0;
+            game->finale_scroll_timer = 0.0;
+            game->finale_waiting_for_input = false;
+        }
+    }
     
     // Spawn boss on waves 5, 10, 15, 20, etc. (every 5 waves starting at wave 5)
     // But only if the boss hasn't already been defeated this wave (game->wave_complete_timer == 0)

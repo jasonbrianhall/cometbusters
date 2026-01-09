@@ -2783,17 +2783,8 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
     
     // ========== CHECK IF BOSS IS DEFEATED ==========
     if (boss->health <= 0) {
-        // Check for Wave 30 finale splash
-        if (game->current_wave == 30) {
-            fprintf(stdout, "[FINALE] Wave 30 Singularity defeated! Showing victory splash...\n");
-            game->finale_splash_active = true;
-            game->finale_splash_boss_paused = true;
-            game->finale_splash_timer = 0.0;
-            game->finale_scroll_line_index = 0;
-            game->finale_scroll_timer = 0.0;
-            game->finale_waiting_for_input = false;
-            return;  // Don't process defeat yet
-        }
+        // Create the radial explosion effect
+        boss_explosion_create(&game->boss_explosion_effect, boss->x, boss->y, "singularity");
         
         fprintf(stdout, "[SINGULARITY] THE SINGULARITY HAS BEEN DESTROYED!\n");
         

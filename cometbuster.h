@@ -5,6 +5,7 @@
 #include <math.h>
 #include <time.h>
 #include <cairo.h>
+#include "cometbuster_bossexplosion.h"
 
 // Static memory allocation constants
 #define MAX_COMETS 128
@@ -483,6 +484,9 @@ typedef struct {
     int finale_scroll_line_index;
     double finale_scroll_timer;
     bool finale_waiting_for_input;
+    
+    // Boss destruction explosion effect
+    BossExplosion boss_explosion_effect;
     
 } CometBusterGame;
 
