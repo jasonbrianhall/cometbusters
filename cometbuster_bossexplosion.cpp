@@ -158,7 +158,7 @@ void boss_explosion_update(BossExplosion *explosion, double dt) {
     explosion->active = has_active;
 }
 
-// Render explosion
+// Render explosion (Original version - used as fallback)
 void boss_explosion_draw(BossExplosion *explosion, cairo_t *cr) {
     if (!explosion || !cr) return;
     

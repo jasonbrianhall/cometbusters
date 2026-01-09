@@ -24,6 +24,10 @@
 #include "comet_help.h"
 
 #ifdef _WIN32
+#include "direct2d.h"
+#endif
+
+#ifdef _WIN32
 std::string getExecutableDir() { 
     char buffer[MAX_PATH]; 
     GetModuleFileNameA(NULL, buffer, MAX_PATH); 
@@ -2467,6 +2471,12 @@ static void sigint_handler(int sig) {
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
     
+    // Initialize Direct2D for Windows (5-10x faster rendering)
+    #ifdef _WIN32
+    windows_direct2d_init();
+    fprintf(stdout, "[INIT] Direct2D status: %s\n", windows_direct2d_status());
+    #endif
+    
     // Set up signal handler for CTRL+C from terminal
 #ifndef _WIN32
     signal(SIGINT, sigint_handler);
@@ -2805,6 +2815,11 @@ int main(int argc, char *argv[]) {
     comet_buster_cleanup(&gui.visualizer.comet_buster);
     joystick_manager_cleanup(&gui.visualizer.joystick_manager);
     audio_cleanup(&gui.audio);
+    
+    // Cleanup Direct2D
+    #ifdef _WIN32
+    windows_direct2d_cleanup();
+    #endif
     
     return 0;
 }

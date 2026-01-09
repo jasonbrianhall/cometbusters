@@ -91,6 +91,25 @@ typedef struct {
 } GameOptions;
 
 // ============================================================
+// RENDER CACHE STRUCTURE (Cairo Optimization)
+// ============================================================
+
+typedef struct {
+    // Grid cache - cached background grid surface
+    cairo_surface_t *grid_surface;
+    int cached_grid_width;
+    int cached_grid_height;
+    
+    // Boss explosion glow particles (pre-rendered at 5 different sizes)
+    cairo_surface_t *glow_particle_surface[5];
+    
+    // Boss explosion line particles (pre-rendered at 3 different widths)
+    cairo_surface_t *line_particle_surface[3];
+    
+    bool initialized;
+} RenderCache;
+
+// ============================================================
 // VISUALIZER STRUCTURE
 // ============================================================
 
@@ -150,6 +169,9 @@ typedef struct {
     bool joystick_button_back;      // Back button
     bool joystick_button_left_stick;  // Left stick click
     bool joystick_button_right_stick; // Right stick click
+    
+    // OPTIMIZATION: Render cache for Cairo surfaces
+    RenderCache render_cache;
     
     // ====================================================
     
@@ -213,6 +235,31 @@ bool game_options_save(const GameOptions *options);
  * Get default game options
  */
 GameOptions game_options_default(void);
+
+// ============================================================
+// RENDER CACHE FUNCTIONS (Cairo Optimization)
+// ============================================================
+
+/**
+ * Initialize the render cache (call once at startup)
+ */
+void render_cache_init(RenderCache *cache);
+
+/**
+ * Cleanup render cache (call on shutdown)
+ */
+void render_cache_cleanup(RenderCache *cache);
+
+/**
+ * Update and use cached grid (replaces grid drawing code)
+ */
+void render_cache_update_grid(RenderCache *cache, int width, int height, cairo_t *cr);
+
+/**
+ * Draw boss explosion using cache for better performance
+ */
+void boss_explosion_draw_cached(BossExplosion *explosion, cairo_t *cr, 
+                                RenderCache *cache);
 
 // ============================================================
 // GAME UPDATE AND INITIALIZATION

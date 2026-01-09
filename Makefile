@@ -1,6 +1,6 @@
-# CometBuster Makefile with WAD Audio System
-# Based on zenamp project structure
-# Supports Linux and Windows builds with Miniz ZIP library
+# CometBuster Makefile - FIXED FOR WINDOWS
+# Windows-optimized version with Direct2D support
+# NOW WITH SDL2 AND SDL2_MIXER PROPERLY LINKED
 
 # Package information
 PACKAGE_NAME = cometbuster
@@ -25,12 +25,14 @@ CFLAGS_COMMON = -Wall -Wextra -g
 # Platform-specific package config commands
 PKG_CONFIG_LINUX = pkg-config
 PKG_CONFIG_WIN = mingw64-pkg-config
-SDL2_CONFIG_LINUX = sdl2-config
-SDL2_CONFIG_WIN = mingw64-sdl2-config
 
-# Linux-specific flags
-SDL2_CFLAGS_LINUX := $(shell $(SDL2_CONFIG_LINUX) --cflags 2>/dev/null || echo "")
-SDL2_LIBS_LINUX := $(shell $(SDL2_CONFIG_LINUX) --libs 2>/dev/null || echo "-lSDL2")
+# ============================================================================
+# LINUX BUILD FLAGS
+# ============================================================================
+
+# SDL2 and GTK flags
+SDL2_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags sdl2 2>/dev/null || echo "")
+SDL2_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs sdl2 2>/dev/null || echo "-lSDL2")
 GTK_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags gtk+-3.0 2>/dev/null || echo "")
 GTK_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs gtk+-3.0 2>/dev/null || echo "")
 SDL2_MIXER_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags SDL2_mixer 2>/dev/null || echo "")
@@ -40,11 +42,15 @@ CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(S
 CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX
 LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++
 
-# Optimization flags
-CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
+# Linux optimization flags
+CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto -march=native
 LDFLAGS_LINUX += -s -Wl,--gc-sections -flto
 
-# Windows-specific flags
+# ============================================================================
+# WINDOWS BUILD FLAGS - OPTIMIZED
+# ============================================================================
+
+# SDL2 and GTK flags for Windows
 SDL2_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags sdl2 2>/dev/null || echo "")
 SDL2_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs sdl2 2>/dev/null || echo "-lSDL2")
 GTK_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags gtk+-3.0 2>/dev/null || echo "")
@@ -54,9 +60,12 @@ SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null |
 
 CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
 CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
-LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm
 
-CXXFLAGS_WIN += -O2 -ffunction-sections -fdata-sections
+# WINDOWS LINKER FLAGS - NOW INCLUDES SDL2 AND SDL2_MIXER!
+LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm -lcairo -ld2d1 -lgdi32 -ldwrite
+
+# KEY WINDOWS OPTIMIZATION FLAGS:
+CXXFLAGS_WIN += -O3 -ffast-math -march=native -ffunction-sections -fdata-sections
 LDFLAGS_WIN += -s -Wl,--gc-sections
 
 # Debug flags
@@ -66,17 +75,17 @@ CFLAGS_LINUX_DEBUG = $(CFLAGS_LINUX) $(DEBUG_FLAGS)
 CXXFLAGS_WIN_DEBUG = $(CXXFLAGS_WIN) $(DEBUG_FLAGS)
 CFLAGS_WIN_DEBUG = $(CFLAGS_WIN) $(DEBUG_FLAGS)
 
-# Source files - Game code
+# Source files
 SOURCES_CPP_COMMON = comet_main.cpp wad.cpp audio_wad.cpp cometbuster_spawn.cpp \
 	cometbuster_init.cpp cometbuster_physics.cpp cometbuster_collision.cpp \
 	cometbuster_boss.cpp cometbuster_render.cpp cometbuster_starboss.cpp \
 	cometbuster_util.cpp cometbuster_splashscreen.cpp joystick.cpp \
-	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_help.cpp
+	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_help.cpp \
+	cometbuster_render_cache.cpp direct2d.cpp
 
-# Source files - Miniz WAD system (C files)
 SOURCES_C = miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c
 
-# Object files for different platforms
+# Object files
 OBJECTS_CPP_LINUX = $(SOURCES_CPP_COMMON:.cpp=.o)
 OBJECTS_C_LINUX = $(SOURCES_C:.c=.o)
 OBJECTS_LINUX = $(OBJECTS_CPP_LINUX) $(OBJECTS_C_LINUX)
@@ -115,7 +124,7 @@ EXTRA_OBJS ?=
 # Create necessary directories
 $(shell mkdir -p $(BUILD_DIR_LINUX) $(BUILD_DIR_WIN) $(BUILD_DIR_LINUX_DEBUG) $(BUILD_DIR_WIN_DEBUG))
 
-# Default target - build for Linux
+# Default target
 .PHONY: all
 all: cometbuster-create-wad linux
 
@@ -141,12 +150,10 @@ $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX): $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECT
 	$(CXX_LINUX) $(CXXFLAGS_LINUX) $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Build complete: $@"
 
-# Linux compilation rules - C++ files
 $(BUILD_DIR_LINUX)/%.o: %.cpp
 	@echo "Compiling (Linux): $<"
 	$(CXX_LINUX) $(CXXFLAGS_LINUX) -c $< -o $@
 
-# Linux compilation rules - C files
 $(BUILD_DIR_LINUX)/%.o: %.c
 	@echo "Compiling (Linux): $<"
 	$(CC_LINUX) $(CFLAGS_LINUX) -c $< -o $@
@@ -162,12 +169,10 @@ $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG): $(addprefix $(BUILD_DIR_LINU
 	$(CXX_LINUX) $(CXXFLAGS_LINUX_DEBUG) $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Debug build complete: $@"
 
-# Linux debug compilation rules - C++ files
 $(BUILD_DIR_LINUX_DEBUG)/%.debug.o: %.cpp
 	@echo "Compiling (Linux Debug): $<"
 	$(CXX_LINUX) $(CXXFLAGS_LINUX_DEBUG) -c $< -o $@
 
-# Linux debug compilation rules - C files
 $(BUILD_DIR_LINUX_DEBUG)/%.debug.o: %.c
 	@echo "Compiling (Linux Debug): $<"
 	$(CC_LINUX) $(CFLAGS_LINUX_DEBUG) -c $< -o $@
@@ -180,15 +185,16 @@ cometbuster-windows: $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)
 
 $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN): $(addprefix $(BUILD_DIR_WIN)/,$(OBJECTS_WIN)) $(EXTRA_OBJS)
 	@echo "Linking Windows executable: $@"
+	@echo "Linker flags: $(LDFLAGS_WIN)"
 	$(CXX_WIN) $(CXXFLAGS_WIN) $(addprefix $(BUILD_DIR_WIN)/,$(OBJECTS_WIN)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_WIN)
 	@echo "✓ Windows build complete: $@"
+	@echo "  File: $@"
+	@echo "  Optimization: -O3 -ffast-math -march=native"
 
-# Windows compilation rules - C++ files
 $(BUILD_DIR_WIN)/%.win.o: %.cpp
 	@echo "Compiling (Windows): $<"
 	$(CXX_WIN) $(CXXFLAGS_WIN) -c $< -o $@
 
-# Windows compilation rules - C files
 $(BUILD_DIR_WIN)/%.win.o: %.c
 	@echo "Compiling (Windows): $<"
 	$(CC_WIN) $(CFLAGS_WIN) -c $< -o $@
@@ -204,12 +210,10 @@ $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG): $(addprefix $(BUILD_DIR_WIN_DEBU
 	$(CXX_WIN) $(CXXFLAGS_WIN_DEBUG) $(addprefix $(BUILD_DIR_WIN_DEBUG)/,$(OBJECTS_WIN_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_WIN)
 	@echo "✓ Windows debug build complete: $@"
 
-# Windows debug compilation rules - C++ files
 $(BUILD_DIR_WIN_DEBUG)/%.win.debug.o: %.cpp
 	@echo "Compiling (Windows Debug): $<"
 	$(CXX_WIN) $(CXXFLAGS_WIN_DEBUG) -c $< -o $@
 
-# Windows debug compilation rules - C files
 $(BUILD_DIR_WIN_DEBUG)/%.win.debug.o: %.c
 	@echo "Compiling (Windows Debug): $<"
 	$(CC_WIN) $(CFLAGS_WIN_DEBUG) -c $< -o $@
@@ -223,8 +227,8 @@ cometbuster-collect-dlls: $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)
 	@if [ -f $(BUILD_DIR_WIN)/collect_dlls.sh ]; then \
 		$(BUILD_DIR_WIN)/collect_dlls.sh $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN) $(DLL_SOURCE_DIR) $(BUILD_DIR_WIN); \
 	else \
-		echo "Warning: collect_dlls.sh not found. You may need to manually copy required DLLs."; \
-		echo "Required DLLs typically include: SDL2.dll, libgtk-3-0.dll, libglib-2.0-0.dll, etc."; \
+		echo "Warning: collect_dlls.sh not found"; \
+		echo "Required DLLs: SDL2.dll, SDL2_mixer.dll, libgtk-3-0.dll, cairo.dll, etc."; \
 	fi
 
 .PHONY: cometbuster-create-wad
@@ -238,11 +242,8 @@ cometbuster-collect-debug-dlls: $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)
 	@echo "Collecting Debug DLLs for cometbuster..."
 	@if [ -f $(BUILD_DIR_WIN)/collect_dlls.sh ]; then \
 		$(BUILD_DIR_WIN)/collect_dlls.sh $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG) $(DLL_SOURCE_DIR) $(BUILD_DIR_WIN_DEBUG); \
-	else \
-		echo "Warning: collect_dlls.sh not found. You may need to manually copy required DLLs."; \
 	fi
 
-# Install target (Linux only)
 .PHONY: install
 install: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 	@echo "Installing $(EXECUTABLE_LINUX)..."
@@ -256,7 +257,6 @@ install: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 	fi
 	@echo "✓ Installation complete"
 
-# Uninstall target
 .PHONY: uninstall
 uninstall:
 	@echo "Uninstalling $(EXECUTABLE_LINUX)..."
@@ -265,7 +265,6 @@ uninstall:
 	rm -f $(DESTDIR)$(DATADIR)/$(PACKAGE_NAME)/cometbuster.wad
 	@echo "✓ Uninstall complete"
 
-# Clean target
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
@@ -277,14 +276,12 @@ clean:
 	rm -f $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)
 	@echo "✓ Clean complete"
 
-# Clean all build directories
 .PHONY: clean-all
 clean-all: clean
 	@echo "Removing build directories..."
 	rm -rf $(BUILD_DIR)
 	@echo "✓ Clean all complete"
 
-# WAD file creation
 .PHONY: wad
 wad:
 	@if [ -d cometbuster_sounds/sounds ]; then \
@@ -293,11 +290,9 @@ wad:
 		echo "✓ WAD file created: cometbuster.wad"; \
 	else \
 		echo "Error: cometbuster_sounds/sounds directory not found!"; \
-		echo "Create the directory and add MP3 files, then run: make wad"; \
 		exit 1; \
 	fi
 
-# Help target
 .PHONY: help
 help:
 	@echo "CometBuster Makefile - Available targets:"
@@ -305,42 +300,16 @@ help:
 	@echo "Build targets:"
 	@echo "  make               - Build for Linux (default)"
 	@echo "  make linux         - Build for Linux"
-	@echo "  make windows       - Build for Windows"
+	@echo "  make windows       - Build for Windows (OPTIMIZED -O3)"
 	@echo "  make debug         - Build debug versions for both platforms"
-	@echo "  make cometbuster-linux-debug   - Build debug for Linux"
-	@echo "  make cometbuster-windows-debug - Build debug for Windows"
-	@echo ""
-	@echo "WAD audio targets:"
-	@echo "  make wad           - Create cometbuster.wad from sound files"
-	@echo ""
-	@echo "Installation (Linux only):"
-	@echo "  make install       - Install to $(PREFIX)"
-	@echo "  make uninstall     - Remove installed files"
 	@echo ""
 	@echo "Cleanup targets:"
 	@echo "  make clean         - Remove all object files and executables"
 	@echo "  make clean-all     - Remove all build directories"
 	@echo ""
-	@echo "Help:"
-	@echo "  make help          - Show this help message"
-	@echo ""
 	@echo "Build outputs:"
-	@echo "  Linux:       $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)"
-	@echo "  Windows:     $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)"
-	@echo "  Debug Linux: $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)"
-	@echo "  Debug Win:   $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)"
-	@echo ""
-	@echo "Audio System:"
-	@echo "  - Uses Miniz library for ZIP reading"
-	@echo "  - SDL2_mixer for audio playback"
-	@echo "  - Create sounds/ directory with MP3 files"
-	@echo "  - Run: python3 create_wad.py"
-	@echo "  - Distributes: binary + cometbuster.wad"
-	@echo ""
-	@echo "Example workflow:"
-	@echo "  1. make linux                 # Build for Linux"
-	@echo "  2. make wad                   # Create WAD from sounds"
-	@echo "  3. ./build/linux/cometbuster  # Run the game"
+	@echo "  Linux:   $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)"
+	@echo "  Windows: $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)"
 	@echo ""
 
 .PHONY: all clean install uninstall help linux windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad

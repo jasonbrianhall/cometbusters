@@ -13,11 +13,17 @@
 
 void init_comet_buster_system(Visualizer *visualizer) {
     
-    comet_buster_reset_game(&visualizer->comet_buster);    
+    comet_buster_reset_game(&visualizer->comet_buster);
+    
+    // OPTIMIZATION: Initialize render cache for Cairo optimization
+    render_cache_init(&visualizer->render_cache);
 }
 
 void init_comet_buster_system_with_difficulty(Visualizer *visualizer, int difficulty) {
     comet_buster_reset_game_with_splash(&visualizer->comet_buster, true, difficulty);
+    
+    // OPTIMIZATION: Initialize render cache for Cairo optimization
+    render_cache_init(&visualizer->render_cache);
 }
 
 void comet_buster_cleanup(CometBusterGame *game) {
@@ -198,6 +204,6 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->difficulty = saved_difficulty;
     game->ship_lives = saved_lives;
     game->shield_health = saved_shield;
-    game->max_shield_health = saved_shield;
+    game->max_shield_health = saved_max_shield;
     
 }
