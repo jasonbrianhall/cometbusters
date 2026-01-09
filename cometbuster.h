@@ -545,7 +545,6 @@ EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, doub
 void comet_buster_spawn_bomb_pickup(CometBusterGame *game, double x, double y);
 void comet_buster_update_bomb_pickups(CometBusterGame *game, double dt);
 void draw_comet_buster_bomb_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
-bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p);
 void comet_buster_drop_bomb(CometBusterGame *game, int width, int height, void *vis);
 void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int height, void *vis);
 void draw_comet_buster_bombs(CometBusterGame *game, cairo_t *cr, int width, int height);

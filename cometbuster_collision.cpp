@@ -147,6 +147,9 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
     Comet *c = &game->comets[comet_index];
     if (!c->active) return;
     
+    // Mark comet as inactive IMMEDIATELY
+    c->active = false;
+    
     // Create explosion
     int particle_count = 15;
     if (c->size == COMET_MEGA) particle_count = 30;
@@ -318,11 +321,10 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
             game->comet_count++;
         }
     }
-    // Swap with last and remove
-    if (comet_index != game->comet_count - 1) {
-        game->comets[comet_index] = game->comets[game->comet_count - 1];
-    }
-    game->comet_count--;
+    
+    // That's it - don't swap, don't remove from array
+    // Just leave the destroyed comet marked as inactive
+    // Render and physics loops skip inactive comets anyway
 }
 
 void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int width, int height, void *vis) {

@@ -89,7 +89,7 @@ void comet_buster_update_bomb_pickups(CometBusterGame *game, double dt) {
     }
 }
 
-bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p) {
+bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p, Visualizer *visualizer) {
     if (!game || !p || !p->active) return false;
     
     double dist = comet_buster_distance(game->ship_x, game->ship_y, p->x, p->y);
@@ -97,9 +97,11 @@ bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p) {
         p->active = false;
         game->bomb_ammo += p->bomb_count;
         
-        // Play pickup sound
+        // Play wave complete sound on pickup
 #ifdef ExternalSound
-        // Could add a specific bomb pickup sound here
+        if (visualizer && visualizer->audio.sfx_wave_complete) {
+            audio_play_sound(&visualizer->audio, visualizer->audio.sfx_wave_complete);
+        }
 #endif
         
         // Visual feedback

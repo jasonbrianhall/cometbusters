@@ -2046,10 +2046,10 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
                                            "+SHIELD", 0.0, 1.0, 1.0);  // Cyan
             
-            // Play a positive sound effect (reuse shield sound or other happy sound)
+            // Play wave complete sound when picking up shield
 #ifdef ExternalSound
-            if (visualizer && visualizer->audio.sfx_hit) {
-                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+            if (visualizer && visualizer->audio.sfx_wave_complete) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_wave_complete);
             }
 #endif
             
@@ -2084,8 +2084,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                                            "+20 MISSILES", 1.0, 0.8, 0.0);
             
 #ifdef ExternalSound
-            if (visualizer && visualizer->audio.sfx_hit) {
-                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
+            if (visualizer && visualizer->audio.sfx_wave_complete) {
+                audio_play_sound(&visualizer->audio, visualizer->audio.sfx_wave_complete);
             }
 #endif
             
@@ -2680,8 +2680,22 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     
     // Check if ship picked up a bomb
     for (int i = 0; i < game->bomb_pickup_count; i++) {
-        comet_buster_check_ship_bomb_pickup(game, &game->bomb_pickups[i]);
+        comet_buster_check_ship_bomb_pickup(game, &game->bomb_pickups[i], visualizer);
     }
+    
+    // Cleanup pass: compact comet array by removing inactive comets
+    // This prevents array from filling with dead comets
+    int write_index = 0;
+    for (int i = 0; i < game->comet_count; i++) {
+        if (game->comets[i].active) {
+            // Move active comet to write position
+            if (i != write_index) {
+                game->comets[write_index] = game->comets[i];
+            }
+            write_index++;
+        }
+    }
+    game->comet_count = write_index;
     
     // Update timers
     game->muzzle_flash_timer -= dt;
