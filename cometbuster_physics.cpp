@@ -333,6 +333,15 @@ void comet_buster_update_bullets(CometBusterGame *game, double dt, int width, in
             
             if (comet_buster_check_bullet_comet(b, c)) {
                 b->active = false;
+                
+                // Play explosion sound when asteroid is HIT
+#ifdef ExternalSound
+                if (vis && !game->splash_screen_active) {
+                    Visualizer *visualizer = (Visualizer *)vis;
+                    audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+                }
+#endif
+                
                 comet_buster_destroy_comet(game, j, width, height, vis);
                 break;
             }
@@ -1887,6 +1896,14 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             if (comet_buster_check_missile_comet(missile, comet)) {
                 comet_buster_destroy_comet(game, j, width, height, visualizer);
                 comet_buster_spawn_explosion(game, missile->x, missile->y, 1, 6);
+                
+                // Play explosion sound when asteroid is HIT by missile
+#ifdef ExternalSound
+                if (visualizer && !game->splash_screen_active) {
+                    audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+                }
+#endif
+                
                 missile->active = false;
                 break;
             }

@@ -294,6 +294,14 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
                 if (comet->health <= 0) {
                     comet_buster_destroy_comet(game, j, width, height, NULL);
                     j--;
+                    
+                    // Play explosion sound when bomb destroys asteroid
+#ifdef ExternalSound
+                    if (vis && !game->splash_screen_active) {
+                        Visualizer *visualizer = (Visualizer *)vis;
+                        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
+                    }
+#endif
                 }
                 damage_this_frame = true;
             }

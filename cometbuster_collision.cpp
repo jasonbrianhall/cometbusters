@@ -155,13 +155,7 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
     
     comet_buster_spawn_explosion(game, c->x, c->y, c->frequency_band, particle_count);
     
-    // Play explosion sound - but NOT during splash screen
-    if (vis && !game->splash_screen_active) {
-        Visualizer *visualizer = (Visualizer *)vis;
-#ifdef ExternalSound
-        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
-#endif
-    }
+    // No explosion sound - removed as requested
     
     // Award points
     int points = 0;
@@ -503,12 +497,7 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
 void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     if (game->invulnerability_time > 0) return;
     
-    // Play hit sound
-#ifdef ExternalSound
-    if (visualizer) {
-        audio_play_sound(&visualizer->audio, visualizer->audio.sfx_hit);
-    }
-#endif
+    // No sound effect for collision - removed as requested
     
     // Priority 1: Try to use 80% energy to absorb the hit
     if (game->energy_amount >= 80.0) {
@@ -578,6 +567,10 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     if (game->ship_lives <= 0) {
         game->game_over = true;
         game->game_over_timer = 3.0;
+        
+        // Create a HUGE explosion when the ship dies (5x bigger than normal)
+        // Normal explosions use 15-30 particles, ship uses 150 for 5x bigger effect
+        comet_buster_spawn_explosion(game, game->ship_x, game->ship_y, 1, 150);
         
         // Play game over sound effect
         #ifdef ExternalSound
