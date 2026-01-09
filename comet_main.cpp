@@ -436,12 +436,9 @@ void high_scores_save(CometBusterGame *game) {
         return;
     }
 
-    int saved_count = 0;
-    for (int i = 0; i < MAX_HIGH_SCORES; i++) {
+    // Save only the valid high scores (up to high_score_count)
+    for (int i = 0; i < game->high_score_count; i++) {
         HighScore *hs = &game->high_scores[i];
-        // Skip zero scores (empty slots)
-        if (hs->score == 0) continue;
-        
         fprintf(fp, "%d %d %ld %s\n",
                 hs->score,
                 hs->wave,
@@ -452,11 +449,10 @@ void high_scores_save(CometBusterGame *game) {
                 hs->score,
                 hs->wave,
                 (long)hs->timestamp);
-        saved_count++;
     }
     fflush(fp);   // force write to disk
     fclose(fp);
-    printf("[HIGH SCORES] Saved %d high scores\n", saved_count);
+    printf("[HIGH SCORES] Saved %d high scores\n", game->high_score_count);
 }
 
 /**
@@ -464,13 +460,24 @@ void high_scores_save(CometBusterGame *game) {
  */
 bool comet_buster_is_high_score(CometBusterGame *game, int score) {
     if (!game) return false;
+    
     printf("IS HIGH SCORE CALLED\n");
-    for(int i=0;i<MAX_HIGH_SCORES;i++) {
-        printf("Highscore %i %i %i %s\n", game->high_scores[i].score, game->high_scores[i].wave, game->high_scores[i].timestamp, game->high_scores[i].player_name);
-        if (score>game->high_scores[i].score) { printf("Is a High Score %i\n", score); return true; }
+    
+    // If we haven't filled the high score list yet, any score is a high score
+    if (game->high_score_count < MAX_HIGH_SCORES) {
+        printf("List not full yet (%d/%d), score %d qualifies\n", 
+               game->high_score_count, MAX_HIGH_SCORES, score);
+        return true;
     }
     
+    // List is full - check if score beats the lowest (last) score
+    if (score > game->high_scores[MAX_HIGH_SCORES - 1].score) {
+        printf("Is a High Score: %d (beats lowest of %d)\n", 
+               score, game->high_scores[MAX_HIGH_SCORES - 1].score);
+        return true;
+    }
     
+    printf("Not a high score: %d\n", score);
     return false;
 }
 
@@ -480,14 +487,25 @@ bool comet_buster_is_high_score(CometBusterGame *game, int score) {
 void high_scores_add(CometBusterGame *game, int score, int wave, const char *name) {
     if (!game || !name) return;
 
-    // Insert new score into the last slot
-    game->high_scores[MAX_HIGH_SCORES-1].score = score;
-    game->high_scores[MAX_HIGH_SCORES-1].wave = wave;
-    game->high_scores[MAX_HIGH_SCORES-1].timestamp = time(NULL); // current time
-    strcpy(game->high_scores[MAX_HIGH_SCORES-1].player_name, name);
+    printf("Adding high score: %d (wave %d, player %s)\n", score, wave, name);
+    
+    // If list is not full, append to the end
+    if (game->high_score_count < MAX_HIGH_SCORES) {
+        game->high_scores[game->high_score_count].score = score;
+        game->high_scores[game->high_score_count].wave = wave;
+        game->high_scores[game->high_score_count].timestamp = time(NULL);
+        strcpy(game->high_scores[game->high_score_count].player_name, name);
+        game->high_score_count++;
+    } else {
+        // List is full - insert at the last position
+        game->high_scores[MAX_HIGH_SCORES - 1].score = score;
+        game->high_scores[MAX_HIGH_SCORES - 1].wave = wave;
+        game->high_scores[MAX_HIGH_SCORES - 1].timestamp = time(NULL);
+        strcpy(game->high_scores[MAX_HIGH_SCORES - 1].player_name, name);
+    }
 
-    // Bubble-up sort to keep scores in descending order
-    for (int i = MAX_HIGH_SCORES - 1; i > 0; i--) {
+    // Bubble-up sort to keep scores in descending order (highest first)
+    for (int i = game->high_score_count - 1; i > 0; i--) {
         if (game->high_scores[i].score > game->high_scores[i-1].score) {
             HighScore temp = game->high_scores[i];
             game->high_scores[i] = game->high_scores[i-1];
@@ -496,8 +514,13 @@ void high_scores_add(CometBusterGame *game, int score, int wave, const char *nam
             break;
         }
     }
-    for(int i=0;i<MAX_HIGH_SCORES;i++) {
-        printf("Highscore Add %i %i %i %s\n", game->high_scores[i].score,game->high_scores[i].wave, game->high_scores[i].timestamp, game->high_scores[i].player_name);
+    
+    printf("High score count after add: %d\n", game->high_score_count);
+    for(int i = 0; i < game->high_score_count; i++) {
+        printf("  [%d] %s = %d (W%d)\n", i, 
+               game->high_scores[i].player_name,
+               game->high_scores[i].score,
+               game->high_scores[i].wave);
     }
 }
 
