@@ -21,7 +21,7 @@
 #include "cometbuster.h"
 #include "visualization.h"
 #include "audio_wad.h"
-#include "comet_help.cpp"
+#include "comet_help.h"
 
 #ifdef _WIN32
 std::string getExecutableDir() { 

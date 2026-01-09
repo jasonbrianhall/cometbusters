@@ -1,19 +1,12 @@
 #include <gtk/gtk.h>
 #include <string.h>
 #include <stdlib.h>
+#include "comet_help.h"
 
 // Define fallback version if not provided by Makefile
 #ifndef VERSION
 #define VERSION "Development"
 #endif
-
-/**
- * Data structure for passing game state to help dialog callback
- */
-typedef struct {
-    GtkWidget *window;
-    bool *game_paused;
-} CometHelpUserData;
 
 /**
  * Helper function to open URL in default browser
@@ -166,22 +159,24 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     gtk_widget_set_halign(kb_header, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(controls_box), kb_header, FALSE, FALSE, 0);
     
-    GtkWidget *kb_label = gtk_label_new(
-        "W - Forward thrust\n"
-        "A - Turn left\n"
-        "D - Turn right\n"
-        "S - Backward thrust\n"
-        "Q - Toggle Missiles on or off (auto-toggles on if you have zero and get one)\n"
-        "SPACE - Boost\n"
-        "X - Quick boost\n"
-        "CTRL - Fire forward\n"
-        "Z - Omnidirectional fire\n"
-        "ESC/P - Pause/Resume\n"
-        "F11 - Toggle fullscreen\n"
-        "V - Volume settings\n"
-        "CTRL+K - Cheat Menu");
+    GtkWidget *kb_label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(kb_label),
+        "<span font_family='monospace'>"
+        "W or up arrow       - Forward thrust\n"
+        "A or left arrow     - Turn left\n"
+        "D or right arrow    - Turn right\n"
+        "S or back arrow     - Backward thrust\n"
+        "Q                   - Toggle Weapons (Missiles are automatically selected if you have zero and get one)\n"
+        "SPACE or X          - Boost\n"
+        "CTRL                - Fire forward\n"
+        "Z                   - Omnidirectional fire\n"
+        "ESC/P               - Pause/Resume\n"
+        "F11                 - Toggle fullscreen\n"
+        "V                   - Volume settings\n"
+        "CTRL+K              - Hidden Cheat Menu (unless you are reading the help menu)"
+        "</span>");
     gtk_label_set_justify(GTK_LABEL(kb_label), GTK_JUSTIFY_LEFT);
-    gtk_label_set_line_wrap(GTK_LABEL(kb_label), TRUE);
+    gtk_label_set_line_wrap(GTK_LABEL(kb_label), FALSE);
     gtk_widget_set_margin_start(kb_label, 15);
     gtk_box_pack_start(GTK_BOX(controls_box), kb_label, FALSE, FALSE, 0);
     
@@ -194,13 +189,17 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     gtk_widget_set_halign(mouse_header, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(controls_box), mouse_header, FALSE, FALSE, 0);
     
-    GtkWidget *mouse_label = gtk_label_new(
-        "Left Click - Fire at cursor\n"
-        "Right Click - Advanced thrust\n"
-        "Middle Click - Omnidirectional fire\n"
-        "Cursor Position - Ship follows mouse");
+    GtkWidget *mouse_label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(mouse_label),
+        "<span font_family='monospace'>"
+        "Left Click          - Fire at cursor\n"
+        "Right Click         - Advanced thrust\n"
+        "Middle Click        - Omnidirectional fire\n"
+        "Scroll Button       - Change weapon\n"
+        "Cursor Position     - Ship follows mouse"
+        "</span>");
     gtk_label_set_justify(GTK_LABEL(mouse_label), GTK_JUSTIFY_LEFT);
-    gtk_label_set_line_wrap(GTK_LABEL(mouse_label), TRUE);
+    gtk_label_set_line_wrap(GTK_LABEL(mouse_label), FALSE);
     gtk_widget_set_margin_start(mouse_label, 15);
     gtk_box_pack_start(GTK_BOX(controls_box), mouse_label, FALSE, FALSE, 0);
     
@@ -213,16 +212,19 @@ void on_menu_about_comet(GtkMenuItem *menuitem, gpointer user_data) {
     gtk_widget_set_halign(gamepad_header, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(controls_box), gamepad_header, FALSE, FALSE, 0);
     
-    GtkWidget *gamepad_label = gtk_label_new(
-        "Left Stick - Forward/Backward\n"
-        "Right Stick - Turn left/right\n"
-        "A Button - Fire\n"
-        "X Button - Boost\n"
-        "B Button - Alternative action\n"
-        "RT Trigger - Special fire\n"
-        "D-Pad - Menu navigation");
+    GtkWidget *gamepad_label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(gamepad_label),
+        "<span font_family='monospace'>"
+        "Left Stick          - Forward/Backward\n"
+        "Right Stick         - Turn left/right\n"
+        "A Button            - Fire\n"
+        "X Button            - Boost\n"
+        "B Button            - Alternative action\n"
+        "RT Trigger          - Special fire\n"
+        "D-Pad               - Menu navigation"
+        "</span>");
     gtk_label_set_justify(GTK_LABEL(gamepad_label), GTK_JUSTIFY_LEFT);
-    gtk_label_set_line_wrap(GTK_LABEL(gamepad_label), TRUE);
+    gtk_label_set_line_wrap(GTK_LABEL(gamepad_label), FALSE);
     gtk_widget_set_margin_start(gamepad_label, 15);
     gtk_box_pack_start(GTK_BOX(controls_box), gamepad_label, FALSE, FALSE, 0);
     
