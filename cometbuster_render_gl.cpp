@@ -1397,10 +1397,113 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
 
 void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
-    gl_set_color(1.0f, 0.0f, 0.0f);
-    gl_draw_circle(boss->x, boss->y, 50.0f, 20);
+    (void)cr; (void)width; (void)height;
+    
+    double body_radius = 35.0;
+    
+    // Main body - large dark gray circle
+    gl_set_color(0.3f, 0.3f, 0.4f);
+    gl_draw_circle(boss->x, boss->y, (float)body_radius, 32);
+    
+    // Highlight if taking damage
+    if (boss->damage_flash_timer > 0) {
+        gl_set_color_alpha(1.0f, 0.5f, 0.5f, 0.7f);
+        gl_draw_circle(boss->x, boss->y, (float)body_radius, 32);
+    }
+    
+    // Outer ring - metallic look
+    gl_set_color_alpha(0.6f, 0.6f, 0.7f, 0.8f);
+    gl_draw_circle_outline(boss->x, boss->y, (float)body_radius, 2.5f, 32);
+    
+    // Draw rotating pattern on the boss (8 lines radiating)
+    gl_set_color(0.8f, 0.8f, 0.9f);
+    for (int i = 0; i < 8; i++) {
+        double angle = (i * 2.0 * M_PI / 8.0);
+        double x1 = cos(angle) * 20.0;
+        double y1 = sin(angle) * 20.0;
+        double x2 = cos(angle) * 30.0;
+        double y2 = sin(angle) * 30.0;
+        
+        gl_draw_line((float)(boss->x + x1), (float)(boss->y + y1),
+                     (float)(boss->x + x2), (float)(boss->y + y2), 1.5f);
+    }
+    
+    // Core/center glow - red pulsing
+    double core_radius = 8.0;
+    gl_set_color(1.0f, 0.2f, 0.2f);
+    gl_draw_circle(boss->x, boss->y, (float)core_radius, 16);
+    
+    // Inner glow around core
+    gl_set_color_alpha(1.0f, 0.3f, 0.3f, 0.6f);
+    gl_draw_circle_outline(boss->x, boss->y, (float)(core_radius + 3.0), 1.5f, 16);
+    
+    // Draw health bar above boss
+    double bar_width = 80.0;
+    double bar_height = 6.0;
+    double bar_x = boss->x - bar_width / 2.0;
+    double bar_y = boss->y - 50.0;
+    
+    // Background (gray)
+    gl_set_color(0.3f, 0.3f, 0.3f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+    
+    // Health fill (red)
+    double health_ratio = (double)boss->health / boss->max_health;
+    gl_set_color(1.0f, 0.2f, 0.2f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)(bar_width * health_ratio), (float)bar_height);
+    
+    // Border (white)
     gl_set_color(1.0f, 1.0f, 1.0f);
-    gl_draw_circle_outline(boss->x, boss->y, 50.0f, 2.0f, 20);
+    gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
+    
+    // Draw shield if active
+    if (boss->shield_active && boss->shield_health > 0) {
+        double shield_radius = 50.0;
+        double shield_ratio = (double)boss->shield_health / boss->max_shield_health;
+        
+        // Outer shield glow (pulsing)
+        float pulse_alpha = 0.3f + 0.1f * (float)sin(boss->shield_impact_timer * 10.0);
+        gl_set_color_alpha(0.0f, 0.8f, 1.0f, pulse_alpha);
+        gl_draw_circle(boss->x, boss->y, (float)shield_radius, 32);
+        
+        // Shield outline
+        gl_set_color_alpha(0.0f, 1.0f, 1.0f, 0.8f);
+        gl_draw_circle_outline(boss->x, boss->y, (float)shield_radius, 2.0f, 32);
+        
+        // Shield segments
+        gl_set_color(0.0f, 1.0f, 1.0f);
+        int num_segments = 12;
+        for (int i = 0; i < num_segments; i++) {
+            if (i < (int)(num_segments * shield_ratio)) {
+                double angle = (i * 2.0 * M_PI / num_segments);
+                double x1 = cos(angle) * (shield_radius - 3.0);
+                double y1 = sin(angle) * (shield_radius - 3.0);
+                double x2 = cos(angle) * (shield_radius + 3.0);
+                double y2 = sin(angle) * (shield_radius + 3.0);
+                
+                gl_draw_line((float)(boss->x + x1), (float)(boss->y + y1),
+                             (float)(boss->x + x2), (float)(boss->y + y2), 1.5f);
+            }
+        }
+    }
+    
+    // Draw phase indicator
+    const char *phase_text = "";
+    float phase_r = 1.0f, phase_g = 1.0f, phase_b = 0.5f;
+    
+    if (boss->phase == 0) {
+        phase_text = "NORMAL";
+        phase_r = 1.0f; phase_g = 1.0f; phase_b = 0.5f;  // Yellow
+    } else if (boss->phase == 1) {
+        phase_text = "SHIELDED";
+        phase_r = 0.0f; phase_g = 1.0f; phase_b = 1.0f;  // Cyan
+    } else {
+        phase_text = "ENRAGED!";
+        phase_r = 1.0f; phase_g = 0.2f; phase_b = 0.2f;  // Red
+    }
+    
+    gl_set_color(phase_r, phase_g, phase_b);
+    gl_draw_text_simple(phase_text, (int)(boss->x - 25), (int)(boss->y - 25), 10);
 }
 
 void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int height) {
