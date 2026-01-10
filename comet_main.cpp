@@ -35,6 +35,7 @@ std::string getExecutableDir() {
 typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
+    GtkWidget *gl_area;           // For OpenGL rendering
     GtkWidget *status_label;
     GtkWidget *menu_bar;
     
@@ -44,6 +45,8 @@ typedef struct {
     int frame_count;
     double total_time;
     guint update_timer_id;
+    
+    int rendering_engine;        // 0 = CAIRO, 1 = OPENGL
     
     bool is_fullscreen;
     bool game_paused;            // Track if game is paused
@@ -1948,7 +1951,11 @@ gboolean game_update_timer(gpointer data) {
         }
         
         // Redraw and return early (don't update normal game during splash)
-        gtk_widget_queue_draw(gui->drawing_area);
+        if (gui->rendering_engine == 1) {
+            gtk_widget_queue_draw(gui->gl_area);
+        } else {
+            gtk_widget_queue_draw(gui->drawing_area);
+        }
         return TRUE;
     }
     
@@ -1983,7 +1990,11 @@ gboolean game_update_timer(gpointer data) {
         }
         
         // Redraw and return early (don't update normal game during victory scroll)
-        gtk_widget_queue_draw(gui->drawing_area);
+        if (gui->rendering_engine == 1) {
+            gtk_widget_queue_draw(gui->gl_area);
+        } else {
+            gtk_widget_queue_draw(gui->drawing_area);
+        }
         return TRUE;
     }
     
@@ -2045,7 +2056,11 @@ gboolean game_update_timer(gpointer data) {
         }
         
         // Redraw and return early (don't update normal game during finale splash)
-        gtk_widget_queue_draw(gui->drawing_area);
+        if (gui->rendering_engine == 1) {
+            gtk_widget_queue_draw(gui->gl_area);
+        } else {
+            gtk_widget_queue_draw(gui->drawing_area);
+        }
         return TRUE;
     }
     
@@ -2088,7 +2103,11 @@ gboolean game_update_timer(gpointer data) {
         }
         
         // Redraw
-        gtk_widget_queue_draw(gui->drawing_area);
+        if (gui->rendering_engine == 1) {
+            gtk_widget_queue_draw(gui->gl_area);
+        } else {
+            gtk_widget_queue_draw(gui->drawing_area);
+        }
     }
     
     return TRUE;  // Continue timer
@@ -2464,8 +2483,40 @@ static void sigint_handler(int sig) {
 }
 #endif
 
+/**
+ * Parse command line arguments to select rendering engine
+ * Returns 0 for CAIRO, 1 for OPENGL
+ */
+static int parse_command_line_args(int argc, char *argv[]) {
+    int rendering_engine = 0;  // Default to Cairo
+    
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--gl") == 0 || strcmp(argv[i], "--opengl") == 0) {
+            rendering_engine = 1;
+            fprintf(stdout, "[MAIN] Using OpenGL rendering engine\n");
+        } else if (strcmp(argv[i], "--cairo") == 0) {
+            rendering_engine = 0;
+            fprintf(stdout, "[MAIN] Using Cairo rendering engine\n");
+        } else if (strcmp(argv[i], "--help") == 0) {
+            printf("Usage: cometbuster [OPTIONS]\n");
+            printf("Options:\n");
+            printf("  --gl, --opengl   Use OpenGL rendering engine\n");
+            printf("  --cairo          Use Cairo rendering engine (default)\n");
+            printf("  --help           Show this help message\n");
+            exit(0);
+        }
+    }
+    
+    return rendering_engine;
+}
+
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
+    
+    // Parse command line arguments to select rendering engine
+    int rendering_engine = parse_command_line_args(argc, argv);
+    fprintf(stdout, "[MAIN] Selected rendering engine: %s\n", 
+            rendering_engine ? "OpenGL" : "Cairo");
     
     // Set up signal handler for CTRL+C from terminal
 #ifndef _WIN32
@@ -2474,6 +2525,9 @@ int main(int argc, char *argv[]) {
     
     CometGUI gui;
     memset(&gui, 0, sizeof(CometGUI));
+    
+    // Set rendering engine
+    gui.rendering_engine = rendering_engine;
     
     gui.volume_dialog = NULL;
     gui.music_volume_scale = NULL;
@@ -2770,31 +2824,65 @@ int main(int argc, char *argv[]) {
     gtk_box_pack_start(GTK_BOX(vbox), gui.status_label, FALSE, FALSE, 5);
     update_status_text(&gui);
     
-    // Drawing area - scales with window
-    gui.drawing_area = gtk_drawing_area_new();
-    gtk_widget_set_size_request(gui.drawing_area, -1, -1);  // Dynamic sizing
-    gtk_widget_set_can_focus(gui.drawing_area, TRUE);  // Allow focus
-    gtk_widget_add_events(gui.drawing_area, 
-                         GDK_BUTTON_PRESS_MASK | 
-                         GDK_BUTTON_RELEASE_MASK | 
-                         GDK_POINTER_MOTION_MASK |
-                         GDK_KEY_PRESS_MASK |
-                         GDK_KEY_RELEASE_MASK |
-                         GDK_SCROLL_MASK);
-    g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
-    g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
-    g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
-    g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
-    g_signal_connect(gui.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
-    g_signal_connect(gui.drawing_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
-    g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
-    gtk_box_pack_start(GTK_BOX(vbox), gui.drawing_area, TRUE, TRUE, 0);
+    // Create rendering surface based on selected engine
+    if (gui.rendering_engine == 1) {
+        // OpenGL rendering
+        fprintf(stdout, "[MAIN] Creating OpenGL rendering surface\n");
+        
+        gui.gl_area = gtk_gl_area_new();
+        gtk_widget_set_size_request(gui.gl_area, -1, -1);
+        gtk_widget_set_can_focus(gui.gl_area, TRUE);
+        gtk_widget_add_events(gui.gl_area, 
+                             GDK_BUTTON_PRESS_MASK | 
+                             GDK_BUTTON_RELEASE_MASK | 
+                             GDK_POINTER_MOTION_MASK |
+                             GDK_KEY_PRESS_MASK |
+                             GDK_KEY_RELEASE_MASK |
+                             GDK_SCROLL_MASK);
+        
+        // Connect OpenGL callbacks
+        g_signal_connect(gui.gl_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
+        g_signal_connect(gui.gl_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
+        g_signal_connect(gui.gl_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
+        g_signal_connect(gui.gl_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
+        g_signal_connect(gui.gl_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
+        g_signal_connect(gui.gl_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
+        
+        gtk_box_pack_start(GTK_BOX(vbox), gui.gl_area, TRUE, TRUE, 0);
+        
+    } else {
+        // Cairo rendering (original code)
+        fprintf(stdout, "[MAIN] Creating Cairo rendering surface\n");
+        
+        gui.drawing_area = gtk_drawing_area_new();
+        gtk_widget_set_size_request(gui.drawing_area, -1, -1);  // Dynamic sizing
+        gtk_widget_set_can_focus(gui.drawing_area, TRUE);  // Allow focus
+        gtk_widget_add_events(gui.drawing_area, 
+                             GDK_BUTTON_PRESS_MASK | 
+                             GDK_BUTTON_RELEASE_MASK | 
+                             GDK_POINTER_MOTION_MASK |
+                             GDK_KEY_PRESS_MASK |
+                             GDK_KEY_RELEASE_MASK |
+                             GDK_SCROLL_MASK);
+        g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
+        g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
+        g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
+        g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
+        g_signal_connect(gui.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
+        g_signal_connect(gui.drawing_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
+        g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
+        gtk_box_pack_start(GTK_BOX(vbox), gui.drawing_area, TRUE, TRUE, 0);
+    }
     
     gtk_widget_show_all(gui.window);
     gtk_widget_hide(gui.cheat_menu_item);  // Hide the cheat menu by default (after show_all)
     
-    // Grab keyboard focus on drawing area so key events go there
-    gtk_widget_grab_focus(gui.drawing_area);
+    // Grab keyboard focus on rendering area
+    if (gui.rendering_engine == 1) {
+        gtk_widget_grab_focus(gui.gl_area);
+    } else {
+        gtk_widget_grab_focus(gui.drawing_area);
+    }
     // Start game update timer (approximately 60 FPS)
     gui.update_timer_id = g_timeout_add(17, game_update_timer, &gui);  // ~60 FPS
     
