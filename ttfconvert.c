@@ -1,16 +1,15 @@
 /*
- * ttf_to_header_freetype.c - Convert TTF to C header using FreeType
- * 
- * This version properly renders all characters using FreeType.
+ * ttf_to_header_freetype_FIXED.c - Convert TTF to C header using FreeType
+ * FIXED VERSION: Handles space characters properly
  * 
  * Compile:
- *   gcc -o ttf_to_header ttf_to_header_freetype.c `freetype-config --cflags --libs` -lm
+ *   gcc -o ttf_to_header ttf_to_header_freetype_FIXED.c `freetype-config --cflags --libs` -lm
  * 
  * Usage:
  *   ./ttf_to_header <font.ttf> <font_size> <output.h>
  * 
  * Example:
- *   ./ttf_to_header Monospace.ttf 16 font.h
+ *   ./ttf_to_header Monospace.ttf 18 font.h
  */
 
 #include <stdio.h>
@@ -18,10 +17,6 @@
 #include <string.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
-
-#define NUM_CHARS (127 - 32)  // Printable ASCII
-#define START_CHAR 32         // Space
-#define END_CHAR 127          // ~
 
 typedef struct {
     unsigned char *bitmap;
@@ -33,7 +28,6 @@ typedef struct {
 int main(int argc, char *argv[]) {
     if (argc < 4) {
         fprintf(stderr, "Usage: %s <font.ttf> <font_size> <output.h>\n", argv[0]);
-        fprintf(stderr, "Example: %s Monospace.ttf 16 font.h\n", argv[0]);
         return 1;
     }
     
@@ -41,16 +35,10 @@ int main(int argc, char *argv[]) {
     int font_size = atoi(argv[2]);
     const char *output_file = argv[3];
     
-    printf("Font converter using FreeType\n");
-    printf("==============================\n");
-    printf("Font file: %s\n", font_file);
-    printf("Font size: %d\n", font_size);
-    printf("Output: %s\n\n", output_file);
-    
-    // Initialize FreeType
     FT_Library library;
     FT_Face face;
     
+    // Initialize FreeType
     if (FT_Init_FreeType(&library)) {
         fprintf(stderr, "Error: Could not initialize FreeType\n");
         return 1;
@@ -58,21 +46,22 @@ int main(int argc, char *argv[]) {
     
     // Load font
     if (FT_New_Face(library, font_file, 0, &face)) {
-        fprintf(stderr, "Error: Could not load font file: %s\n", font_file);
+        fprintf(stderr, "Error: Could not load font %s\n", font_file);
         FT_Done_FreeType(library);
         return 1;
     }
     
     // Set font size
-    if (FT_Set_Pixel_Sizes(face, 0, font_size)) {
-        fprintf(stderr, "Error: Could not set font size\n");
-        FT_Done_Face(face);
-        FT_Done_FreeType(library);
-        return 1;
-    }
+    FT_Set_Pixel_Sizes(face, 0, font_size);
+    
+    printf("Font converter using FreeType\n");
+    printf("==============================\n");
+    printf("Font file: %s\n", font_file);
+    printf("Font size: %d\n", font_size);
+    printf("Output: %s\n\n", output_file);
     
     printf("Face: %s\n", face->family_name);
-    printf("Rendering %d characters...\n\n", NUM_CHARS);
+    printf("Rendering glyphs...\n\n");
     
     // Render all glyphs
     Glyph glyphs[256];
@@ -80,6 +69,9 @@ int main(int argc, char *argv[]) {
     
     int max_width = 0;
     int max_height = 0;
+    
+    #define START_CHAR 32
+    #define END_CHAR 127
     
     for (int ch = START_CHAR; ch < END_CHAR; ch++) {
         FT_UInt glyph_index = FT_Get_Char_Index(face, ch);
@@ -89,6 +81,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
         
+        // Always render, even for spaces (they'll have empty bitmap)
         if (FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL)) {
             fprintf(stderr, "Warning: Could not render glyph for character %d\n", ch);
             continue;
@@ -98,22 +91,44 @@ int main(int argc, char *argv[]) {
         int width = bitmap->width;
         int height = bitmap->rows;
         
+        // For spaces and other zero-width chars, use advance width
+        if (width == 0) {
+            width = (face->glyph->advance.x >> 6);
+            if (width < 1) width = font_size / 2;  // Fallback width
+        }
+        
+        if (height == 0) {
+            height = font_size;
+        }
+        
         if (width > max_width) max_width = width;
         if (height > max_height) max_height = height;
-        
-        // Allocate and copy bitmap data
-        if (width > 0 && height > 0) {
-            int size = width * height;
-            glyphs[ch].bitmap = malloc(size);
-            memcpy(glyphs[ch].bitmap, bitmap->buffer, size);
-        }
         
         glyphs[ch].width = width;
         glyphs[ch].height = height;
         glyphs[ch].advance = face->glyph->advance.x >> 6;
         
+        // Allocate and copy bitmap data (even if all zeros for spaces)
+        if (width > 0 && height > 0) {
+            int size = width * height;
+            glyphs[ch].bitmap = malloc(size);
+            
+            // If bitmap has data, copy it
+            if (bitmap->buffer && bitmap->rows > 0) {
+                // Copy existing bitmap data
+                for (int row = 0; row < bitmap->rows; row++) {
+                    for (int col = 0; col < bitmap->width; col++) {
+                        glyphs[ch].bitmap[row * width + col] = bitmap->buffer[row * bitmap->width + col];
+                    }
+                }
+            } else {
+                // Space or empty char - fill with zeros (transparent)
+                memset(glyphs[ch].bitmap, 0, size);
+            }
+        }
+        
         if ((ch - START_CHAR) % 10 == 0) {
-            printf("  %d/%d ('%c')\n", ch - START_CHAR + 1, NUM_CHARS, ch);
+            printf("  %d/%d ('%c')\n", ch - START_CHAR + 1, END_CHAR - START_CHAR, ch);
         }
     }
     
@@ -133,7 +148,8 @@ int main(int argc, char *argv[]) {
     fprintf(out, "#define FONT_TTF_H\n\n");
     fprintf(out, "// Generated from: %s\n", font_file);
     fprintf(out, "// Font size: %dpx\n", font_size);
-    fprintf(out, "// Characters: %d (ASCII %d-%d)\n\n", NUM_CHARS, START_CHAR, END_CHAR - 1);
+    fprintf(out, "// Characters: %d (ASCII %d-%d)\n", END_CHAR - START_CHAR, START_CHAR, END_CHAR - 1);
+    fprintf(out, "// NOTE: Includes space character for proper text spacing\n\n");
     
     // Glyph structure
     fprintf(out, "typedef struct {\n");
@@ -150,8 +166,10 @@ int main(int argc, char *argv[]) {
         if (!glyphs[ch].bitmap) continue;
         
         char ch_display = (ch >= 32 && ch < 127) ? ch : '?';
+        const char *ch_name = "";
+        if (ch == ' ') ch_name = " (space)";
         
-        fprintf(out, "// Character '%c' (0x%02X)\n", ch_display, ch);
+        fprintf(out, "// Character '%c'%s (0x%02X)\n", ch_display, ch_name, ch);
         fprintf(out, "static const unsigned char glyph_%d_bitmap[] = {\n", ch);
         
         int size = glyphs[ch].width * glyphs[ch].height;
@@ -213,6 +231,7 @@ int main(int argc, char *argv[]) {
     
     printf("\n✓ Success! Created %s\n", output_file);
     printf("  Max size: %dx%d\n", max_width, max_height);
+    printf("  Includes space character (0x20) for proper text spacing\n");
     
     return 0;
 }
