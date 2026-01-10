@@ -710,5 +710,4 @@ void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int wid
 void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt);
 void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt);
 
-
 #endif // COMETBUSTER_H

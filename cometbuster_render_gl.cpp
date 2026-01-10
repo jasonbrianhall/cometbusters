@@ -1106,7 +1106,7 @@ void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {
 }
 
 // OpenGL initialization - called when GL context is created
-static gboolean on_realize(GtkGLArea *area, gpointer data) {
+gboolean on_realize(GtkGLArea *area, gpointer data) {
     gtk_gl_area_make_current(area);
     
     // Initialize GLEW (only once)
@@ -1133,7 +1133,7 @@ static gboolean on_realize(GtkGLArea *area, gpointer data) {
 }
 
 // OpenGL render callback - called every frame
-static gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
+gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
     Visualizer *vis = (Visualizer *)data;
     if (!vis) return FALSE;
     

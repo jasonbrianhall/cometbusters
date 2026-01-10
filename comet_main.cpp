@@ -23,6 +23,11 @@
 #include "audio_wad.h"
 #include "comet_help.h"
 
+// OpenGL GTK callbacks (needed by comet_main.cpp)
+gboolean on_realize(GtkGLArea *area, gpointer data);
+gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data);
+
+
 #ifdef _WIN32
 std::string getExecutableDir() { 
     char buffer[MAX_PATH]; 
@@ -2840,7 +2845,9 @@ int main(int argc, char *argv[]) {
                              GDK_KEY_RELEASE_MASK |
                              GDK_SCROLL_MASK);
         
-        // Connect OpenGL callbacks
+        // Connect OpenGL callbacks (IMPORTANT: render callback must be connected!)
+        g_signal_connect(gui.gl_area, "realize", G_CALLBACK(on_realize), NULL);
+        g_signal_connect(gui.gl_area, "render", G_CALLBACK(on_render), &gui.visualizer);
         g_signal_connect(gui.gl_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
         g_signal_connect(gui.gl_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
         g_signal_connect(gui.gl_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
