@@ -230,16 +230,16 @@ void gl_draw_circle(float cx, float cy, float radius, int segments) {
 
 void gl_draw_circle_outline(float cx, float cy, float radius, float line_width, int segments) {
     glLineWidth(line_width);
-    Vertex *verts = malloc(segments * sizeof(Vertex));
+    Vertex *verts = malloc((segments + 1) * sizeof(Vertex));
     
-    for (int i = 0; i < segments; i++) {
+    for (int i = 0; i <= segments; i++) {
         float angle = 2.0f * M_PI * i / segments;
         float x = cx + radius * cosf(angle);
         float y = cy + radius * sinf(angle);
         verts[i] = (Vertex){x, y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
     
-    draw_vertices(verts, segments, GL_LINE_LOOP);
+    draw_vertices(verts, segments + 1, GL_LINE_STRIP);
     free(verts);
 }
 
@@ -248,44 +248,255 @@ void gl_draw_polygon(float *points, int num_points, int filled) {
     for (int i = 0; i < num_points; i++) {
         verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
-    draw_vertices(verts, num_points, filled ? GL_TRIANGLE_FAN : GL_LINE_LOOP);
+    draw_vertices(verts, num_points, filled ? GL_TRIANGLES : GL_LINE_STRIP);
     free(verts);
 }
 
-void gl_push_transform(void) {}
-void gl_pop_transform(void) {}
-void gl_translate(float x, float y) {(void)x;(void)y;}
-void gl_rotate(float angle_rad) {(void)angle_rad;}
+void gl_draw_polyline(float *points, int num_points, float line_width) {
+    glLineWidth(line_width);
+    Vertex *verts = malloc(num_points * sizeof(Vertex));
+    for (int i = 0; i < num_points; i++) {
+        verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+    }
+    draw_vertices(verts, num_points, GL_LINE_STRIP);
+    free(verts);
+}
 
-// ============================================================================
-// GAME DRAWING FUNCTIONS
-// ============================================================================
+// Helper to draw transformed polygon outline for comets
+static void draw_comet_polygon(Comet *c, double points[][2], int num_points, float line_width) {
+    if (!c) return;
+    
+    // Allocate for points + closing point
+    Vertex *verts = malloc((num_points + 1) * sizeof(Vertex));
+    
+    float angle = c->base_angle + c->rotation * M_PI / 180.0f;
+    float cos_a = cosf(angle);
+    float sin_a = sinf(angle);
+    
+    // Transform and add all points
+    for (int j = 0; j < num_points; j++) {
+        // Rotate point around origin
+        float x = (float)(points[j][0] * cos_a - points[j][1] * sin_a);
+        float y = (float)(points[j][0] * sin_a + points[j][1] * cos_a);
+        
+        // Translate to comet position
+        x += (float)c->x;
+        y += (float)c->y;
+        
+        verts[j] = (Vertex){x, y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+    }
+    
+    // Close the polygon by repeating first vertex
+    verts[num_points] = verts[0];
+    
+    glLineWidth(line_width);
+    // Use GL_LINE_STRIP with num_points+1 to close the polygon
+    draw_vertices(verts, num_points + 1, GL_LINE_STRIP);
+    free(verts);
+}
 
-void draw_comet_buster_gl(Visualizer *visualizer, void *gl_context) {
+// ✓ VECTOR-BASED ASTEROIDS (like original Asteroids arcade game)
+// Matches the cairo version exactly
+void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int height) {
+    if (!game) return;
+    (void)width;
+    (void)height;
+    (void)cr;
+    
+    for (int i = 0; i < game->comet_count; i++) {
+        Comet *c = &game->comets[i];
+        
+        // Skip inactive (destroyed) comets - DO NOT RENDER THEM
+        if (!c->active) continue;
+        
+        // Set color and line width
+        gl_set_color(c->color[0], c->color[1], c->color[2]);
+        
+        double radius = c->radius;
+        
+        // Use rotation_speed as a shape variant seed (deterministic but varied)
+        int shape_variant = (int)c->rotation_speed % 3;
+        
+        if (c->size == COMET_MEGA) {
+            // Mega asteroid: giant 12+ pointed shape that appears on boss waves (wave % 5 == 0)
+            // Thicker lines for emphasis
+            
+            if (shape_variant == 0) {
+                // Complex mega variant 1
+                double points[][2] = {
+                    {radius, 0},
+                    {radius * 0.8, radius * 0.55},
+                    {radius * 0.6, radius * 0.9},
+                    {radius * 0.2, radius * 0.95},
+                    {-radius * 0.4, radius * 0.85},
+                    {-radius * 0.75, radius * 0.65},
+                    {-radius * 0.95, radius * 0.2},
+                    {-radius * 0.9, -radius * 0.35},
+                    {-radius * 0.6, -radius * 0.8},
+                    {-radius * 0.1, -radius * 0.95},
+                    {radius * 0.5, -radius * 0.85},
+                    {radius * 0.85, -radius * 0.5}
+                };
+                draw_comet_polygon(c, points, 12, 3.5f);
+            } else if (shape_variant == 1) {
+                // Complex mega variant 2
+                double points[][2] = {
+                    {radius * 0.95, radius * 0.15},
+                    {radius * 0.7, radius * 0.75},
+                    {radius * 0.3, radius * 0.95},
+                    {-radius * 0.2, radius * 0.9},
+                    {-radius * 0.65, radius * 0.75},
+                    {-radius * 0.9, radius * 0.3},
+                    {-radius * 0.95, -radius * 0.2},
+                    {-radius * 0.75, -radius * 0.7},
+                    {-radius * 0.35, -radius * 0.92},
+                    {radius * 0.15, -radius * 0.95},
+                    {radius * 0.65, -radius * 0.75},
+                    {radius * 0.9, -radius * 0.35}
+                };
+                draw_comet_polygon(c, points, 12, 3.5f);
+            } else {
+                // Complex mega variant 3
+                double points[][2] = {
+                    {radius, -radius * 0.1},
+                    {radius * 0.8, radius * 0.6},
+                    {radius * 0.5, radius * 0.88},
+                    {radius * 0.1, radius * 0.96},
+                    {-radius * 0.35, radius * 0.88},
+                    {-radius * 0.7, radius * 0.7},
+                    {-radius * 0.95, radius * 0.15},
+                    {-radius * 0.88, -radius * 0.4},
+                    {-radius * 0.55, -radius * 0.85},
+                    {-radius * 0.05, -radius * 0.96},
+                    {radius * 0.6, -radius * 0.8},
+                    {radius * 0.9, -radius * 0.4}
+                };
+                draw_comet_polygon(c, points, 12, 3.5f);
+            }
+        } else if (c->size == COMET_LARGE) {
+            // Large asteroid: 10-pointed jagged circle
+            if (shape_variant == 0) {
+                double points[][2] = {
+                    {radius, 0},
+                    {radius * 0.8, radius * 0.6},
+                    {radius * 0.4, radius * 0.92},
+                    {-radius * 0.2, radius * 0.95},
+                    {-radius * 0.7, radius * 0.7},
+                    {-radius * 0.95, radius * 0.1},
+                    {-radius * 0.85, -radius * 0.5},
+                    {-radius * 0.3, -radius * 0.95},
+                    {radius * 0.3, -radius * 0.92},
+                    {radius * 0.85, -radius * 0.5}
+                };
+                draw_comet_polygon(c, points, 10, 2.5f);
+            } else if (shape_variant == 1) {
+                double points[][2] = {
+                    {radius * 0.95, radius * 0.2},
+                    {radius * 0.65, radius * 0.8},
+                    {radius * 0.1, radius * 0.98},
+                    {-radius * 0.5, radius * 0.85},
+                    {-radius * 0.9, radius * 0.35},
+                    {-radius * 0.95, -radius * 0.15},
+                    {-radius * 0.6, -radius * 0.8},
+                    {radius * 0.1, -radius * 0.98},
+                    {radius * 0.65, -radius * 0.75},
+                    {radius * 0.9, -radius * 0.3}
+                };
+                draw_comet_polygon(c, points, 10, 2.5f);
+            } else {
+                double points[][2] = {
+                    {radius * 0.9, -radius * 0.3},
+                    {radius * 0.7, radius * 0.7},
+                    {radius * 0.2, radius * 0.98},
+                    {-radius * 0.4, radius * 0.92},
+                    {-radius * 0.85, radius * 0.5},
+                    {-radius * 0.98, -radius * 0.1},
+                    {-radius * 0.55, -radius * 0.85},
+                    {radius * 0.15, -radius * 0.99},
+                    {radius * 0.75, -radius * 0.65},
+                    {radius * 0.95, radius * 0.15}
+                };
+                draw_comet_polygon(c, points, 10, 2.5f);
+            }
+        } else if (c->size == COMET_MEDIUM) {
+            // Medium asteroid: 8-pointed
+            if (shape_variant == 0) {
+                double points[][2] = {
+                    {radius, 0},
+                    {radius * 0.7, radius * 0.7},
+                    {0, radius},
+                    {-radius * 0.7, radius * 0.7},
+                    {-radius, 0},
+                    {-radius * 0.7, -radius * 0.7},
+                    {0, -radius},
+                    {radius * 0.7, -radius * 0.7}
+                };
+                draw_comet_polygon(c, points, 8, 2.0f);
+            } else if (shape_variant == 1) {
+                double points[][2] = {
+                    {radius * 0.95, radius * 0.3},
+                    {radius * 0.5, radius * 0.85},
+                    {-radius * 0.2, radius * 0.98},
+                    {-radius * 0.8, radius * 0.6},
+                    {-radius * 0.95, -radius * 0.3},
+                    {-radius * 0.5, -radius * 0.85},
+                    {radius * 0.2, -radius * 0.98},
+                    {radius * 0.8, -radius * 0.6}
+                };
+                draw_comet_polygon(c, points, 8, 2.0f);
+            } else {
+                double points[][2] = {
+                    {radius * 0.85, -radius * 0.5},
+                    {radius * 0.6, radius * 0.8},
+                    {-radius * 0.3, radius * 0.95},
+                    {-radius * 0.9, radius * 0.35},
+                    {-radius * 0.8, -radius * 0.6},
+                    {-radius * 0.2, -radius * 0.98},
+                    {radius * 0.7, -radius * 0.7},
+                    {radius * 0.95, radius * 0.3}
+                };
+                draw_comet_polygon(c, points, 8, 2.0f);
+            }
+        } else if (c->size == COMET_SMALL) {
+            // Small asteroid: 6-pointed
+            double points[][2] = {
+                {radius, 0},
+                {radius * 0.5, radius * 0.866},
+                {-radius * 0.5, radius * 0.866},
+                {-radius, 0},
+                {-radius * 0.5, -radius * 0.866},
+                {radius * 0.5, -radius * 0.866}
+            };
+            draw_comet_polygon(c, points, 6, 1.5f);
+        }
+    }
+}
+
+void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     if (!visualizer) return;
-    (void)gl_context;
     
     gl_init();
     
     CometBusterGame *game = &visualizer->comet_buster;
     int width = visualizer->width;
     int height = visualizer->height;
-
-#ifdef ExternalSound
-    if (game->splash_screen_active) {
-        comet_buster_draw_splash_screen_gl(game, NULL, width, height);
-        return;
-    }
-#endif
     
     gl_setup_2d_projection(width, height);
     
-    // Background
-    gl_set_color(0.04f, 0.06f, 0.15f);
-    gl_draw_rect_filled(0, 0, width, height);
+#ifdef ExternalSound
+    // Draw splash screen if active
+    if (game->splash_screen_active) {
+        comet_buster_draw_splash_screen_gl(game, cr, width, height);
+        return;  // Don't draw game yet
+    }
+#endif
     
-    // Grid
+    // Background is already set in on_realize, no need to draw again
+    
+    // Draw grid (extended 50 pixels to the right)
     gl_set_color(0.1f, 0.15f, 0.35f);
+    glLineWidth(0.5f);
+    
     for (int i = 0; i <= width + 50; i += 50) {
         gl_draw_line(i, 0, i, height, 0.5f);
     }
@@ -293,62 +504,51 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *gl_context) {
         gl_draw_line(0, i, width + 50, i, 0.5f);
     }
     
-    // Game elements
-    draw_comet_buster_comets_gl(game, NULL, width, height);
-    draw_comet_buster_bullets_gl(game, NULL, width, height);
-    draw_comet_buster_enemy_ships_gl(game, NULL, width, height);
-    draw_comet_buster_ufos_gl(game, NULL, width, height);
+    // Draw game elements
+    draw_comet_buster_comets_gl(game, cr, width, height);
+    draw_comet_buster_bullets_gl(game, cr, width, height);
+    draw_comet_buster_enemy_ships_gl(game, cr, width, height);
+    draw_comet_buster_ufos_gl(game, cr, width, height);
     
-    // Boss
+    // Draw boss (either Spawn Queen or regular Death Star)
     if (game->boss_active) {
         if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
-            draw_spawn_queen_boss_gl(&game->spawn_queen, NULL, width, height);
+            draw_spawn_queen_boss_gl(&game->spawn_queen, cr, width, height);
         } else if (game->boss.active) {
             if (game->current_wave % 30 == 5) {
-                draw_comet_buster_boss_gl(&game->boss, NULL, width, height);
-            } else if (game->current_wave % 30 == 10) {
-                draw_spawn_queen_boss_gl(&game->spawn_queen, NULL, width, height);
-            } else if (game->current_wave % 30 == 15) {
-                draw_void_nexus_boss_gl(&game->boss, NULL, width, height);
-            } else if (game->current_wave % 30 == 20) {
-                draw_harbinger_boss_gl(&game->boss, NULL, width, height);
-            } else if (game->current_wave % 30 == 25) {
-                draw_star_vortex_boss_gl(&game->boss, NULL, width, height);
-            } else if (game->current_wave % 30 == 0) {
-                draw_singularity_boss_gl(&game->boss, NULL, width, height);
-            }
-        }
+               draw_comet_buster_boss_gl(&game->boss, cr, width, height);
+           } else if (game->current_wave % 30 == 10) {
+               draw_spawn_queen_boss_gl(&game->spawn_queen, cr, width, height);
+           } else if (game->current_wave % 30 == 15) {
+              draw_void_nexus_boss_gl(&game->boss, cr, width, height);
+           } else if (game->current_wave % 30 == 20) {
+              draw_harbinger_boss_gl(&game->boss, cr, width, height);
+           } else if (game->current_wave % 30 == 25) {
+              draw_star_vortex_boss_gl(&game->boss, cr, width, height);
+           } else if (game->current_wave % 30 == 0) {
+              draw_singularity_boss_gl(&game->boss, cr, width, height);
+           }
+       }
     }
     
-    draw_comet_buster_enemy_bullets_gl(game, NULL, width, height);
-    draw_comet_buster_canisters_gl(game, NULL, width, height);
-    draw_comet_buster_missile_pickups_gl(game, NULL, width, height);
-    draw_comet_buster_bomb_pickups_gl(game, NULL, width, height);
-    draw_comet_buster_missiles_gl(game, NULL, width, height);
-    draw_comet_buster_bombs_gl(game, NULL, width, height);
-    draw_comet_buster_particles_gl(game, NULL, width, height);
-    draw_comet_buster_ship_gl(game, NULL, width, height);
+    draw_comet_buster_enemy_bullets_gl(game, cr, width, height);
+    draw_comet_buster_canisters_gl(game, cr, width, height);
+    draw_comet_buster_missile_pickups_gl(game, cr, width, height);
+    draw_comet_buster_bomb_pickups_gl(game, cr, width, height);
+    draw_comet_buster_missiles_gl(game, cr, width, height);
+    draw_comet_buster_bombs_gl(game, cr, width, height);
+    draw_comet_buster_particles_gl(game, cr, width, height);
+    draw_comet_buster_ship_gl(game, cr, width, height);
     
-    boss_explosion_draw_gl(&game->boss_explosion_effect, NULL);
-    draw_comet_buster_hud_gl(game, NULL, width, height);
+    // Draw boss explosion effect
+    boss_explosion_draw_gl(&game->boss_explosion_effect, cr);
     
+    // Draw HUD
+    draw_comet_buster_hud_gl(game, cr, width, height);
+    
+    // Draw game over
     if (game->game_over) {
-        draw_comet_buster_game_over_gl(game, NULL, width, height);
-    }
-    
-    gl_restore_projection();
-    glFlush();
-}
-
-void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int height) {
-    if (!game) return;
-    for (int i = 0; i < game->comet_count; i++) {
-        Comet *c = &game->comets[i];
-        if (!c->active) continue;
-        gl_set_color(c->color[0], c->color[1], c->color[2]);
-        gl_draw_circle(c->x, c->y, c->radius, 16);
-        gl_set_color(c->color[0] * 1.2f, c->color[1] * 1.2f, c->color[2] * 1.2f);
-        gl_draw_circle_outline(c->x, c->y, c->radius, 1.5f, 16);
+        draw_comet_buster_game_over_gl(game, cr, width, height);
     }
 }
 
@@ -357,7 +557,7 @@ void draw_comet_buster_bullets_gl(CometBusterGame *game, void *cr, int width, in
     for (int i = 0; i < game->bullet_count; i++) {
         Bullet *b = &game->bullets[i];
         if (!b->active) continue;
-        gl_set_color(0.5f, 1.0f, 0.5f);
+        gl_set_color(1.0f, 1.0f, 1.0f);
         gl_draw_circle(b->x, b->y, 2.0f, 8);
     }
 }
@@ -367,9 +567,10 @@ void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width
     for (int i = 0; i < game->enemy_ship_count; i++) {
         EnemyShip *ship = &game->enemy_ships[i];
         if (!ship->active) continue;
-        gl_set_color(1.0f, 0.0f, 0.0f);
-        float points[] = {0.0f, -15.0f, -12.0f, 12.0f, 12.0f, 12.0f};
-        gl_draw_polygon(points, 3, 1);
+        gl_set_color(1.0f, 0.5f, 0.0f);
+        gl_draw_circle(ship->x, ship->y, 10.0f, 12);
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_circle_outline(ship->x, ship->y, 10.0f, 1.0f, 12);
     }
 }
 
@@ -378,31 +579,23 @@ void draw_comet_buster_ufos_gl(CometBusterGame *game, void *cr, int width, int h
     for (int i = 0; i < game->ufo_count; i++) {
         UFO *ufo = &game->ufos[i];
         if (!ufo->active) continue;
-        gl_set_color(1.0f, 1.0f, 0.0f);
-        gl_draw_circle(ufo->x, ufo->y, 20.0f, 16);
+        gl_set_color(0.8f, 0.2f, 0.8f);
+        gl_draw_circle(ufo->x, ufo->y, 15.0f, 12);
         gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_circle_outline(ufo->x, ufo->y, 20.0f, 1.5f, 16);
+        gl_draw_circle_outline(ufo->x, ufo->y, 15.0f, 1.5f, 12);
     }
 }
 
 void draw_comet_buster_enemy_bullets_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr;
+    (void)width;
+    (void)height;
     for (int i = 0; i < game->enemy_bullet_count; i++) {
         Bullet *b = &game->enemy_bullets[i];
         if (!b->active) continue;
-        gl_set_color(1.0f, 0.5f, 0.5f);
-        gl_draw_circle(b->x, b->y, 2.0f, 8);
-    }
-}
-
-void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, int height) {
-    if (!game) return;
-    for (int i = 0; i < game->missile_count; i++) {
-        Missile *m = &game->missiles[i];
-        if (!m->active) continue;
-        gl_set_color(0.0f, 1.0f, 1.0f);
-        float points[] = {0.0f, -5.0f, -3.0f, 5.0f, 3.0f, 5.0f};
-        gl_draw_polygon(points, 3, 1);
+        gl_set_color(1.0f, 0.2f, 0.2f);
+        gl_draw_circle(b->x, b->y, 3.0f, 8);
     }
 }
 
@@ -437,6 +630,18 @@ void draw_comet_buster_bomb_pickups_gl(CometBusterGame *game, void *cr, int widt
         gl_draw_rect_filled(pickup->x - 8, pickup->y - 8, 16.0f, 16.0f);
         gl_set_color(1.0f, 1.0f, 1.0f);
         gl_draw_rect_outline(pickup->x - 8, pickup->y - 8, 16.0f, 16.0f, 1.0f);
+    }
+}
+
+void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, int height) {
+    if (!game) return;
+    for (int i = 0; i < game->missile_count; i++) {
+        Missile *missile = &game->missiles[i];
+        if (!missile->active) continue;
+        gl_set_color(0.0f, 1.0f, 1.0f);
+        gl_draw_circle(missile->x, missile->y, 5.0f, 12);
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_circle_outline(missile->x, missile->y, 5.0f, 1.0f, 12);
     }
 }
 
