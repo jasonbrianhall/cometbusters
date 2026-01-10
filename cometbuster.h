@@ -632,7 +632,12 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
 // Splash
 void comet_buster_init_splash_screen(CometBusterGame *game, int width, int height);
 void comet_buster_exit_splash_screen(CometBusterGame *game);
+#ifdef USEGL
 void comet_buster_draw_splash_screen(CometBusterGame *game, void *cr, int width, int height);
+#else
+void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int width, int height);
+#endif
+
 void comet_buster_update_finale_splash(CometBusterGame *game, double dt);
 void comet_buster_draw_finale_splash(CometBusterGame *game, void *cr, int width, int height);                                 
 
