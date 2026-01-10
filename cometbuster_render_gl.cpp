@@ -164,7 +164,11 @@ static void draw_vertices(Vertex *verts, int count, GLenum mode) {
 // ============================================================================
 
 void gl_setup_2d_projection(int width, int height) {
-    gl_state.projection = mat4_ortho(0, width, height, 0, -1, 1);
+    // Always use 1920x1080 logical game coordinates (matches Cairo normalization)
+    // This ensures mouse tracking and rendering match Cairo exactly
+    (void)width;   // Unused - we always use 1920x1080
+    (void)height;  // Unused - we always use 1920x1080
+    gl_state.projection = mat4_ortho(0, 1920, 1080, 0, -1, 1);
 }
 
 void gl_restore_projection(void) {
@@ -1797,7 +1801,18 @@ gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
     vis->height = 1080;
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, window_width, window_height);
+    
+    // Calculate viewport with letterboxing to maintain 1920x1080 aspect ratio (matches Cairo)
+    double scale_x = (double)window_width / 1920.0;
+    double scale_y = (double)window_height / 1080.0;
+    double scale = (scale_x < scale_y) ? scale_x : scale_y;  // Maintain aspect ratio
+    
+    int viewport_width = (int)(1920.0 * scale);
+    int viewport_height = (int)(1080.0 * scale);
+    int viewport_x = 0;  // Align to left edge (no centering, like Cairo)
+    int viewport_y = (window_height - viewport_height) / 2;  // Center vertically
+    
+    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
     
     // RENDER ONLY - game updates happen in game_update_timer callback
     draw_comet_buster_gl(vis, NULL);
