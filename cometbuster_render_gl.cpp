@@ -722,18 +722,152 @@ void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width
             double fill_width = (bar_width - 2.0) * health_ratio;
             gl_draw_rect_filled((float)(bar_x + 1.0), (float)(bar_y + 1.0), (float)fill_width, (float)(bar_height - 2.0));
         }
+        
+        // ========== SHIELD CIRCLE ==========
+        if (ship->shield_health > 0) {
+            // Determine shield color based on ship type
+            float shield_r = 0.2f, shield_g = 0.6f, shield_b = 1.0f;
+            float shield_alpha = 0.5f;
+            
+            switch (ship->ship_type) {
+                case 1:  // Red ship shield: orange/red
+                    shield_r = 1.0f; shield_g = 0.5f; shield_b = 0.0f;
+                    break;
+                case 2:  // Green ship shield: bright green
+                    shield_r = 0.5f; shield_g = 1.0f; shield_b = 0.5f;
+                    break;
+                case 3:  // Sentinel purple shield: bright purple
+                    shield_r = 0.8f; shield_g = 0.4f; shield_b = 1.0f;
+                    break;
+                case 4:  // Brown coat cyan shield - bright cyan
+                    shield_r = 0.2f; shield_g = 0.9f; shield_b = 1.0f;
+                    shield_alpha = 0.6f;  // Brighter for brown coat
+                    break;
+                case 5:  // Juggernaut gold shield - golden glow
+                    shield_r = 1.0f; shield_g = 0.9f; shield_b = 0.2f;
+                    break;
+            }
+            
+            // Determine shield radius based on ship type
+            double shield_radius;
+            if (ship->ship_type == 5) {
+                shield_radius = 50.0;  // Larger shield for juggernaut
+            } else if (ship->ship_type == 4) {
+                shield_radius = 24.0;  // Slightly larger for brown coat
+            } else {
+                shield_radius = 22.0;  // Standard shield radius
+            }
+            
+            // Draw shield circle
+            gl_set_color_alpha(shield_r, shield_g, shield_b, shield_alpha);
+            gl_draw_circle_outline((float)ship->x, (float)ship->y, (float)shield_radius, 2.0f, 24);
+            
+            // Draw shield impact flash
+            if (ship->shield_impact_timer > 0) {
+                float flash_alpha = (float)(ship->shield_impact_timer / 0.2);
+                if (flash_alpha > 1.0f) flash_alpha = 1.0f;
+                
+                double impact_x = 22.0 * cos(ship->shield_impact_angle);
+                double impact_y = 22.0 * sin(ship->shield_impact_angle);
+                
+                // Bright white flash circle
+                gl_set_color_alpha(1.0f, 1.0f, 1.0f, flash_alpha * 0.8f);
+                gl_draw_circle((float)(ship->x + impact_x), (float)(ship->y + impact_y), 4.0f, 12);
+                
+                // Expanding rings
+                double ring_radius = 6.0 + (1.0 - flash_alpha) * 10.0;
+                gl_set_color_alpha(1.0f, 1.0f, 1.0f, flash_alpha * 0.4f);
+                gl_draw_circle_outline((float)(ship->x + impact_x), (float)(ship->y + impact_y), (float)ring_radius, 1.0f, 16);
+            }
+        }
     }
 }
 
 void draw_comet_buster_ufos_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr;
+    (void)width;
+    (void)height;
+    
     for (int i = 0; i < game->ufo_count; i++) {
         UFO *ufo = &game->ufos[i];
         if (!ufo->active) continue;
-        gl_set_color(0.8f, 0.2f, 0.8f);
-        gl_draw_circle(ufo->x, ufo->y, 15.0f, 12);
-        gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_circle_outline(ufo->x, ufo->y, 15.0f, 1.5f, 12);
+        
+        // Set color based on damage state
+        float ufo_r = 0.0f, ufo_g = 1.0f, ufo_b = 1.0f;  // Cyan
+        if (ufo->damage_flash_timer > 0) {
+            ufo_r = 1.0f; ufo_g = 1.0f; ufo_b = 1.0f;  // White when hit
+        }
+        
+        // UFO dimensions
+        double dome_width = 40.0;
+        double dome_height = 20.0;
+        double porthole_radius = 3.5;
+        double porthole_spacing = 14.0;
+        double fin_width = 5.0;
+        double fin_height = 6.0;
+        
+        // ========== DOME (Top semicircle) ==========
+        gl_set_color(ufo_r, ufo_g, ufo_b);
+        glLineWidth(1.5f);
+        
+        // Draw top dome - semicircle
+        int dome_segments = 20;
+        Vertex dome_verts[21];
+        for (int j = 0; j <= dome_segments; j++) {
+            double angle = M_PI + (j * M_PI / dome_segments);  // From PI to 2*PI (top half)
+            float x = (float)(ufo->x + (dome_width / 2.0) * cos(angle));
+            float y = (float)(ufo->y + (dome_width / 2.0) * sin(angle));
+            dome_verts[j] = (Vertex){x, y, ufo_r, ufo_g, ufo_b, 1.0f};
+        }
+        draw_vertices(dome_verts, dome_segments + 1, GL_LINE_STRIP);
+        
+        // ========== FLAT LINE (where dome meets body) ==========
+        gl_draw_line((float)(ufo->x - dome_width / 2.0), (float)ufo->y,
+                     (float)(ufo->x + dome_width / 2.0), (float)ufo->y, 1.5f);
+        
+        // ========== THREE PORTHOLES ==========
+        // Left porthole
+        gl_set_color(ufo_r, ufo_g, ufo_b);
+        gl_draw_circle_outline((float)(ufo->x - porthole_spacing), 
+                              (float)(ufo->y + dome_height / 2.0), 
+                              (float)porthole_radius, 1.5f, 12);
+        
+        // Center porthole
+        gl_draw_circle_outline((float)ufo->x, 
+                              (float)(ufo->y + dome_height / 2.0), 
+                              (float)porthole_radius, 1.5f, 12);
+        
+        // Right porthole
+        gl_draw_circle_outline((float)(ufo->x + porthole_spacing), 
+                              (float)(ufo->y + dome_height / 2.0), 
+                              (float)porthole_radius, 1.5f, 12);
+        
+        // ========== FINS ==========
+        // Left fin
+        gl_draw_rect_outline((float)(ufo->x - porthole_spacing - fin_width / 2.0),
+                            (float)(ufo->y + dome_height / 2.0),
+                            (float)fin_width, (float)fin_height, 1.5f);
+        
+        // Right fin
+        gl_draw_rect_outline((float)(ufo->x + porthole_spacing - fin_width / 2.0),
+                            (float)(ufo->y + dome_height / 2.0),
+                            (float)fin_width, (float)fin_height, 1.5f);
+        
+        // ========== HEALTH INDICATOR DOTS ==========
+        if (ufo->health < ufo->max_health) {
+            for (int h = 0; h < ufo->max_health; h++) {
+                if (h < ufo->health) {
+                    gl_set_color(0.0f, 1.0f, 1.0f);  // Cyan for healthy
+                } else {
+                    gl_set_color(0.3f, 0.3f, 0.3f);  // Dark gray for missing
+                }
+                
+                double dot_x = ufo->x - 10.0 + h * 10.0;
+                double dot_y = ufo->y - dome_height - 8.0;
+                gl_draw_circle((float)dot_x, (float)dot_y, 2.0f, 12);
+            }
+        }
     }
 }
 
@@ -745,7 +879,7 @@ void draw_comet_buster_enemy_bullets_gl(CometBusterGame *game, void *cr, int wid
     for (int i = 0; i < game->enemy_bullet_count; i++) {
         Bullet *b = &game->enemy_bullets[i];
         if (!b->active) continue;
-        gl_set_color(1.0f, 0.2f, 0.2f);
+        gl_set_color(0.0f, 1.0f, 1.0f);  // Cyan - matches Cairo version
         gl_draw_circle(b->x, b->y, 3.0f, 8);
     }
 }
@@ -1229,16 +1363,8 @@ gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, window_width, window_height);
     
+    // RENDER ONLY - game updates happen in game_update_timer callback
     draw_comet_buster_gl(vis, NULL);
-    
-    // Update game logic
-    double current_time = g_get_monotonic_time() / 1000000.0;
-    static double last_time = 0.0;
-    double dt = (last_time > 0) ? (current_time - last_time) : 0.016;
-    last_time = current_time;
-    if (dt > 0.1) dt = 0.016;
-    
-    update_comet_buster(vis, dt);
     
     glFlush();
     gtk_widget_queue_draw(GTK_WIDGET(area));
