@@ -199,10 +199,11 @@ static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     float current_x = (float)x;
     float current_y = (float)y;
     
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Build vertex array for all text at once
+    Vertex verts[10000];
+    int vert_count = 0;
     
-    for (int i = 0; text[i]; i++) {
+    for (int i = 0; text[i] && vert_count < 9995; i++) {
         unsigned char ch = (unsigned char)text[i];
         
         // Get glyph from font
@@ -214,8 +215,6 @@ static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         float glyph_width = (float)glyph->width * scale;
         float pixel_scale = scale;
         
-        glBegin(GL_QUADS);
-        
         for (int row = 0; row < glyph->height; row++) {
             float pixel_y = current_y + row * pixel_scale;
             
@@ -223,32 +222,33 @@ static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
                 // Get pixel value (grayscale 0-255)
                 unsigned char pixel = glyph->bitmap[row * glyph->width + col];
                 
-                if (pixel > 32) {  // Threshold to filter background noise
+                if (pixel > 32 && vert_count < 9992) {  // Threshold, and space for quad
                     float pixel_x = current_x + col * pixel_scale;
                     
                     // Scale alpha based on pixel intensity (for anti-aliasing)
                     float alpha = gl_state.color[3] * ((float)pixel / 255.0f);
                     
-                    // Draw pixel as quad
-                    glColor4f(gl_state.color[0], gl_state.color[1], 
-                             gl_state.color[2], alpha);
-                    
-                    glVertex2f(pixel_x, pixel_y);
-                    glVertex2f(pixel_x + pixel_scale, pixel_y);
-                    glVertex2f(pixel_x + pixel_scale, pixel_y + pixel_scale);
-                    glVertex2f(pixel_x, pixel_y + pixel_scale);
+                    // Add quad (4 vertices)
+                    verts[vert_count++] = {pixel_x, pixel_y, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
+                    verts[vert_count++] = {pixel_x + pixel_scale, pixel_y, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
+                    verts[vert_count++] = {pixel_x + pixel_scale, pixel_y + pixel_scale, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
+                    verts[vert_count++] = {pixel_x, pixel_y + pixel_scale, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
                 }
             }
         }
-        
-        glEnd();
         
         // Move to next character position
         current_x += glyph_width;
     }
     
-    // Restore color
-    glColor4f(gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]);
+    // Draw all vertices at once using the shader system
+    if (vert_count > 0) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // GL_QUADS might not work in core profile, GL_TRIANGLES is safer
+        // Note: We're drawing quads as vertices, so this will render them as GL_QUADS
+        draw_vertices(verts, vert_count, GL_QUADS);
+    }
 }
 
 

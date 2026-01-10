@@ -41,6 +41,7 @@ typedef struct {
     GtkWidget *window;
     GtkWidget *drawing_area;
     GtkWidget *gl_area;           // For OpenGL rendering
+    GtkWidget *rendering_stack;   // GtkStack for safe widget switching
     GtkWidget *status_label;
     GtkWidget *menu_bar;
     
@@ -2530,12 +2531,9 @@ void on_rendering_cairo(GtkWidget *widget, gpointer data) {
     
     printf("[RENDERING] Switched to Cairo rendering\n");
     
-    // Remove OpenGL from container and add Cairo
-    GtkWidget *parent = gtk_widget_get_parent(gui->gl_area);
-    if (parent && GTK_IS_CONTAINER(parent)) {
-        gtk_container_remove(GTK_CONTAINER(parent), gui->gl_area);
-        gtk_box_pack_start(GTK_BOX(parent), gui->drawing_area, TRUE, TRUE, 0);
-        gtk_widget_show(gui->drawing_area);
+    // Use GtkStack to switch widgets (preserves GL context)
+    if (gui->rendering_stack) {
+        gtk_stack_set_visible_child_name(GTK_STACK(gui->rendering_stack), "cairo");
     }
     
     gtk_widget_grab_focus(gui->drawing_area);
@@ -2555,12 +2553,9 @@ void on_rendering_opengl(GtkWidget *widget, gpointer data) {
     
     printf("[RENDERING] Switched to OpenGL rendering\n");
     
-    // Remove Cairo from container and add OpenGL
-    GtkWidget *parent = gtk_widget_get_parent(gui->drawing_area);
-    if (parent && GTK_IS_CONTAINER(parent)) {
-        gtk_container_remove(GTK_CONTAINER(parent), gui->drawing_area);
-        gtk_box_pack_start(GTK_BOX(parent), gui->gl_area, TRUE, TRUE, 0);
-        gtk_widget_show(gui->gl_area);
+    // Use GtkStack to switch widgets (preserves GL context)
+    if (gui->rendering_stack) {
+        gtk_stack_set_visible_child_name(GTK_STACK(gui->rendering_stack), "opengl");
     }
     
     gtk_widget_grab_focus(gui->gl_area);
@@ -2948,20 +2943,30 @@ int main(int argc, char *argv[]) {
     g_signal_connect(gui.gl_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
     g_signal_connect(gui.gl_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
     
-    // Pack only the initially visible widget - we'll swap in callbacks
+    // Create GtkStack to manage widget switching (preserves state and GL context)
+    GtkWidget *rendering_stack = gtk_stack_new();
+    gtk_stack_set_transition_type(GTK_STACK(rendering_stack), GTK_STACK_TRANSITION_TYPE_NONE);
+    
+    // Add both widgets to the stack
+    gtk_stack_add_named(GTK_STACK(rendering_stack), gui.drawing_area, "cairo");
+    gtk_stack_add_named(GTK_STACK(rendering_stack), gui.gl_area, "opengl");
+    
+    // Show the appropriate rendering surface
     if (gui.rendering_engine == 1) {
         fprintf(stdout, "[MAIN] Starting with OpenGL rendering\n");
-        gtk_box_pack_start(GTK_BOX(vbox), gui.gl_area, TRUE, TRUE, 0);
+        gtk_stack_set_visible_child_name(GTK_STACK(rendering_stack), "opengl");
     } else {
         fprintf(stdout, "[MAIN] Starting with Cairo rendering\n");
-        gtk_box_pack_start(GTK_BOX(vbox), gui.drawing_area, TRUE, TRUE, 0);
+        gtk_stack_set_visible_child_name(GTK_STACK(rendering_stack), "cairo");
     }
     
-    // Add extra references to keep widgets alive during container swaps
-    // This prevents segfaults when switching back and forth
-    g_object_ref(gui.drawing_area);
-    g_object_ref(gui.gl_area);
-    fprintf(stdout, "[MAIN] Added widget references for safe switching\n");
+    // Pack the stack into the vbox
+    gtk_box_pack_start(GTK_BOX(vbox), rendering_stack, TRUE, TRUE, 0);
+    
+    // Save stack reference for use in callbacks
+    gui.rendering_stack = rendering_stack;
+    
+    fprintf(stdout, "[MAIN] Using GtkStack for safe widget switching\n");
     
     gtk_widget_show_all(gui.window);
     gtk_widget_hide(gui.cheat_menu_item);  // Hide the cheat menu by default (after show_all)
