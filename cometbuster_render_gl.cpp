@@ -14,6 +14,9 @@
 #include "audio_wad.h"
 #endif
 
+#include "Monospace.h"  // Your TTF-converted font
+
+
 static GLuint global_vao = 0;
 
 // Simple matrix math
@@ -181,6 +184,73 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
     gl_state.color[2] = b;
     gl_state.color[3] = a;
 }
+
+// ============================================================================
+// TEXT RENDERING - Monospace.h Font Support
+// ============================================================================
+
+static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
+    if (!text || !text[0]) return;
+    
+    // Monospace.h has max height of 14px
+    float ref_height = (float)FONT_MAX_HEIGHT;
+    float scale = (float)font_size / ref_height;
+    
+    float current_x = (float)x;
+    float current_y = (float)y;
+    
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    for (int i = 0; text[i]; i++) {
+        unsigned char ch = (unsigned char)text[i];
+        
+        // Get glyph from font
+        const GlyphData *glyph = get_glyph(ch);
+        if (!glyph || !glyph->bitmap) {
+            continue;  // Skip if character not in font
+        }
+        
+        float glyph_width = (float)glyph->width * scale;
+        float pixel_scale = scale;
+        
+        glBegin(GL_QUADS);
+        
+        for (int row = 0; row < glyph->height; row++) {
+            float pixel_y = current_y + row * pixel_scale;
+            
+            for (int col = 0; col < glyph->width; col++) {
+                // Get pixel value (grayscale 0-255)
+                unsigned char pixel = glyph->bitmap[row * glyph->width + col];
+                
+                if (pixel > 32) {  // Threshold to filter background noise
+                    float pixel_x = current_x + col * pixel_scale;
+                    
+                    // Scale alpha based on pixel intensity (for anti-aliasing)
+                    float alpha = gl_state.color[3] * ((float)pixel / 255.0f);
+                    
+                    // Draw pixel as quad
+                    glColor4f(gl_state.color[0], gl_state.color[1], 
+                             gl_state.color[2], alpha);
+                    
+                    glVertex2f(pixel_x, pixel_y);
+                    glVertex2f(pixel_x + pixel_scale, pixel_y);
+                    glVertex2f(pixel_x + pixel_scale, pixel_y + pixel_scale);
+                    glVertex2f(pixel_x, pixel_y + pixel_scale);
+                }
+            }
+        }
+        
+        glEnd();
+        
+        // Move to next character position
+        current_x += glyph_width;
+    }
+    
+    // Restore color
+    glColor4f(gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]);
+}
+
 
 void gl_draw_line(float x1, float y1, float x2, float y2, float width) {
     glLineWidth(width);
@@ -1276,177 +1346,6 @@ void draw_singularity_boss_gl(BossShip *boss, void *cr, int width, int height) {
     gl_draw_circle(boss->x, boss->y, 50.0f, 20);
     gl_set_color(0.5f, 0.0f, 1.0f);
     gl_draw_circle_outline(boss->x, boss->y, 50.0f, 3.0f, 20);
-}
-
-// ============================================================================
-// TEXT RENDERING HELPER - Simple OpenGL only (no Cairo)
-// ============================================================================
-
-// Simple monospace bitmap font - render characters using lines and rectangles
-// Each character is represented on a 6x8 grid
-static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
-    if (!text || !text[0]) return;
-    
-    // Character width and height based on font size
-    float char_width = font_size * 0.6f;
-    float char_height = font_size * 0.9f;
-    
-    float start_x = (float)x;
-    float start_y = (float)y;
-    
-    glLineWidth(1.5f);
-    glBegin(GL_LINES);
-    
-    for (int i = 0; text[i]; i++) {
-        char ch = text[i];
-        float cx = start_x + i * char_width;
-        float cy = start_y;
-        
-        if (ch == ' ') {
-            continue;
-        }
-        
-        // Draw each character using simple line segments
-        // Normalized to a 6-unit wide, 8-unit tall grid
-        float w = char_width / 6.0f;
-        float h = char_height / 8.0f;
-        
-        switch (ch) {
-            // Numbers
-            case '0':
-                // Rectangle outline
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);           // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
-                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
-                break;
-            case '1':
-                glVertex2f(cx + 2*w, cy); glVertex2f(cx + 3*w, cy);        // Top
-                glVertex2f(cx + 3*w, cy); glVertex2f(cx + 3*w, cy + 8*h);  // Vertical
-                glVertex2f(cx + 2*w, cy + 8*h); glVertex2f(cx + 4*w, cy + 8*h); // Bottom
-                break;
-            case '2':
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 4*h);  // Right top
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + w, cy + 8*h); // Left bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
-                break;
-            case '3':
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
-                break;
-            case '4':
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 4*h);      // Left top
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
-                break;
-            case '5':
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 4*h);      // Left top
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                glVertex2f(cx + 5*w, cy + 4*h); glVertex2f(cx + 5*w, cy + 8*h); // Right bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
-                break;
-            case '6':
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
-                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + 5*w, cy + 4*h); // Right bottom
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                break;
-            case '7':
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy + 8*h);    // Diagonal
-                break;
-            case '8':
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
-                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                break;
-            case '9':
-                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy + 4*h); // Left
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 4*h);  // Right
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                break;
-            // Letters
-            case 'A': case 'a':
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 3*w, cy);    // Left diagonal
-                glVertex2f(cx + 3*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right diagonal
-                glVertex2f(cx + w + 1.5*w, cy + 4*h); glVertex2f(cx + 4*w, cy + 4*h); // Middle
-                break;
-            case 'B': case 'b':
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 4*h);  // Right top
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                glVertex2f(cx + 5*w, cy + 4*h); glVertex2f(cx + 5*w, cy + 8*h); // Right bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
-                break;
-            case 'D': case 'd':
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
-                glVertex2f(cx + w, cy); glVertex2f(cx + 4*w, cy);          // Top
-                glVertex2f(cx + 4*w, cy); glVertex2f(cx + 5*w, cy + 2*h);  // Top right
-                glVertex2f(cx + 5*w, cy + 2*h); glVertex2f(cx + 5*w, cy + 6*h); // Right
-                glVertex2f(cx + 5*w, cy + 6*h); glVertex2f(cx + 4*w, cy + 8*h); // Bottom right
-                glVertex2f(cx + 4*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
-                break;
-            case 'E': case 'e':
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
-                break;
-            case 'H': case 'h':
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                break;
-            case 'M': case 'm':
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
-                glVertex2f(cx + w, cy); glVertex2f(cx + 3*w, cy + 4*h);    // Top left diagonal
-                glVertex2f(cx + 3*w, cy + 4*h); glVertex2f(cx + 5*w, cy);  // Top right diagonal
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
-                break;
-            case 'N': case 'n':
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy + 8*h);    // Diagonal
-                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + 5*w, cy);  // Right
-                break;
-            case 'O': case 'o':
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
-                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
-                break;
-            case 'S': case 's':
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
-                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 4*h);      // Left top
-                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
-                glVertex2f(cx + 5*w, cy + 4*h); glVertex2f(cx + 5*w, cy + 8*h); // Right bottom
-                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
-                break;
-            case 'X': case 'x':
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy + 8*h);    // Top-left to bottom-right
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy + 8*h);    // Top-right to bottom-left
-                break;
-            default:
-                // Unknown character - draw rectangle
-                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);
-                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 6*h);
-                glVertex2f(cx + 5*w, cy + 6*h); glVertex2f(cx + w, cy + 6*h);
-                glVertex2f(cx + w, cy + 6*h); glVertex2f(cx + w, cy);
-                break;
-        }
-    }
-    
-    glEnd();
 }
 
 void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int height) {
