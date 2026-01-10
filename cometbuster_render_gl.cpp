@@ -192,29 +192,32 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     if (!text || !text[0]) return;
     
-    // Monospace.h has max height of 14px
+    // Monospace.h has max height
     float ref_height = (float)FONT_MAX_HEIGHT;
     float scale = (float)font_size / ref_height;
     
     float current_x = (float)x;
     float current_y = (float)y;
     
-    // Build vertex array for all text at once
-    Vertex verts[10000];
+    // Build vertex array - MUCH LARGER buffer for all text
+    // Each text character can have many pixels, each with 6 vertices (2 triangles)
+    static Vertex verts[100000];  // Increased from 60000
     int vert_count = 0;
     
-    for (int i = 0; text[i] && vert_count < 9995; i++) {
+    for (int i = 0; text[i] && vert_count < 99990; i++) {
         unsigned char ch = (unsigned char)text[i];
         
         // Get glyph from font
         const GlyphData *glyph = get_glyph(ch);
         if (!glyph || !glyph->bitmap) {
-            continue;  // Skip if character not in font
+            // Character not in font, skip it
+            continue;
         }
         
         float glyph_width = (float)glyph->width * scale;
         float pixel_scale = scale;
         
+        // Render each pixel in the glyph
         for (int row = 0; row < glyph->height; row++) {
             float pixel_y = current_y + row * pixel_scale;
             
@@ -222,17 +225,27 @@ static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
                 // Get pixel value (grayscale 0-255)
                 unsigned char pixel = glyph->bitmap[row * glyph->width + col];
                 
-                if (pixel > 32 && vert_count < 9992) {  // Threshold, and space for quad
+                // Only render non-transparent pixels (lower threshold for more detail)
+                if (pixel > 3 && vert_count < 99994) {
                     float pixel_x = current_x + col * pixel_scale;
                     
-                    // Scale alpha based on pixel intensity (for anti-aliasing)
+                    // Scale alpha based on pixel intensity (anti-aliasing)
                     float alpha = gl_state.color[3] * ((float)pixel / 255.0f);
                     
-                    // Add quad (4 vertices)
-                    verts[vert_count++] = {pixel_x, pixel_y, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
-                    verts[vert_count++] = {pixel_x + pixel_scale, pixel_y, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
-                    verts[vert_count++] = {pixel_x + pixel_scale, pixel_y + pixel_scale, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
-                    verts[vert_count++] = {pixel_x, pixel_y + pixel_scale, gl_state.color[0], gl_state.color[1], gl_state.color[2], alpha};
+                    float r = gl_state.color[0];
+                    float g = gl_state.color[1];
+                    float b = gl_state.color[2];
+                    
+                    // Quad as two triangles
+                    // Triangle 1: top-left, top-right, bottom-right
+                    verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
+                    verts[vert_count++] = {pixel_x + pixel_scale, pixel_y, r, g, b, alpha};
+                    verts[vert_count++] = {pixel_x + pixel_scale, pixel_y + pixel_scale, r, g, b, alpha};
+                    
+                    // Triangle 2: top-left, bottom-right, bottom-left
+                    verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
+                    verts[vert_count++] = {pixel_x + pixel_scale, pixel_y + pixel_scale, r, g, b, alpha};
+                    verts[vert_count++] = {pixel_x, pixel_y + pixel_scale, r, g, b, alpha};
                 }
             }
         }
@@ -241,13 +254,11 @@ static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         current_x += glyph_width;
     }
     
-    // Draw all vertices at once using the shader system
+    // Draw all glyphs at once
     if (vert_count > 0) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        // GL_QUADS might not work in core profile, GL_TRIANGLES is safer
-        // Note: We're drawing quads as vertices, so this will render them as GL_QUADS
-        draw_vertices(verts, vert_count, GL_QUADS);
+        draw_vertices(verts, vert_count, GL_TRIANGLES);
     }
 }
 
