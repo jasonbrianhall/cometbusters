@@ -635,13 +635,99 @@ void draw_comet_buster_bomb_pickups_gl(CometBusterGame *game, void *cr, int widt
 
 void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr;
+    (void)width;
+    (void)height;
+    
+    // Color scheme for each missile type
+    // Type 0: CYAN - Target furthest comet
+    // Type 1: RED - Target ships and boss
+    // Type 2: GREEN - Target closest comets
+    // Type 3: MAGENTA - Target comets ~400px away
+    // Type 4: ORANGE - Target comets 200-600px away
+    
     for (int i = 0; i < game->missile_count; i++) {
         Missile *missile = &game->missiles[i];
         if (!missile->active) continue;
-        gl_set_color(0.0f, 1.0f, 1.0f);
-        gl_draw_circle(missile->x, missile->y, 5.0f, 12);
-        gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_circle_outline(missile->x, missile->y, 5.0f, 1.0f, 12);
+        
+        // Calculate alpha fade based on lifetime
+        float alpha = 1.0f;
+        if (missile->lifetime < 0.5) {
+            alpha = (float)(missile->lifetime / 0.5);
+        }
+        
+        // Determine fill color based on missile type
+        float fill_r = 1.0f, fill_g = 1.0f, fill_b = 0.2f;  // Default yellow
+        float stroke_r = 1.0f, stroke_g = 0.8f, stroke_b = 0.0f;  // Default orange
+        
+        switch (missile->missile_type) {
+            case 0:  // Furthest comet - CYAN
+                fill_r = 0.2f; fill_g = 1.0f; fill_b = 1.0f;
+                stroke_r = 0.0f; stroke_g = 0.8f; stroke_b = 1.0f;
+                break;
+            case 1:  // Ships and boss - RED
+                fill_r = 1.0f; fill_g = 0.2f; fill_b = 0.2f;
+                stroke_r = 1.0f; stroke_g = 0.0f; stroke_b = 0.0f;
+                break;
+            case 2:  // Closest comets - GREEN
+                fill_r = 0.2f; fill_g = 1.0f; fill_b = 0.2f;
+                stroke_r = 0.0f; stroke_g = 0.8f; stroke_b = 0.0f;
+                break;
+            case 3:  // Comets ~400px away - MAGENTA
+                fill_r = 1.0f; fill_g = 0.2f; fill_b = 1.0f;
+                stroke_r = 0.8f; stroke_g = 0.0f; stroke_b = 0.8f;
+                break;
+            case 4:  // Comets 200-600px away - ORANGE
+                fill_r = 1.0f; fill_g = 0.6f; fill_b = 0.0f;
+                stroke_r = 1.0f; stroke_g = 0.4f; stroke_b = 0.0f;
+                break;
+        }
+        
+        // Missile diamond shape (kite):
+        // Points: (8,0), (-4,3), (-2,0), (-4,-3)
+        float points[8] = {
+            8.0f,  0.0f,    // Front point
+            -4.0f, 3.0f,    // Bottom right
+            -2.0f, 0.0f,    // Middle notch
+            -4.0f, -3.0f    // Top right
+        };
+        
+        // Rotate points around missile angle
+        float cos_a = cosf((float)missile->angle);
+        float sin_a = sinf((float)missile->angle);
+        
+        Vertex verts[4];
+        for (int j = 0; j < 4; j++) {
+            float x = points[j*2];
+            float y = points[j*2+1];
+            
+            // Rotate point
+            float rotated_x = x * cos_a - y * sin_a;
+            float rotated_y = x * sin_a + y * cos_a;
+            
+            // Translate to missile position
+            rotated_x += (float)missile->x;
+            rotated_y += (float)missile->y;
+            
+            verts[j] = (Vertex){rotated_x, rotated_y, fill_r, fill_g, fill_b, alpha};
+        }
+        
+        // Draw filled missile
+        gl_set_color_alpha(fill_r, fill_g, fill_b, alpha);
+        draw_vertices(verts, 4, GL_TRIANGLE_FAN);
+        
+        // Draw missile outline
+        gl_set_color_alpha(stroke_r, stroke_g, stroke_b, alpha);
+        glLineWidth(1.5f);
+        
+        // Create outline vertices (repeat first to close)
+        Vertex outline_verts[5];
+        for (int j = 0; j < 4; j++) {
+            outline_verts[j] = verts[j];
+        }
+        outline_verts[4] = verts[0];  // Close the shape
+        
+        draw_vertices(outline_verts, 5, GL_LINE_STRIP);
     }
 }
 
