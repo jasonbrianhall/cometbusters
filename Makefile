@@ -36,9 +36,9 @@ GTK_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs gtk+-3.0 2>/dev/null || ech
 SDL2_MIXER_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
-CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DUSEGL -DVERSION=\"$(VERSION)\"
-CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DUSEGL
-LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
+CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
+CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX
+LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++
 
 # Optimization flags
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
@@ -54,7 +54,7 @@ SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null |
 
 CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
 CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
-LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm 
+LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm
 
 CXXFLAGS_WIN += -O2 -ffunction-sections -fdata-sections
 LDFLAGS_WIN += -s -Wl,--gc-sections
@@ -69,7 +69,7 @@ CFLAGS_WIN_DEBUG = $(CFLAGS_WIN) $(DEBUG_FLAGS)
 # Source files - Game code
 SOURCES_CPP_COMMON = comet_main.cpp wad.cpp audio_wad.cpp cometbuster_spawn.cpp \
 	cometbuster_init.cpp cometbuster_physics.cpp cometbuster_collision.cpp \
-	cometbuster_boss.cpp cometbuster_render_gl.cpp cometbuster_starboss.cpp \
+	cometbuster_boss.cpp cometbuster_render.cpp cometbuster_starboss.cpp \
 	cometbuster_util.cpp cometbuster_splashscreen.cpp joystick.cpp \
 	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_help.cpp
 
