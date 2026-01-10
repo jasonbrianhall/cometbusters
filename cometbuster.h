@@ -528,26 +528,26 @@ void comet_buster_spawn_enemy_bullet_from_ship(CometBusterGame *game, double x, 
 // Canister functions
 void comet_buster_spawn_canister(CometBusterGame *game, double x, double y);
 void comet_buster_update_canisters(CometBusterGame *game, double dt);
-void draw_comet_buster_canisters(CometBusterGame *game, cairo_t *cr, int width, int height);
+void draw_comet_buster_canisters(CometBusterGame *game, void *cr, int width, int height);
 bool comet_buster_check_ship_canister(CometBusterGame *game, Canister *c);
 
 // Missile functions
 void comet_buster_spawn_missile_pickup(CometBusterGame *game, double x, double y);
 void comet_buster_update_missile_pickups(CometBusterGame *game, double dt);
-void draw_comet_buster_missile_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
+void draw_comet_buster_missile_pickups(CometBusterGame *game, void *cr, int width, int height);
 bool comet_buster_check_ship_missile_pickup(CometBusterGame *game, MissilePickup *p);
 void comet_buster_fire_missile(CometBusterGame *game, void *vis);
 void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, int height);
-void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, int height);
+void draw_comet_buster_missiles(CometBusterGame *game, void *cr, int width, int height);
 EnemyShip* comet_buster_find_nearest_enemy(CometBusterGame *game, double x, double y);
 
 // Bomb functions
 void comet_buster_spawn_bomb_pickup(CometBusterGame *game, double x, double y);
 void comet_buster_update_bomb_pickups(CometBusterGame *game, double dt);
-void draw_comet_buster_bomb_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
+void draw_comet_buster_bomb_pickups(CometBusterGame *game, void *cr, int width, int height);
 void comet_buster_drop_bomb(CometBusterGame *game, int width, int height, void *vis);
 void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int height, void *vis);
-void draw_comet_buster_bombs(CometBusterGame *game, cairo_t *cr, int width, int height);
+void draw_comet_buster_bombs(CometBusterGame *game, void *cr, int width, int height);
 bool comet_buster_check_bomb_wave_comet(Bomb *bomb, Comet *comet);
 bool comet_buster_check_bomb_wave_enemy_ship(Bomb *bomb, EnemyShip *ship);
 bool comet_buster_check_bomb_wave_ufo(Bomb *bomb, UFO *ufo);
@@ -561,7 +561,7 @@ void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int h
 void comet_buster_boss_fire(CometBusterGame *game);
 bool comet_buster_check_bullet_boss(Bullet *b, BossShip *boss);
 void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, void *vis);
-void draw_comet_buster_boss(BossShip *boss, cairo_t *cr, int width, int height);
+void draw_comet_buster_boss(BossShip *boss, void *cr, int width, int height);
 
 // Spawn Queen boss functions
 void comet_buster_spawn_spawn_queen(CometBusterGame *game, int screen_width, int screen_height);
@@ -570,7 +570,7 @@ void comet_buster_spawn_queen_fire(CometBusterGame *game);
 void comet_buster_spawn_queen_spawn_ships(CometBusterGame *game, int screen_width, int screen_height);
 bool comet_buster_check_bullet_spawn_queen(Bullet *b, SpawnQueenBoss *queen);
 void comet_buster_destroy_spawn_queen(CometBusterGame *game, int width, int height, void *vis);
-void draw_spawn_queen_boss(SpawnQueenBoss *queen, cairo_t *cr, int width, int height);
+void draw_spawn_queen_boss(SpawnQueenBoss *queen, void *cr, int width, int height);
 
 bool comet_buster_check_bullet_comet(Bullet *b, Comet *c);
 bool comet_buster_check_missile_comet(Missile *m, Comet *c);
@@ -594,16 +594,16 @@ void comet_buster_increase_difficulty(CometBusterGame *game);
 void comet_buster_update_wave_progression(CometBusterGame *game);
 
 // Rendering
-void draw_comet_buster_ship(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_comets(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_bullets(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_particles(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_game_over(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_enemy_bullets(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_ship_burner(cairo_t *cr, double burner_intensity, double length_multiplier);
-void draw_enemy_ship_burner(cairo_t *cr, double burner_intensity, double ship_size);
+void draw_comet_buster_ship(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_comets(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_bullets(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_particles(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_hud(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_game_over(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_enemy_ships(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_enemy_bullets(CometBusterGame *game, void *cr, int width, int height);
+void draw_ship_burner(void *cr, double burner_intensity, double length_multiplier);
+void draw_enemy_ship_burner(void *cr, double burner_intensity, double ship_size);
 
 // Helper functions
 void comet_buster_wrap_position(double *x, double *y, int width, int height);
@@ -620,7 +620,7 @@ void comet_buster_spawn_enemy_ship_internal(CometBusterGame *game, int screen_wi
 // UFO (Flying Saucer) functions
 void comet_buster_spawn_ufo(CometBusterGame *game, int screen_width, int screen_height);
 void comet_buster_ufo_fire(CometBusterGame *game);
-void draw_comet_buster_ufos(CometBusterGame *game, cairo_t *cr, int width, int height);
+void draw_comet_buster_ufos(CometBusterGame *game, void *cr, int width, int height);
 bool comet_buster_check_bullet_ufo(Bullet *b, UFO *u);
 bool comet_buster_check_missile_ufo(Missile *m, UFO *u);  // Missile targeting
 bool comet_buster_check_ufo_comet(UFO *u, Comet *c);    // UFO-asteroid collision
@@ -632,13 +632,13 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
 // Splash
 void comet_buster_init_splash_screen(CometBusterGame *game, int width, int height);
 void comet_buster_exit_splash_screen(CometBusterGame *game);
-void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int width, int height);
+void comet_buster_draw_splash_screen(CometBusterGame *game, void *cr, int width, int height);
 void comet_buster_update_finale_splash(CometBusterGame *game, double dt);
-void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int width, int height);                                 
+void comet_buster_draw_finale_splash(CometBusterGame *game, void *cr, int width, int height);                                 
 
 void comet_buster_spawn_void_nexus(CometBusterGame *game, int screen_width, int screen_height);
 void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width, int height);
-void draw_void_nexus_boss(BossShip *boss, cairo_t *cr, int width, int height);
+void draw_void_nexus_boss(BossShip *boss, void *cr, int width, int height);
 void void_nexus_fire(CometBusterGame *game);
 void void_nexus_fragment_fire(CometBusterGame *game, int fragment_id);
 void void_nexus_split_into_fragments(CometBusterGame *game, int num_fragments);
@@ -649,7 +649,7 @@ void comet_buster_brown_coat_fire_burst(CometBusterGame *game, int ship_index);
 bool comet_buster_is_target_nearby(CometBusterGame *game, double ship_x, double ship_y, double range);
 void harbinger_spawn_bomb(CometBusterGame *game, double x, double y);
 void comet_buster_spawn_harbinger(CometBusterGame *game, int screen_width, int screen_height);
-void draw_harbinger_boss(BossShip *boss, cairo_t *cr, int width, int height);
+void draw_harbinger_boss(BossShip *boss, void *cr, int width, int height);
 void comet_buster_update_harbinger(CometBusterGame *game, double dt, int width, int height);
 bool comet_buster_hit_void_nexus_fragment(Bullet *b, BossShip *boss, int *fragment_hit);
 
@@ -661,14 +661,15 @@ bool star_vortex_handle_comet_collision(CometBusterGame *game, Comet *comet,
 void star_vortex_fire_missiles(CometBusterGame *game);
 void star_vortex_spawn_juggernauts(CometBusterGame *game, int width, int height);
 void star_vortex_final_explosion(CometBusterGame *game);
-void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height);
+void draw_star_vortex_boss(BossShip *boss, void *cr, int width, int height);
 
 // Singularity (Ultimate) boss functions
 void comet_buster_spawn_singularity(CometBusterGame *game, int screen_width, int screen_height);
 void comet_buster_update_singularity(CometBusterGame *game, double dt, int width, int height);
-void draw_singularity_boss(BossShip *boss, cairo_t *cr, int width, int height);
+void draw_singularity_boss(BossShip *boss, void *cr, int width, int height);
 
 void comet_buster_update_victory_scroll(CometBusterGame *game, double dt);
-void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int width, int height);
+void comet_buster_draw_victory_scroll(CometBusterGame *game, void *cr, int width, int height);
+void boss_explosion_draw(BossExplosion *explosion, void *cr);
 void comet_buster_exit_victory_scroll(CometBusterGame *game);
 #endif // COMETBUSTER_H

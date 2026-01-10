@@ -1,5 +1,10 @@
 #include <gtk/gtk.h>
-#include <cairo.h>
+#ifndef USEGL
+    #include <cairo.h>
+#else
+    #include <GL/glew.h>
+    #include <GL/gl.h>
+#endif
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
@@ -2119,8 +2124,14 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     // Use uniform scaling to avoid distortion
     double scale = (scale_x < scale_y) ? scale_x : scale_y;
     
-    // Apply the scale transform to cairo
+#ifndef USEGL
+    // Apply the scale transform to cairo (only for Cairo rendering)
     cairo_scale(cr, scale, scale);
+#else
+    // OpenGL rendering setup would go here
+    // Note: The scale factor is handled in the OpenGL projection matrix
+    (void)scale;  // Suppress unused variable warning in OpenGL mode
+#endif
     
     // Game always renders at logical size
     gui->visualizer.width = game_width;
@@ -2128,18 +2139,38 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     
     // Draw victory scroll if game is won
     if (gui->visualizer.comet_buster.game_won && gui->visualizer.comet_buster.splash_screen_active) {
+#ifndef USEGL
         comet_buster_draw_victory_scroll(&gui->visualizer.comet_buster, cr, game_width, game_height);
+#else
+        comet_buster_draw_victory_scroll(&gui->visualizer.comet_buster, NULL, game_width, game_height);
+#endif
     }
     // Draw finale splash (Wave 30 victory) if active
     else if (gui->visualizer.comet_buster.finale_splash_active) {
-        draw_comet_buster(&gui->visualizer, cr);  // Draw game in background
+#ifndef USEGL
+        draw_comet_buster(&gui->visualizer, cr);  // Draw game in background (Cairo)
+#else
+        draw_comet_buster(&gui->visualizer, NULL);  // Draw game in background (OpenGL)
+#endif
+#ifndef USEGL
         comet_buster_draw_finale_splash(&gui->visualizer.comet_buster, cr, game_width, game_height);
+#else
+        comet_buster_draw_finale_splash(&gui->visualizer.comet_buster, NULL, game_width, game_height);
+#endif
     }
     // Draw splash screen if active, otherwise draw normal game
     else if (gui->visualizer.comet_buster.splash_screen_active) {
+#ifndef USEGL
         comet_buster_draw_splash_screen(&gui->visualizer.comet_buster, cr, game_width, game_height);
+#else
+        comet_buster_draw_splash_screen(&gui->visualizer.comet_buster, NULL, game_width, game_height);
+#endif
     } else {
-        draw_comet_buster(&gui->visualizer, cr);
+#ifndef USEGL
+        draw_comet_buster(&gui->visualizer, cr);  // Cairo rendering
+#else
+        draw_comet_buster(&gui->visualizer, NULL);  // OpenGL rendering
+#endif
     }
     
     return FALSE;
