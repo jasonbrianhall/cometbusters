@@ -1512,10 +1512,163 @@ void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height) 
 
 void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int height) {
     if (!queen || !queen->active) return;
-    gl_set_color(0.5f, 0.0f, 1.0f);
-    gl_draw_circle(queen->x, queen->y, 60.0f, 20);
+    (void)cr; (void)width; (void)height;
+    
+    double major_axis = 70.0;
+    double minor_axis = 45.0;
+    int segments = 32;
+    
+    // Build vertices for the elliptical body
+    Vertex body_verts[32];
+    for (int i = 0; i < segments; i++) {
+        double angle = 2.0 * M_PI * i / segments;
+        float cos_a = (float)cos(angle);
+        float sin_a = (float)sin(angle);
+        
+        // Rotate the point around the boss center
+        float cos_rot = (float)cos(queen->rotation * M_PI / 180.0);
+        float sin_rot = (float)sin(queen->rotation * M_PI / 180.0);
+        
+        float x = cos_a * (float)major_axis;
+        float y = sin_a * (float)minor_axis;
+        
+        // Apply rotation
+        float rx = x * cos_rot - y * sin_rot;
+        float ry = x * sin_rot + y * cos_rot;
+        
+        body_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.7f, 0.3f, 0.8f, 1.0f};
+    }
+    
+    // Draw filled magenta body
+    draw_vertices(body_verts, segments, GL_POLYGON);
+    
+    // Draw rotating darker oval pattern on the body (shows rotation)
+    gl_set_color_alpha(0.4f, 0.1f, 0.5f, 0.6f);
+    double pattern_major = 50.0;
+    double pattern_minor = 20.0;
+    Vertex pattern_verts[32];
+    for (int i = 0; i < segments; i++) {
+        double angle = 2.0 * M_PI * i / segments;
+        float cos_a = (float)cos(angle);
+        float sin_a = (float)sin(angle);
+        
+        // Rotate the pattern point
+        float cos_rot = (float)cos(queen->rotation * M_PI / 180.0);
+        float sin_rot = (float)sin(queen->rotation * M_PI / 180.0);
+        
+        float x = cos_a * (float)pattern_major;
+        float y = sin_a * (float)pattern_minor;
+        
+        // Apply rotation
+        float rx = x * cos_rot - y * sin_rot;
+        float ry = x * sin_rot + y * cos_rot;
+        
+        pattern_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.4f, 0.1f, 0.5f, 0.6f};
+    }
+    draw_vertices(pattern_verts, segments, GL_POLYGON);
+    
+    // Draw cyan outline ring
+    gl_set_color_alpha(0.0f, 1.0f, 1.0f, 0.7f);
+    gl_draw_circle_outline(queen->x, queen->y, (float)major_axis, 2.5f, segments);
+    
+    // Draw light cyan glow background
+    gl_set_color_alpha(0.0f, 0.8f, 1.0f, 0.2f);
+    gl_draw_circle(queen->x, queen->y, (float)(major_axis + 10.0), segments);
+    
+    // Spawn ports - 6 around equator with pulsing glow
+    double port_radius = 6.0;
+    double port_orbit = 50.0;
+    
+    // Determine port colors based on phase
+    float port_r, port_g, port_b;
+    if (queen->phase == 0) {
+        port_r = 1.0f; port_g = 0.2f; port_b = 0.2f;  // Red
+    } else if (queen->phase == 1) {
+        port_r = 1.0f; port_g = 0.5f; port_b = 0.8f;  // Magenta
+    } else {
+        port_r = 0.8f; port_g = 0.3f; port_b = 1.0f;  // Purple
+    }
+    
+    // Pulsing glow intensity
+    double glow_intensity = 0.5 + 0.5 * sin(queen->spawn_particle_timer * 5.0);
+    
+    for (int i = 0; i < 6; i++) {
+        double angle = 2.0 * M_PI * i / 6.0;
+        double px = cos(angle) * port_orbit;
+        double py = sin(angle) * port_orbit * 0.6;
+        
+        // Outer glow
+        gl_set_color_alpha(port_r, port_g, port_b, (float)(glow_intensity * 0.5));
+        gl_draw_circle(queen->x + px, queen->y + py, (float)(port_radius + 4.0), 16);
+        
+        // Port center (brighter)
+        gl_set_color(port_r, port_g, port_b);
+        gl_draw_circle(queen->x + px, queen->y + py, (float)port_radius, 16);
+    }
+    
+    // Damage flash overlay
+    if (queen->damage_flash_timer > 0) {
+        gl_set_color_alpha(1.0f, 0.5f, 0.5f, 0.4f);
+        gl_draw_circle(queen->x, queen->y, (float)major_axis, 32);
+    }
+    
+    // Red pulsing core
+    double core_size = 12.0 + 3.0 * sin(queen->phase_timer * 3.0);
+    gl_set_color(1.0f, 0.2f, 0.2f);
+    gl_draw_circle(queen->x, queen->y, (float)core_size, 16);
+    
+    // Health bar above boss
+    double bar_width = 100.0;
+    double bar_height = 8.0;
+    double bar_x = queen->x - bar_width / 2.0;
+    double bar_y = queen->y - 70.0;
+    
+    // Health bar - Background
+    gl_set_color(0.2f, 0.2f, 0.2f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+    
+    // Health fill
+    double health_ratio = (double)queen->health / queen->max_health;
+    gl_set_color(1.0f, 0.2f, 0.2f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)(bar_width * health_ratio), (float)bar_height);
+    
+    // Health bar border
     gl_set_color(1.0f, 1.0f, 1.0f);
-    gl_draw_circle_outline(queen->x, queen->y, 60.0f, 2.0f, 20);
+    gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
+    
+    // Shield bar below health bar
+    double shield_y = bar_y + bar_height + 2.0;
+    
+    // Shield bar - Background
+    gl_set_color(0.2f, 0.2f, 0.2f);
+    gl_draw_rect_filled((float)bar_x, (float)shield_y, (float)bar_width, (float)bar_height);
+    
+    // Shield fill (cyan)
+    double shield_ratio = (double)queen->shield_health / queen->max_shield_health;
+    gl_set_color(0.0f, 1.0f, 1.0f);
+    gl_draw_rect_filled((float)bar_x, (float)shield_y, (float)(bar_width * shield_ratio), (float)bar_height);
+    
+    // Shield bar border
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    gl_draw_rect_outline((float)bar_x, (float)shield_y, (float)bar_width, (float)bar_height, 1.0f);
+    
+    // Phase indicator text
+    const char *phase_text = "";
+    float text_r = 1.0f, text_g = 0.5f, text_b = 0.0f;
+    
+    if (queen->phase == 0) {
+        phase_text = "RECRUITING";
+        text_r = 1.0f; text_g = 0.5f; text_b = 0.0f;  // Orange
+    } else if (queen->phase == 1) {
+        phase_text = "AGGRESSIVE";
+        text_r = 1.0f; text_g = 1.0f; text_b = 0.0f;  // Yellow
+    } else {
+        phase_text = "DESPERATE!";
+        text_r = 1.0f; text_g = 0.0f; text_b = 0.0f;  // Red
+    }
+    
+    gl_set_color(text_r, text_g, text_b);
+    gl_draw_text_simple(phase_text, (int)(queen->x - 35), (int)(queen->y + 75), 11);
 }
 
 void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height) {
