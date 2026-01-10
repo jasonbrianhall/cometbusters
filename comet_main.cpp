@@ -1,11 +1,10 @@
-#include "cometbuster.h"
-#include "visualization.h"
-#include "audio_wad.h"
-#include "comet_help.h"
-
-
 #include <gtk/gtk.h>
-#include <cairo.h>
+#ifndef USEGL
+    #include <cairo.h>
+#else
+    #include <GL/glew.h>
+    #include <GL/gl.h>
+#endif
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
@@ -24,10 +23,10 @@
     #include <signal.h>
 #endif
 
-#ifdef USEGL
-    #include <GL/glew.h>
-    #include <GL/gl.h>
-#endif
+#include "cometbuster.h"
+#include "visualization.h"
+#include "audio_wad.h"
+#include "comet_help.h"
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -2100,106 +2099,6 @@ gboolean game_update_timer(gpointer data) {
     return TRUE;  // Continue timer
 }
 
-#ifdef USEGL
-// OpenGL initialization - called when GL context is created
-static gboolean on_realize(GtkGLArea *area, gpointer data) {
-    gtk_gl_area_make_current(area);
-    
-    // Initialize GLEW (only once)
-    static gboolean glew_initialized = FALSE;
-    if (!glew_initialized) {
-        GLenum err = glewInit();
-        if (err != GLEW_OK) {
-            g_warning("GLEW initialization failed: %s", glewGetErrorString(err));
-            return FALSE;
-        }
-        glew_initialized = TRUE;
-    }
-    
-    // Set OpenGL state
-    glClearColor(0.04f, 0.06f, 0.15f, 1.0f);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_LINE_SMOOTH);
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glEnable(GL_POINT_SMOOTH);
-    glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-    
-    return TRUE;
-}
-
-// OpenGL render callback - called every frame
-static gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
-    CometGUI *gui = (CometGUI *)data;
-    if (!gui) return FALSE;
-    
-    // Get window dimensions
-    int width = gtk_widget_get_allocated_width(GTK_WIDGET(area));
-    int height = gtk_widget_get_allocated_height(GTK_WIDGET(area));
-    
-    // Don't render if window is too small
-    if (width <= 1 || height <= 1) {
-        gtk_widget_queue_draw(GTK_WIDGET(area));
-        return TRUE;
-    }
-    
-    // Clear the screen
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, width, height);
-    
-    // Set up 2D projection for debugging
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0, width, height, 0, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    
-    // DEBUG: Draw a simple colored rectangle to verify OpenGL works
-    glColor3f(1.0f, 0.5f, 0.0f);  // Orange
-    glBegin(GL_QUADS);
-    glVertex2f(50, 50);
-    glVertex2f(200, 50);
-    glVertex2f(200, 200);
-    glVertex2f(50, 200);
-    glEnd();
-    
-    // Restore matrices
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-    
-    // Fixed game resolution
-    int game_width = 1920;
-    int game_height = 1080;
-    gui->visualizer.width = game_width;
-    gui->visualizer.height = game_height;
-    
-    // Draw the game using OpenGL
-    draw_comet_buster(&gui->visualizer, NULL);
-    
-    // Update game logic
-    double current_time = g_get_monotonic_time() / 1000000.0;
-    static double last_time = 0.0;
-    double dt = (last_time > 0) ? (current_time - last_time) : 0.016;
-    last_time = current_time;
-    
-    // Cap dt to prevent large jumps
-    if (dt > 0.1) dt = 0.016;
-    
-    // Update game state
-    update_comet_buster(&gui->visualizer, dt);
-    
-    // Request continuous redraw
-    gtk_widget_queue_draw(GTK_WIDGET(area));
-    
-    return TRUE;
-}
-#endif
-
-#ifndef USEGL
 gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return FALSE;
@@ -2225,8 +2124,14 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     // Use uniform scaling to avoid distortion
     double scale = (scale_x < scale_y) ? scale_x : scale_y;
     
-    // Apply the scale transform to cairo
+#ifndef USEGL
+    // Apply the scale transform to cairo (only for Cairo rendering)
     cairo_scale(cr, scale, scale);
+#else
+    // OpenGL rendering setup would go here
+    // Note: The scale factor is handled in the OpenGL projection matrix
+    (void)scale;  // Suppress unused variable warning in OpenGL mode
+#endif
     
     // Game always renders at logical size
     gui->visualizer.width = game_width;
@@ -2234,23 +2139,42 @@ gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
     
     // Draw victory scroll if game is won
     if (gui->visualizer.comet_buster.game_won && gui->visualizer.comet_buster.splash_screen_active) {
+#ifndef USEGL
         comet_buster_draw_victory_scroll(&gui->visualizer.comet_buster, cr, game_width, game_height);
+#else
+        comet_buster_draw_victory_scroll(&gui->visualizer.comet_buster, NULL, game_width, game_height);
+#endif
     }
     // Draw finale splash (Wave 30 victory) if active
     else if (gui->visualizer.comet_buster.finale_splash_active) {
-        draw_comet_buster(&gui->visualizer, cr);  // Draw game in background
+#ifndef USEGL
+        draw_comet_buster(&gui->visualizer, cr);  // Draw game in background (Cairo)
+#else
+        draw_comet_buster(&gui->visualizer, NULL);  // Draw game in background (OpenGL)
+#endif
+#ifndef USEGL
         comet_buster_draw_finale_splash(&gui->visualizer.comet_buster, cr, game_width, game_height);
+#else
+        comet_buster_draw_finale_splash(&gui->visualizer.comet_buster, NULL, game_width, game_height);
+#endif
     }
     // Draw splash screen if active, otherwise draw normal game
     else if (gui->visualizer.comet_buster.splash_screen_active) {
+#ifndef USEGL
         comet_buster_draw_splash_screen(&gui->visualizer.comet_buster, cr, game_width, game_height);
+#else
+        comet_buster_draw_splash_screen(&gui->visualizer.comet_buster, NULL, game_width, game_height);
+#endif
     } else {
-        draw_comet_buster(&gui->visualizer, cr);
+#ifndef USEGL
+        draw_comet_buster(&gui->visualizer, cr);  // Cairo rendering
+#else
+        draw_comet_buster(&gui->visualizer, NULL);  // OpenGL rendering
+#endif
     }
     
     return FALSE;
 }
-#endif
 
 // Helper function to calculate current zoom scale
 static double get_current_zoom_scale(GtkWidget *widget) {
@@ -2878,16 +2802,7 @@ int main(int argc, char *argv[]) {
     update_status_text(&gui);
     
     // Drawing area - scales with window
-#ifdef USEGL
-    // OpenGL rendering area
-    gui.drawing_area = gtk_gl_area_new();
-    gtk_gl_area_set_has_depth_buffer(GTK_GL_AREA(gui.drawing_area), TRUE);
-    gtk_gl_area_set_has_stencil_buffer(GTK_GL_AREA(gui.drawing_area), FALSE);
-    gtk_gl_area_set_auto_render(GTK_GL_AREA(gui.drawing_area), TRUE);
-#else
-    // Cairo rendering area
     gui.drawing_area = gtk_drawing_area_new();
-#endif
     gtk_widget_set_size_request(gui.drawing_area, -1, -1);  // Dynamic sizing
     gtk_widget_set_can_focus(gui.drawing_area, TRUE);  // Allow focus
     gtk_widget_add_events(gui.drawing_area, 
@@ -2897,14 +2812,7 @@ int main(int argc, char *argv[]) {
                          GDK_KEY_PRESS_MASK |
                          GDK_KEY_RELEASE_MASK |
                          GDK_SCROLL_MASK);
-#ifdef USEGL
-    // OpenGL signal handlers
-    g_signal_connect(gui.drawing_area, "realize", G_CALLBACK(on_realize), &gui);
-    g_signal_connect(gui.drawing_area, "render", G_CALLBACK(on_render), &gui);
-#else
-    // Cairo signal handler
     g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
-#endif
     g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
     g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
     g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);

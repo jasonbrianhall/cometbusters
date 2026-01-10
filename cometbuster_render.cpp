@@ -2593,6 +2593,7 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
         const char *continue_text = "RIGHT-CLICK TO CONTINUE TO WAVE 31";
         cairo_text_extents(cr, continue_text, &extents);
         cairo_move_to(cr, width/2.0 - extents.width/2.0, height - 50);
+        cairo_show_text(cr, continue_text);
     }
 }
 
