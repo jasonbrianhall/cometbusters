@@ -671,4 +671,44 @@ void draw_singularity_boss(BossShip *boss, cairo_t *cr, int width, int height);
 void comet_buster_update_victory_scroll(CometBusterGame *game, double dt);
 void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int width, int height);
 void comet_buster_exit_victory_scroll(CometBusterGame *game);
+
+// GL Versions
+
+// Main rendering function
+
+// Game element drawing functions
+void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_bullets_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_ufos_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_enemy_bullets_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_bombs_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_canisters_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_missile_pickups_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_bomb_pickups_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height);
+
+// Boss drawing functions
+void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height);
+void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int height);
+void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height);
+void draw_harbinger_boss_gl(BossShip *boss, void *cr, int width, int height);
+void draw_star_vortex_boss_gl(BossShip *boss, void *cr, int width, int height);
+void draw_singularity_boss_gl(BossShip *boss, void *cr, int width, int height);
+
+// UI and effects drawing functions
+void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int height);
+void draw_comet_buster_game_over_gl(CometBusterGame *game, void *cr, int width, int height);
+void boss_explosion_draw_gl(BossExplosion *explosion, void *cr);
+void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int width, int height);
+void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int width, int height);
+void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int width, int height);
+
+// Update functions
+void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt);
+void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt);
+
+
 #endif // COMETBUSTER_H

@@ -237,4 +237,7 @@ void comet_buster_update_ufos(CometBusterGame *game, double dt, int width, int h
 void comet_buster_spawn_spread_fire(CometBusterGame *game, void *vis);
 bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p, Visualizer *visualizer);
 
+void draw_comet_buster_gl(Visualizer *visualizer, void *gl_context);
+
+
 #endif

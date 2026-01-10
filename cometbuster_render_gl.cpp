@@ -1134,8 +1134,8 @@ static gboolean on_realize(GtkGLArea *area, gpointer data) {
 
 // OpenGL render callback - called every frame
 static gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
-    CometGUI *gui = (CometGUI *)data;
-    if (!gui) return FALSE;
+    Visualizer *vis = (Visualizer *)data;
+    if (!vis) return FALSE;
     
     // Get window dimensions
     int width = gtk_widget_get_allocated_width(GTK_WIDGET(area));
@@ -1178,11 +1178,11 @@ static gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data)
     // Fixed game resolution
     int game_width = 1920;
     int game_height = 1080;
-    gui->visualizer.width = game_width;
-    gui->visualizer.height = game_height;
+    vis->width = game_width;
+    vis->height = game_height;
     
     // Draw the game using OpenGL
-    draw_comet_buster_gl(&gui->visualizer, NULL);
+    draw_comet_buster_gl(vis, NULL);
     
     // Update game logic
     double current_time = g_get_monotonic_time() / 1000000.0;
@@ -1194,7 +1194,7 @@ static gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data)
     if (dt > 0.1) dt = 0.016;
     
     // Update game state
-    update_comet_buster(&gui->visualizer, dt);
+    update_comet_buster(vis, dt);
     
     // Request continuous redraw
     gtk_widget_queue_draw(GTK_WIDGET(area));
