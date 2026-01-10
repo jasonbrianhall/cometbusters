@@ -966,35 +966,90 @@ void draw_comet_buster_enemy_bullets_gl(CometBusterGame *game, void *cr, int wid
 
 void draw_comet_buster_canisters_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr;
+    (void)width;
+    (void)height;
+    
     for (int i = 0; i < game->canister_count; i++) {
-        Canister *can = &game->canisters[i];
-        if (!can->active) continue;
-        gl_set_color(1.0f, 1.0f, 0.0f);
-        gl_draw_rect_filled(can->x - 5, can->y - 5, 10.0f, 10.0f);
+        Canister *c = &game->canisters[i];
+        if (!c->active) continue;
+        
+        // Alpha based on remaining lifetime (fade out near end)
+        float alpha = 1.0f;
+        if (c->lifetime < 2.0) {
+            alpha = (float)(c->lifetime / 2.0);
+        }
+        
+        // Draw shield shape as a simple circle for now (easier to debug)
+        // Darker cyan fill
+        gl_set_color_alpha(0.0f, 0.6f, 0.8f, alpha * 0.3f);
+        gl_draw_circle(c->x, c->y, 12.0f, 24);
+        
+        // Bright cyan outline
+        gl_set_color_alpha(0.0f, 1.0f, 1.0f, alpha);
+        gl_draw_circle_outline(c->x, c->y, 12.0f, 2.0f, 24);
+        
+        // Draw medical cross in center
+        gl_set_color_alpha(0.0f, 1.0f, 1.0f, alpha);
+        float cross_size = 5.0f;
+        gl_draw_line(c->x - cross_size, (float)c->y, c->x + cross_size, (float)c->y, 1.5f);
+        gl_draw_line((float)c->x, c->y - cross_size, (float)c->x, c->y + cross_size, 1.5f);
     }
 }
 
 void draw_comet_buster_missile_pickups_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr; (void)width; (void)height;
+    
     for (int i = 0; i < game->missile_pickup_count; i++) {
         MissilePickup *pickup = &game->missile_pickups[i];
         if (!pickup->active) continue;
-        gl_set_color(0.5f, 0.5f, 1.0f);
-        gl_draw_circle(pickup->x, pickup->y, 8.0f, 12);
-        gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_circle_outline(pickup->x, pickup->y, 8.0f, 1.0f, 12);
+        
+        // Alpha fade out in last 2 seconds
+        float alpha = 1.0f;
+        if (pickup->lifetime < 2.0) {
+            alpha = (float)(pickup->lifetime / 2.0);
+        }
+        
+        double size = 10.0;
+        
+        // Draw X shape (orange lines)
+        gl_set_color_alpha(1.0f, 0.65f, 0.0f, alpha);
+        gl_draw_line((float)(pickup->x - size), (float)(pickup->y - size), 
+                     (float)(pickup->x + size), (float)(pickup->y + size), 2.5f);
+        gl_draw_line((float)(pickup->x + size), (float)(pickup->y - size), 
+                     (float)(pickup->x - size), (float)(pickup->y + size), 2.5f);
+        
+        // Draw circle outline (orange)
+        gl_draw_circle_outline(pickup->x, pickup->y, size + 4.0, 1.5f, 24);
+        
+        // Draw yellow filled circle in center
+        gl_set_color_alpha(1.0f, 1.0f, 0.0f, alpha);
+        gl_draw_circle(pickup->x, pickup->y, 2.5f, 12);
     }
 }
 
 void draw_comet_buster_bomb_pickups_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr; (void)width; (void)height;
+    
     for (int i = 0; i < game->bomb_pickup_count; i++) {
-        BombPickup *pickup = &game->bomb_pickups[i];
-        if (!pickup->active) continue;
-        gl_set_color(1.0f, 0.0f, 1.0f);
-        gl_draw_rect_filled(pickup->x - 8, pickup->y - 8, 16.0f, 16.0f);
-        gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_rect_outline(pickup->x - 8, pickup->y - 8, 16.0f, 16.0f, 1.0f);
+        BombPickup *p = &game->bomb_pickups[i];
+        if (!p->active) continue;
+        
+        // Alpha fade out in last 2 seconds
+        float alpha = 1.0f;
+        if (p->lifetime < 2.0) {
+            alpha = (float)(p->lifetime / 2.0);
+        }
+        
+        // Draw main bomb circle (orange/yellow)
+        gl_set_color_alpha(1.0f, 0.7f, 0.0f, alpha);
+        gl_draw_circle(p->x, p->y, 12.0f, 24);
+        
+        // Draw fuse (line sticking out from top)
+        gl_set_color_alpha(0.8f, 0.4f, 0.2f, alpha);
+        gl_draw_line((float)p->x, (float)p->y - 12.0f, (float)p->x, (float)p->y - 22.0f, 1.5f);
     }
 }
 

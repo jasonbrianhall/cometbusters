@@ -1270,6 +1270,10 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
         // 10% chance to spawn shield canister
         comet_buster_spawn_canister(game, ufo->x, ufo->y);
     }
+    printf("Spawning missile, bomb, canister\n");
+    //comet_buster_spawn_missile_pickup(game, ufo->x, ufo->y);
+    comet_buster_spawn_canister(game, ufo->x, ufo->y);
+    comet_buster_spawn_bomb_pickup(game, ufo->x, ufo->y);
     // 70% chance to drop nothing
     
     ufo->active = false;
