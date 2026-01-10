@@ -44,6 +44,7 @@ typedef struct {
     GtkWidget *rendering_stack;   // GtkStack for safe widget switching
     GtkWidget *status_label;
     GtkWidget *menu_bar;
+    bool auto_switch_to_opengl;   // Auto-switch from Cairo to OpenGL after splash
     
     Visualizer visualizer;
     AudioManager audio;          // Audio system
@@ -1940,6 +1941,17 @@ gboolean game_update_timer(gpointer data) {
             // Exit the splash screen
             comet_buster_exit_splash_screen(&gui->visualizer.comet_buster);
             
+            // Auto-switch to OpenGL if appropriate
+            if (gui->auto_switch_to_opengl && gui->rendering_engine == 0) {
+                fprintf(stdout, "[SPLASH] Auto-switching to OpenGL for gameplay\n");
+                if (gui->rendering_stack) {
+                    gtk_stack_set_visible_child_name(GTK_STACK(gui->rendering_stack), "opengl");
+                }
+                gtk_widget_grab_focus(gui->gl_area);
+                gui->rendering_engine = 1;
+                gui->auto_switch_to_opengl = false;  // Only do this once
+            }
+            
             // Start gameplay music rotation
 #ifdef ExternalSound
             audio_play_random_music(&gui->audio);
@@ -2494,7 +2506,7 @@ static void sigint_handler(int sig) {
  * Returns 0 for CAIRO, 1 for OPENGL
  */
 static int parse_command_line_args(int argc, char *argv[]) {
-    int rendering_engine = 1;  // Default to OpenGL (3D accelerated)
+    int rendering_engine = 0;  // Default to Cairo (splash screen rendering)
     
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--gl") == 0 || strcmp(argv[i], "--opengl") == 0) {
@@ -2506,8 +2518,8 @@ static int parse_command_line_args(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "--help") == 0) {
             printf("Usage: cometbuster [OPTIONS]\n");
             printf("Options:\n");
-            printf("  --gl, --opengl   Use OpenGL rendering engine (default)\n");
-            printf("  --cairo          Use Cairo rendering engine\n");
+            printf("  --gl, --opengl   Use OpenGL rendering engine\n");
+            printf("  --cairo          Use Cairo rendering engine (default - splash screen)\n");
             printf("  --help           Show this help message\n");
             exit(0);
         }
@@ -2586,6 +2598,9 @@ int main(int argc, char *argv[]) {
     
     // Set rendering engine
     gui.rendering_engine = rendering_engine;
+    
+    // Auto-switch to OpenGL after splash screen unless user explicitly requested Cairo
+    gui.auto_switch_to_opengl = (rendering_engine == 0);  // If starting with Cairo, auto-switch to OpenGL
     
     gui.volume_dialog = NULL;
     gui.music_volume_scale = NULL;
