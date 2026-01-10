@@ -11,6 +11,119 @@
 #include "audio_wad.h"
 #endif 
 
+static const char *OPENING_CRAWL_LINES[] = {
+    "",
+    "",
+    "COMET BUSTER",
+    "",
+    "In the not so distant future in a galaxy not so far away",
+    "",
+    "",
+    "The Kepler-442 Asteroid Field, once a",
+    "treasure trove of minerals, now lies in ruin.",
+    "Asteroids fracture, comets drift, factions clash.",
+    "",
+    "Red warships hunt without mercy.",
+    "Blue patrols guard with fragile honor.",
+    "Green drones strip-mine with ruthless speed.",
+    "And now... the PURPLE SENTINELS arrive—",
+    "enigmatic guardians with unknown intent.",
+    "",
+    "You fly the DESTINY—",
+    "an ancient warship of unknown origin,",
+    "reborn as a mining vessel,",
+    "armed with rapid-fire cannons,",
+    "advanced thrusters, hyper-accurate missles,",
+    "and omnidirectional fire.",
+    "",
+    "It is fragile, yet fierce.",
+    "It carries no banner, no allegiance,",
+    "only the will to survive.",
+    "",
+    "But survival is not enough.",
+    "Beyond the factions loom colossal threats:",
+    "MEGA BOSS SHIPS, engines of annihilation,",
+    "whose presence darkens the field itself.",
+    "",
+    "And deeper still, from the void,",
+    "alien forces gather—",
+    "a tide that consumes all in its path.",
+    "",
+    "Your mission: endure the chaos,",
+    "outwit rival factions,",
+    "and face the horrors that await.",
+    "",
+    "The asteroid field is no longer a mine.",
+    "It is a crucible of war.",
+    "",
+    "Survive. Score. Ascend.",
+    "",
+    "",
+};
+
+static const char *VICTORY_SCROLL_LINES[] = {
+    "",
+    "",
+    "",
+    "THE KEPLER-442 INCIDENT: CONCLUDED",
+    "",
+    "The asteroids... they were never truly chaotic.",
+    "",
+    "As you clear the final waves from the field,",
+    "the truth crystallizes in the wreckage of a",
+    "thousand ships. This was not a mining operation.",
+    "It was a crucible. A test.",
+    "",
+    "The three factions sent their finest.",
+    "The Red Warships of the Galactic Defense Collective.",
+    "The peaceful patrols of the Independent Sector Alliance.",
+    "The corporate drones of the Asteroid Mining Collective.",
+    "",
+    "You destroyed them all.",
+    "",
+    "The Purple Sentinels... they were watching.",
+    "Observing. Calculating. Waiting.",
+    "When the final Juggernaut fell to your fire,",
+    "they simply... departed.",
+    "",
+    "As if satisfied.",
+    "",
+    "The DESTINY's ancient systems hum with purpose.",
+    "Weapons that should not exist. Shields that defy physics.",
+    "A ship of unknown origin, reborn as a mining vessel,",
+    "now standing victorious in a field of ash and silence.",
+    "",
+    "What are you, truly?",
+    "What was the DESTINY, before?",
+    "",
+    "The void offers no answers.",
+    "Only echoes.",
+    "",
+    "You have restored order to Kepler-442.",
+    "The factions will reconsider their ambitions.",
+    "The Sentinels have completed their observations.",
+    "The Golden Juggernauts lie dormant in the dark.",
+    "",
+    "But something remains.",
+    "",
+    "At the edge of the asteroid field,",
+    "beyond the reach of conventional sensors,",
+    "something ancient stirs.",
+    "",
+    "The DESTINY's original designers are watching.",
+    "They are pleased with what you have become.",
+    "They are waiting.",
+    "",
+    "And they are preparing.",
+    "",
+    "Press any key to return to the stars...",
+    "",
+    ""
+};
+
+#define NUM_VICTORY_LINES (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES[0]))
+#define NUM_CRAWL_LINES (sizeof(OPENING_CRAWL_LINES) / sizeof(OPENING_CRAWL_LINES[0]))
+
 // ============================================================================
 // RENDERING - VECTOR-BASED ASTEROIDS
 // ============================================================================
@@ -2481,5 +2594,170 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
         cairo_text_extents(cr, continue_text, &extents);
         cairo_move_to(cr, width/2.0 - extents.width/2.0, height - 50);
         cairo_show_text(cr, continue_text);
+    }
+}
+
+void comet_buster_update_victory_scroll(CometBusterGame *game, double dt) {
+    if (!game || !game->splash_screen_active) return;
+    
+    game->splash_timer += dt;
+    
+    // Auto-advance if scroll completes (optional)
+    double line_duration = 0.8;
+    double total_duration = NUM_VICTORY_LINES * line_duration + 3.0;
+    
+    if (game->splash_timer > total_duration) {
+        // Victory scroll complete - could auto-reset here if desired
+    }
+}
+
+// ============================================================================
+// WAVE 30 FINALE SPLASH SCREEN
+// ============================================================================
+
+void comet_buster_update_finale_splash(CometBusterGame *game, double dt) {
+    if (!game || !game->finale_splash_active) return;
+    
+    game->finale_splash_timer += dt;
+    game->finale_scroll_timer += dt;
+    
+    // Auto-advance text lines every 0.6 seconds (faster scroll)
+    if (game->finale_scroll_timer >= 0.6) {
+        game->finale_scroll_line_index++;
+        game->finale_scroll_timer = 0.0;
+        
+        // When we reach the end, wait for input
+        if (game->finale_scroll_line_index >= NUM_VICTORY_LINES) {
+            game->finale_waiting_for_input = true;
+            game->finale_scroll_line_index = NUM_VICTORY_LINES - 1;
+        }
+    }
+}
+
+void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height) {
+    (void)width;
+    (void)height;
+    
+    if (!boss || !boss->active) return;
+    
+    cairo_save(cr);
+    cairo_translate(cr, boss->x, boss->y);
+    cairo_rotate(cr, boss->rotation * M_PI / 180.0);
+    
+    // Draw a 6-pointed star
+    int num_points = 6;
+    double outer_radius = 50.0;  // Increased from 30.0
+    double inner_radius = 25.0;  // Increased from 15.0
+    
+    // Star color (shifts based on phase)
+    double r = 1.0, g = 0.6, b = 0.0;  // Orange by default
+    if (boss->phase == 1) {
+        r = 1.0; g = 0.3; b = 0.3;  // Red for Phase 1
+    } else if (boss->phase == 2) {
+        r = 1.0; g = 1.0; b = 0.0;  // Yellow for Phase 2
+    }
+    
+    // Draw the star shape
+    cairo_new_path(cr);
+    for (int i = 0; i < num_points * 2; i++) {
+        double angle = (i * M_PI / num_points);
+        double radius = (i % 2 == 0) ? outer_radius : inner_radius;
+        double x = cos(angle) * radius;
+        double y = sin(angle) * radius;
+        
+        if (i == 0) {
+            cairo_move_to(cr, x, y);
+        } else {
+            cairo_line_to(cr, x, y);
+        }
+    }
+    cairo_close_path(cr);
+    
+    // Fill star
+    cairo_set_source_rgb(cr, r, g, b);
+    cairo_fill_preserve(cr);
+    
+    // Outline
+    cairo_set_source_rgb(cr, r * 0.5, g * 0.5, b * 0.5);
+    cairo_set_line_width(cr, 2.0);
+    cairo_stroke(cr);
+    
+    // Highlight/damage flash
+    if (boss->damage_flash_timer > 0) {
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, boss->damage_flash_timer);
+        cairo_arc(cr, 0, 0, outer_radius * 1.2, 0, 2.0 * M_PI);
+        cairo_fill(cr);
+    }
+    
+    // Shield visualization (if active)
+    if (boss->shield_active && boss->shield_health > 0) {
+        double shield_ratio = (double)boss->shield_health / boss->max_shield_health;
+        cairo_set_source_rgba(cr, 0.2, 0.8, 1.0, shield_ratio * 0.6);
+        cairo_set_line_width(cr, 3.0);
+        cairo_arc(cr, 0, 0, outer_radius + 10.0, 0, 2.0 * M_PI);
+        cairo_stroke(cr);
+    }
+    
+    // Draw health indicator text
+    cairo_restore(cr);
+    
+    // Health bar (above boss)
+    double bar_width = 60.0;
+    double bar_height = 8.0;
+    double bar_x = boss->x - bar_width / 2.0;
+    double bar_y = boss->y - 50.0;
+    
+    // Background
+    cairo_set_source_rgba(cr, 0.2, 0.2, 0.2, 0.8);
+    cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
+    cairo_fill(cr);
+    
+    // Health fill
+    double health_ratio = (double)boss->health / boss->max_health;
+    cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
+    cairo_rectangle(cr, bar_x, bar_y, bar_width * health_ratio, bar_height);
+    cairo_fill(cr);
+    
+    // Border
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_set_line_width(cr, 1.0);
+    cairo_rectangle(cr, bar_x, bar_y, bar_width, bar_height);
+    cairo_stroke(cr);
+    
+    // Draw countdown timer during Phase 2
+    if (boss->phase == 2) {
+        int countdown = 10 - (int)boss->phase_timer;
+        if (countdown < 0) countdown = 0;
+        if (countdown > 10) countdown = 10;
+        
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size(cr, 48.0);
+        
+        // Countdown color changes: red for most of it, yellow at end
+        double r = 1.0, g = 0.0, b = 0.0;  // Red by default
+        if (countdown <= 3) {
+            r = 1.0; g = 1.0; b = 0.0;  // Yellow for final 3 seconds
+        }
+        cairo_set_source_rgb(cr, r, g, b);
+        
+        char countdown_text[16];
+        snprintf(countdown_text, sizeof(countdown_text), "%d", countdown);
+        
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, countdown_text, &extents);
+        
+        // Center the countdown text above the boss
+        double text_x = boss->x - extents.width / 2.0;
+        double text_y = boss->y - 80.0;
+        
+        cairo_move_to(cr, text_x, text_y);
+        cairo_show_text(cr, countdown_text);
+        
+        // Add glow effect
+        cairo_set_source_rgba(cr, r, g, b, 0.3);
+        cairo_set_line_width(cr, 3.0);
+        cairo_move_to(cr, text_x, text_y);
+        cairo_show_text(cr, countdown_text);
+        cairo_stroke(cr);
     }
 }
