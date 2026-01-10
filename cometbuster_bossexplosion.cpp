@@ -158,58 +158,6 @@ void boss_explosion_update(BossExplosion *explosion, double dt) {
     explosion->active = has_active;
 }
 
-// Render explosion
-void boss_explosion_draw(BossExplosion *explosion, cairo_t *cr) {
-    if (!explosion || !cr) return;
-    
-    for (int i = 0; i < explosion->particle_count; i++) {
-        BossExplosionParticle *p = &explosion->particles[i];
-        if (!p->active) continue;
-        
-        double alpha = p->glow_intensity;
-        
-        cairo_save(cr);
-        
-        if (p->is_radial_line) {
-            // Draw radial line with glow effect
-            
-            // Calculate end point of line
-            double end_x = p->x + cos(p->angle) * p->length;
-            double end_y = p->y + sin(p->angle) * p->length;
-            
-            // Draw thick glow line (outer glow)
-            cairo_set_source_rgba(cr, p->color[0], p->color[1], p->color[2], alpha * 0.3);
-            cairo_set_line_width(cr, p->width * 4.0);
-            cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
-            cairo_move_to(cr, p->x, p->y);
-            cairo_line_to(cr, end_x, end_y);
-            cairo_stroke(cr);
-            
-            // Draw bright inner line
-            cairo_set_source_rgba(cr, p->color[0], p->color[1], p->color[2], alpha);
-            cairo_set_line_width(cr, p->width);
-            cairo_move_to(cr, p->x, p->y);
-            cairo_line_to(cr, end_x, end_y);
-            cairo_stroke(cr);
-            
-        } else {
-            // Draw glow particle as circle with halo
-            
-            // Outer glow (larger, more transparent)
-            cairo_set_source_rgba(cr, p->color[0], p->color[1], p->color[2], alpha * 0.2);
-            cairo_arc(cr, p->x, p->y, 8.0, 0, 2.0 * M_PI);
-            cairo_fill(cr);
-            
-            // Inner bright core
-            cairo_set_source_rgba(cr, p->color[0], p->color[1], p->color[2], alpha * 0.8);
-            cairo_arc(cr, p->x, p->y, 3.0, 0, 2.0 * M_PI);
-            cairo_fill(cr);
-        }
-        
-        cairo_restore(cr);
-    }
-}
-
 // Check if active
 bool boss_explosion_is_active(BossExplosion *explosion) {
     if (!explosion) return false;
