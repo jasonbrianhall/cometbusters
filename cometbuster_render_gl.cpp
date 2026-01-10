@@ -554,23 +554,174 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
 
 void draw_comet_buster_bullets_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr;
+    (void)width;
+    (void)height;
+    
     for (int i = 0; i < game->bullet_count; i++) {
         Bullet *b = &game->bullets[i];
         if (!b->active) continue;
-        gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_circle(b->x, b->y, 2.0f, 8);
+        
+        // Draw bullet as yellow diamond (4 points)
+        // Points: (x+size, y), (x, y+size), (x-size, y), (x, y-size)
+        double size = 3.0;
+        Vertex diamond_verts[5] = {
+            {(float)(b->x + size), (float)b->y, 1.0f, 1.0f, 0.0f, 1.0f},     // Right
+            {(float)b->x, (float)(b->y + size), 1.0f, 1.0f, 0.0f, 1.0f},    // Bottom
+            {(float)(b->x - size), (float)b->y, 1.0f, 1.0f, 0.0f, 1.0f},    // Left
+            {(float)b->x, (float)(b->y - size), 1.0f, 1.0f, 0.0f, 1.0f},    // Top
+            {(float)(b->x + size), (float)b->y, 1.0f, 1.0f, 0.0f, 1.0f}     // Close back to right
+        };
+        
+        // Draw filled diamond
+        gl_set_color(1.0f, 1.0f, 0.0f);
+        draw_vertices(diamond_verts, 5, GL_TRIANGLE_FAN);
+        
+        // Draw bullet trail (classic Asteroids style)
+        double trail_length = 5.0;
+        double norm_len = sqrt(b->vx * b->vx + b->vy * b->vy);
+        if (norm_len > 0.1) {
+            double trail_x = b->x - (b->vx / norm_len) * trail_length;
+            double trail_y = b->y - (b->vy / norm_len) * trail_length;
+            
+            gl_set_color_alpha(1.0f, 1.0f, 0.0f, 0.3f);
+            glLineWidth(0.5f);
+            gl_draw_line((float)trail_x, (float)trail_y, (float)b->x, (float)b->y, 0.5f);
+        }
     }
 }
 
 void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr;
+    (void)width;
+    (void)height;
+    
     for (int i = 0; i < game->enemy_ship_count; i++) {
         EnemyShip *ship = &game->enemy_ships[i];
         if (!ship->active) continue;
-        gl_set_color(1.0f, 0.5f, 0.0f);
-        gl_draw_circle(ship->x, ship->y, 10.0f, 12);
-        gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_circle_outline(ship->x, ship->y, 10.0f, 1.0f, 12);
+        
+        // Determine color based on ship type
+        float ship_r = 0.2f, ship_g = 0.6f, ship_b = 1.0f;  // Default: blue (patrol, type 0)
+        
+        switch (ship->ship_type) {
+            case 1:  // Aggressive red ship
+                ship_r = 1.0f; ship_g = 0.0f; ship_b = 0.0f;
+                break;
+            case 2:  // Hunter green ship
+                ship_r = 0.2f; ship_g = 1.0f; ship_b = 0.2f;
+                break;
+            case 3:  // Sentinel purple ship
+                ship_r = 0.8f; ship_g = 0.2f; ship_b = 1.0f;
+                break;
+            case 4:  // Brown coat elite cyan ship
+                ship_r = 0.0f; ship_g = 0.9f; ship_b = 1.0f;
+                break;
+            case 5:  // Juggernaut gold ship
+                ship_r = 1.0f; ship_g = 0.84f; ship_b = 0.0f;
+                break;
+        }
+        
+        // Determine size based on ship type
+        double ship_size;
+        if (ship->ship_type == 5) {
+            ship_size = 36.0;  // Juggernaut: 3x
+        } else if (ship->ship_type == 4) {
+            ship_size = 18.0;  // Brown coat: 1.5x
+        } else {
+            ship_size = 12.0;  // All others: 1x
+        }
+        
+        // Transform triangle points
+        float cos_a = cosf((float)ship->angle);
+        float sin_a = sinf((float)ship->angle);
+        
+        // Triangle points in local coordinates:
+        // Front: (ship_size, 0)
+        // Back left: (-ship_size, -ship_size/1.5)
+        // Back right: (-ship_size, ship_size/1.5)
+        double local_points[3][2] = {
+            {ship_size, 0},
+            {-ship_size, -ship_size / 1.5},
+            {-ship_size, ship_size / 1.5}
+        };
+        
+        // Transform to world coordinates
+        Vertex ship_verts[4];
+        for (int j = 0; j < 3; j++) {
+            float x = (float)local_points[j][0];
+            float y = (float)local_points[j][1];
+            
+            // Rotate by ship angle
+            float rotated_x = x * cos_a - y * sin_a;
+            float rotated_y = x * sin_a + y * cos_a;
+            
+            // Translate to ship position
+            rotated_x += (float)ship->x;
+            rotated_y += (float)ship->y;
+            
+            ship_verts[j] = (Vertex){rotated_x, rotated_y, ship_r, ship_g, ship_b, 1.0f};
+        }
+        
+        // Close the polygon
+        ship_verts[3] = ship_verts[0];
+        
+        // Draw filled triangle
+        gl_set_color(ship_r, ship_g, ship_b);
+        draw_vertices(ship_verts, 3, GL_TRIANGLE_FAN);
+        
+        // Draw outline
+        glLineWidth(1.5f);
+        gl_set_color(ship_r, ship_g, ship_b);
+        draw_vertices(ship_verts, 4, GL_LINE_STRIP);
+        
+        // Draw health indicator (green line at top of ship)
+        double health_x = ship->x + ship_size - 5.0;
+        double health_y_top = ship->y - ship_size - 3.0;
+        double health_y_bottom = ship->y - ship_size;
+        
+        gl_set_color(0.2f, 1.0f, 0.2f);
+        glLineWidth(1.0f);
+        gl_draw_line((float)health_x, (float)health_y_top, (float)health_x, (float)health_y_bottom, 1.0f);
+        
+        // Draw Juggernaut health bar (for type 5 only)
+        if (ship->ship_type == 5) {
+            double bar_width = 60.0;
+            double bar_height = 8.0;
+            double bar_x = ship->x - bar_width / 2.0;
+            double bar_y = ship->y + 50.0;
+            
+            // Background bar
+            gl_set_color(0.3f, 0.3f, 0.3f);
+            gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+            
+            // Outline
+            glLineWidth(1.0f);
+            gl_set_color(0.3f, 0.3f, 0.3f);
+            gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
+            
+            // Health fill (green to yellow to red)
+            double health_ratio = (double)ship->health / 10.0;
+            if (health_ratio < 0.0) health_ratio = 0.0;
+            if (health_ratio > 1.0) health_ratio = 1.0;
+            
+            float bar_r, bar_g, bar_b;
+            if (health_ratio > 0.5) {
+                // Green to yellow (high health)
+                bar_r = (1.0f - (float)health_ratio) * 2.0f;
+                bar_g = 1.0f;
+                bar_b = 0.0f;
+            } else {
+                // Yellow to red (low health)
+                bar_r = 1.0f;
+                bar_g = (float)health_ratio * 2.0f;
+                bar_b = 0.0f;
+            }
+            
+            gl_set_color(bar_r, bar_g, bar_b);
+            double fill_width = (bar_width - 2.0) * health_ratio;
+            gl_draw_rect_filled((float)(bar_x + 1.0), (float)(bar_y + 1.0), (float)fill_width, (float)(bar_height - 2.0));
+        }
     }
 }
 
@@ -856,12 +1007,13 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
         double flame_length = 30.0 * effective_intensity * length_mult;
         double flame_width = 8.0 * effective_intensity;
         
-        // Main burner flame points (pointing backward)
+        // Main burner flame points (pointing backward from back of ship)
+        // Ship back is at x = -ship_size (-12), flame extends from there
         double burner_local[4][2] = {
-            {0, -flame_width},
-            {-flame_length, -flame_width * 0.3},
-            {-flame_length, flame_width * 0.3},
-            {0, flame_width}
+            {-ship_size, -flame_width},                          // Top at back of ship
+            {-ship_size - flame_length, -flame_width * 0.3},    // Top tip of flame
+            {-ship_size - flame_length, flame_width * 0.3},     // Bottom tip of flame
+            {-ship_size, flame_width}                            // Bottom at back of ship
         };
         
         Vertex burner_verts[4];
