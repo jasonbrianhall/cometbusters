@@ -761,22 +761,184 @@ void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, 
 
 void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
-    gl_set_color(0.0f, 1.0f, 0.0f);
-    float points[] = {0.0f, -15.0f, -10.0f, 15.0f, 10.0f, 15.0f};
-    gl_draw_polygon(points, 3, 1);
-    gl_set_color(1.0f, 1.0f, 1.0f);
-    gl_draw_polygon(points, 3, 0);
+    (void)cr;
+    (void)width;
+    (void)height;
     
-    if (game->burner_intensity > 0) {
-        gl_set_color(1.0f, 0.5f, 0.0f);
-        float thrust_points[] = {-5.0f, 15.0f, 5.0f, 15.0f, 0.0f, 15.0f + 20.0f * game->burner_intensity};
-        gl_draw_polygon(thrust_points, 3, 1);
+    // ========== MAIN SHIP BODY ==========
+    double ship_size = 12.0;
+    float cos_a = cosf((float)game->ship_angle);
+    float sin_a = sinf((float)game->ship_angle);
+    
+    // Ship triangle points (in local coordinates):
+    // (12,0), (-12,-12), (-3.6,0), (-12,12), close back to (12,0)
+    double local_points[4][2] = {
+        {ship_size, 0},           // Front point
+        {-ship_size, -ship_size}, // Top left
+        {-ship_size * 0.3, 0},    // Side notch
+        {-ship_size, ship_size}   // Bottom left
+    };
+    
+    // Transform points to world coordinates
+    Vertex ship_verts[5];
+    for (int i = 0; i < 4; i++) {
+        float x = (float)local_points[i][0];
+        float y = (float)local_points[i][1];
+        
+        // Rotate by ship angle
+        float rotated_x = x * cos_a - y * sin_a;
+        float rotated_y = x * sin_a + y * cos_a;
+        
+        // Translate to ship position
+        rotated_x += (float)game->ship_x;
+        rotated_y += (float)game->ship_y;
+        
+        // Determine color with invulnerability flash
+        float r = 0.0f, g = 1.0f, b = 0.0f;
+        float a = 1.0f;
+        
+        if (game->invulnerability_time > 0) {
+            float flash = sinf((float)game->invulnerability_time * 10.0f) * 0.5f + 0.5f;
+            a = flash;
+        }
+        
+        ship_verts[i] = (Vertex){rotated_x, rotated_y, r, g, b, a};
     }
     
+    // Close the polygon by repeating first vertex (like cairo_close_path)
+    ship_verts[4] = ship_verts[0];
+    
+    // Draw outline only - NO FILL (just stroke like Cairo version)
+    gl_set_color(0.0f, 1.0f, 0.0f);
+    glLineWidth(2.0f);
+    draw_vertices(ship_verts, 5, GL_LINE_STRIP);
+    
+    // ========== MUZZLE FLASH ==========
+    if (game->muzzle_flash_timer > 0) {
+        float alpha = (float)(game->muzzle_flash_timer / 0.1);
+        if (alpha > 1.0f) alpha = 1.0f;
+        
+        // Muzzle flash triangle: (12,0), (12+20,-5), (12+20,5), close
+        double muzzle_local[3][2] = {
+            {ship_size, 0},
+            {ship_size + 20.0, -5.0},
+            {ship_size + 20.0, 5.0}
+        };
+        
+        Vertex muzzle_verts[3];
+        for (int i = 0; i < 3; i++) {
+            float x = (float)muzzle_local[i][0];
+            float y = (float)muzzle_local[i][1];
+            
+            float rotated_x = x * cos_a - y * sin_a;
+            float rotated_y = x * sin_a + y * cos_a;
+            
+            rotated_x += (float)game->ship_x;
+            rotated_y += (float)game->ship_y;
+            
+            muzzle_verts[i] = (Vertex){rotated_x, rotated_y, 1.0f, 1.0f, 0.0f, alpha};
+        }
+        
+        gl_set_color_alpha(1.0f, 1.0f, 0.0f, alpha);
+        draw_vertices(muzzle_verts, 3, GL_TRIANGLE_FAN);
+    }
+    
+    // ========== BURNER/THRUSTER EFFECT ==========
+    if (game->burner_intensity > 0.01) {
+        // Flicker effect
+        float flicker = 0.7f + 0.3f * sinf((float)game->burner_intensity * 20.0f);
+        float effective_intensity = (float)game->burner_intensity * flicker;
+        
+        // Calculate speed for length multiplier
+        double speed = sqrt(game->ship_vx * game->ship_vx + game->ship_vy * game->ship_vy);
+        double length_mult = 1.0 + (speed / 150.0) * 0.5;
+        
+        double flame_length = 30.0 * effective_intensity * length_mult;
+        double flame_width = 8.0 * effective_intensity;
+        
+        // Main burner flame points (pointing backward)
+        double burner_local[4][2] = {
+            {0, -flame_width},
+            {-flame_length, -flame_width * 0.3},
+            {-flame_length, flame_width * 0.3},
+            {0, flame_width}
+        };
+        
+        Vertex burner_verts[4];
+        for (int i = 0; i < 4; i++) {
+            float x = (float)burner_local[i][0];
+            float y = (float)burner_local[i][1];
+            
+            float rotated_x = x * cos_a - y * sin_a;
+            float rotated_y = x * sin_a + y * cos_a;
+            
+            rotated_x += (float)game->ship_x;
+            rotated_y += (float)game->ship_y;
+            
+            // Flame color gradient: yellow -> orange -> red
+            float color_r = 1.0f;
+            float color_g = 0.7f * (1.0f - (float)i / 3.0f);  // Fade orange
+            float color_b = 0.0f;
+            
+            burner_verts[i] = (Vertex){rotated_x, rotated_y, color_r, color_g, color_b, effective_intensity * 0.7f};
+        }
+        
+        gl_set_color_alpha(1.0f, 0.7f, 0.0f, effective_intensity * 0.7f);
+        draw_vertices(burner_verts, 4, GL_TRIANGLE_FAN);
+    }
+    
+    // ========== SHIELD CIRCLE ==========
     if (game->shield_health > 0) {
-        double shield_alpha = (double)game->shield_health / game->max_shield_health;
-        gl_set_color_alpha(0.2f, 0.8f, 1.0f, shield_alpha * 0.5f);
-        gl_draw_circle_outline(game->ship_x, game->ship_y, 25.0f, 2.0f, 16);
+        float shield_alpha = (float)game->shield_health / (float)game->max_shield_health;
+        
+        // Shield color: cyan when healthy, orange when medium, red when critical
+        float shield_r = 0.0f, shield_g = 1.0f, shield_b = 1.0f;
+        if (game->shield_health >= 2) {
+            shield_r = 0.0f; shield_g = 1.0f; shield_b = 1.0f;  // Cyan
+        } else if (game->shield_health >= 1) {
+            shield_r = 1.0f; shield_g = 0.8f; shield_b = 0.0f;  // Orange
+        } else {
+            shield_r = 1.0f; shield_g = 0.3f; shield_b = 0.3f;  // Red
+        }
+        
+        // Draw shield circle
+        gl_set_color_alpha(shield_r, shield_g, shield_b, shield_alpha * 0.6f);
+        gl_draw_circle_outline((float)game->ship_x, (float)game->ship_y, 28.0f, 2.5f, 24);
+        
+        // Draw shield segment pips
+        glLineWidth(1.5f);
+        double segment_angle = (2.0 * M_PI) / game->max_shield_health;
+        
+        for (int i = 0; i < game->shield_health; i++) {
+            double angle = (i * segment_angle) - (M_PI / 2.0);
+            double x1 = 24.0 * cos(angle);
+            double y1 = 24.0 * sin(angle);
+            double x2 = 32.0 * cos(angle);
+            double y2 = 32.0 * sin(angle);
+            
+            gl_draw_line((float)(game->ship_x + x1), (float)(game->ship_y + y1),
+                        (float)(game->ship_x + x2), (float)(game->ship_y + y2),
+                        1.5f);
+        }
+        
+        // Draw impact flash
+        if (game->shield_impact_timer > 0) {
+            float flash_alpha = (float)(game->shield_impact_timer / 0.2);
+            if (flash_alpha > 1.0f) flash_alpha = 1.0f;
+            
+            double impact_x = 28.0 * cos(game->shield_impact_angle);
+            double impact_y = 28.0 * sin(game->shield_impact_angle);
+            
+            // Bright white flash
+            gl_set_color_alpha(1.0f, 1.0f, 1.0f, flash_alpha * 0.8f);
+            gl_draw_circle((float)(game->ship_x + impact_x), (float)(game->ship_y + impact_y), 5.0f, 12);
+            
+            // Expanding rings
+            double ring_radius = 8.0 + (1.0 - flash_alpha) * 12.0;
+            gl_set_color_alpha(1.0f, 1.0f, 1.0f, flash_alpha * 0.4f);
+            gl_draw_circle_outline((float)(game->ship_x + impact_x), (float)(game->ship_y + impact_y), 
+                                  (float)ring_radius, 1.0f, 16);
+        }
     }
 }
 
