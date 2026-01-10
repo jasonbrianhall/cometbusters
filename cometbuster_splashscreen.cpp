@@ -11,10 +11,123 @@
 // OPENING CRAWL TEXT - PROPER LINE BY LINE
 // ============================================================================
 
+static const char *OPENING_CRAWL_LINES[] = {
+    "",
+    "",
+    "COMET BUSTER",
+    "",
+    "In the not so distant future in a galaxy not so far away",
+    "",
+    "",
+    "The Kepler-442 Asteroid Field, once a",
+    "treasure trove of minerals, now lies in ruin.",
+    "Asteroids fracture, comets drift, factions clash.",
+    "",
+    "Red warships hunt without mercy.",
+    "Blue patrols guard with fragile honor.",
+    "Green drones strip-mine with ruthless speed.",
+    "And now... the PURPLE SENTINELS arrive—",
+    "enigmatic guardians with unknown intent.",
+    "",
+    "You fly the DESTINY—",
+    "an ancient warship of unknown origin,",
+    "reborn as a mining vessel,",
+    "armed with rapid-fire cannons,",
+    "advanced thrusters, hyper-accurate missles,",
+    "and omnidirectional fire.",
+    "",
+    "It is fragile, yet fierce.",
+    "It carries no banner, no allegiance,",
+    "only the will to survive.",
+    "",
+    "But survival is not enough.",
+    "Beyond the factions loom colossal threats:",
+    "MEGA BOSS SHIPS, engines of annihilation,",
+    "whose presence darkens the field itself.",
+    "",
+    "And deeper still, from the void,",
+    "alien forces gather—",
+    "a tide that consumes all in its path.",
+    "",
+    "Your mission: endure the chaos,",
+    "outwit rival factions,",
+    "and face the horrors that await.",
+    "",
+    "The asteroid field is no longer a mine.",
+    "It is a crucible of war.",
+    "",
+    "Survive. Score. Ascend.",
+    "",
+    "",
+};
+
+#define NUM_CRAWL_LINES (sizeof(OPENING_CRAWL_LINES) / sizeof(OPENING_CRAWL_LINES[0]))
 
 // ============================================================================
 // VICTORY SCROLL TEXT - FINALE WHEN WAVE 30 IS BEATEN
 // ============================================================================
+
+static const char *VICTORY_SCROLL_LINES[] = {
+    "",
+    "",
+    "",
+    "THE KEPLER-442 INCIDENT: CONCLUDED",
+    "",
+    "The asteroids... they were never truly chaotic.",
+    "",
+    "As you clear the final waves from the field,",
+    "the truth crystallizes in the wreckage of a",
+    "thousand ships. This was not a mining operation.",
+    "It was a crucible. A test.",
+    "",
+    "The three factions sent their finest.",
+    "The Red Warships of the Galactic Defense Collective.",
+    "The peaceful patrols of the Independent Sector Alliance.",
+    "The corporate drones of the Asteroid Mining Collective.",
+    "",
+    "You destroyed them all.",
+    "",
+    "The Purple Sentinels... they were watching.",
+    "Observing. Calculating. Waiting.",
+    "When the final Juggernaut fell to your fire,",
+    "they simply... departed.",
+    "",
+    "As if satisfied.",
+    "",
+    "The DESTINY's ancient systems hum with purpose.",
+    "Weapons that should not exist. Shields that defy physics.",
+    "A ship of unknown origin, reborn as a mining vessel,",
+    "now standing victorious in a field of ash and silence.",
+    "",
+    "What are you, truly?",
+    "What was the DESTINY, before?",
+    "",
+    "The void offers no answers.",
+    "Only echoes.",
+    "",
+    "You have restored order to Kepler-442.",
+    "The factions will reconsider their ambitions.",
+    "The Sentinels have completed their observations.",
+    "The Golden Juggernauts lie dormant in the dark.",
+    "",
+    "But something remains.",
+    "",
+    "At the edge of the asteroid field,",
+    "beyond the reach of conventional sensors,",
+    "something ancient stirs.",
+    "",
+    "The DESTINY's original designers are watching.",
+    "They are pleased with what you have become.",
+    "They are waiting.",
+    "",
+    "And they are preparing.",
+    "",
+    "Press any key to return to the stars...",
+    "",
+    ""
+};
+
+#define NUM_VICTORY_LINES (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES[0]))
 
 // ============================================================================
 
@@ -361,6 +474,20 @@ void comet_buster_show_victory_scroll(CometBusterGame *game) {
 #endif
 }
 
+void comet_buster_update_victory_scroll(CometBusterGame *game, double dt) {
+    if (!game || !game->splash_screen_active) return;
+    
+    game->splash_timer += dt;
+    
+    // Auto-advance if scroll completes (optional)
+    double line_duration = 0.8;
+    double total_duration = NUM_VICTORY_LINES * line_duration + 3.0;
+    
+    if (game->splash_timer > total_duration) {
+        // Victory scroll complete - could auto-reset here if desired
+    }
+}
+
 bool comet_buster_victory_scroll_input_detected(CometBusterGame *game, Visualizer *visualizer) {
     if (!game || !game->splash_screen_active || !game->game_won) return false;
     if (game->splash_timer < 2.0) return false;  // Minimum display time
@@ -391,4 +518,27 @@ void comet_buster_exit_victory_scroll(CometBusterGame *game) {
     
     // Reset game to return to menu
     comet_buster_reset_game(game);
+}
+
+// ============================================================================
+// WAVE 30 FINALE SPLASH SCREEN
+// ============================================================================
+
+void comet_buster_update_finale_splash(CometBusterGame *game, double dt) {
+    if (!game || !game->finale_splash_active) return;
+    
+    game->finale_splash_timer += dt;
+    game->finale_scroll_timer += dt;
+    
+    // Auto-advance text lines every 0.6 seconds (faster scroll)
+    if (game->finale_scroll_timer >= 0.6) {
+        game->finale_scroll_line_index++;
+        game->finale_scroll_timer = 0.0;
+        
+        // When we reach the end, wait for input
+        if (game->finale_scroll_line_index >= NUM_VICTORY_LINES) {
+            game->finale_waiting_for_input = true;
+            game->finale_scroll_line_index = NUM_VICTORY_LINES - 1;
+        }
+    }
 }
