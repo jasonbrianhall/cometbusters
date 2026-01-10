@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <pango/pango.h>
+#include <gtk/gtk.h>
 #include "cometbuster.h"
 #include "visualization.h"
 
@@ -1276,13 +1278,350 @@ void draw_singularity_boss_gl(BossShip *boss, void *cr, int width, int height) {
     gl_draw_circle_outline(boss->x, boss->y, 50.0f, 3.0f, 20);
 }
 
+// ============================================================================
+// TEXT RENDERING HELPER - Simple OpenGL only (no Cairo)
+// ============================================================================
+
+// Simple monospace bitmap font - render characters using lines and rectangles
+// Each character is represented on a 6x8 grid
+static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
+    if (!text || !text[0]) return;
+    
+    // Character width and height based on font size
+    float char_width = font_size * 0.6f;
+    float char_height = font_size * 0.9f;
+    
+    float start_x = (float)x;
+    float start_y = (float)y;
+    
+    glLineWidth(1.5f);
+    glBegin(GL_LINES);
+    
+    for (int i = 0; text[i]; i++) {
+        char ch = text[i];
+        float cx = start_x + i * char_width;
+        float cy = start_y;
+        
+        if (ch == ' ') {
+            continue;
+        }
+        
+        // Draw each character using simple line segments
+        // Normalized to a 6-unit wide, 8-unit tall grid
+        float w = char_width / 6.0f;
+        float h = char_height / 8.0f;
+        
+        switch (ch) {
+            // Numbers
+            case '0':
+                // Rectangle outline
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);           // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
+                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
+                break;
+            case '1':
+                glVertex2f(cx + 2*w, cy); glVertex2f(cx + 3*w, cy);        // Top
+                glVertex2f(cx + 3*w, cy); glVertex2f(cx + 3*w, cy + 8*h);  // Vertical
+                glVertex2f(cx + 2*w, cy + 8*h); glVertex2f(cx + 4*w, cy + 8*h); // Bottom
+                break;
+            case '2':
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 4*h);  // Right top
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + w, cy + 8*h); // Left bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
+                break;
+            case '3':
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
+                break;
+            case '4':
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 4*h);      // Left top
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
+                break;
+            case '5':
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 4*h);      // Left top
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                glVertex2f(cx + 5*w, cy + 4*h); glVertex2f(cx + 5*w, cy + 8*h); // Right bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
+                break;
+            case '6':
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
+                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + 5*w, cy + 4*h); // Right bottom
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                break;
+            case '7':
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy + 8*h);    // Diagonal
+                break;
+            case '8':
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
+                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                break;
+            case '9':
+                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy + 4*h); // Left
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 4*h);  // Right
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                break;
+            // Letters
+            case 'A': case 'a':
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 3*w, cy);    // Left diagonal
+                glVertex2f(cx + 3*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right diagonal
+                glVertex2f(cx + w + 1.5*w, cy + 4*h); glVertex2f(cx + 4*w, cy + 4*h); // Middle
+                break;
+            case 'B': case 'b':
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 4*h);  // Right top
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                glVertex2f(cx + 5*w, cy + 4*h); glVertex2f(cx + 5*w, cy + 8*h); // Right bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
+                break;
+            case 'D': case 'd':
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
+                glVertex2f(cx + w, cy); glVertex2f(cx + 4*w, cy);          // Top
+                glVertex2f(cx + 4*w, cy); glVertex2f(cx + 5*w, cy + 2*h);  // Top right
+                glVertex2f(cx + 5*w, cy + 2*h); glVertex2f(cx + 5*w, cy + 6*h); // Right
+                glVertex2f(cx + 5*w, cy + 6*h); glVertex2f(cx + 4*w, cy + 8*h); // Bottom right
+                glVertex2f(cx + 4*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
+                break;
+            case 'E': case 'e':
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
+                break;
+            case 'H': case 'h':
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 8*h);      // Left
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                break;
+            case 'M': case 'm':
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
+                glVertex2f(cx + w, cy); glVertex2f(cx + 3*w, cy + 4*h);    // Top left diagonal
+                glVertex2f(cx + 3*w, cy + 4*h); glVertex2f(cx + 5*w, cy);  // Top right diagonal
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
+                break;
+            case 'N': case 'n':
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy + 8*h);    // Diagonal
+                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + 5*w, cy);  // Right
+                break;
+            case 'O': case 'o':
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);          // Top
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 8*h);  // Right
+                glVertex2f(cx + 5*w, cy + 8*h); glVertex2f(cx + w, cy + 8*h); // Bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + w, cy);      // Left
+                break;
+            case 'S': case 's':
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy);          // Top
+                glVertex2f(cx + w, cy); glVertex2f(cx + w, cy + 4*h);      // Left top
+                glVertex2f(cx + w, cy + 4*h); glVertex2f(cx + 5*w, cy + 4*h); // Middle
+                glVertex2f(cx + 5*w, cy + 4*h); glVertex2f(cx + 5*w, cy + 8*h); // Right bottom
+                glVertex2f(cx + w, cy + 8*h); glVertex2f(cx + 5*w, cy + 8*h); // Bottom
+                break;
+            case 'X': case 'x':
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy + 8*h);    // Top-left to bottom-right
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + w, cy + 8*h);    // Top-right to bottom-left
+                break;
+            default:
+                // Unknown character - draw rectangle
+                glVertex2f(cx + w, cy); glVertex2f(cx + 5*w, cy);
+                glVertex2f(cx + 5*w, cy); glVertex2f(cx + 5*w, cy + 6*h);
+                glVertex2f(cx + 5*w, cy + 6*h); glVertex2f(cx + w, cy + 6*h);
+                glVertex2f(cx + w, cy + 6*h); glVertex2f(cx + w, cy);
+                break;
+        }
+    }
+    
+    glEnd();
+}
+
 void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
-    gl_set_color(0.2f, 0.8f, 1.0f);
-    gl_draw_rect_outline(10.0f, 10.0f, width - 20.0f, 30.0f, 1.0f);
-    for (int i = 0; i < game->ship_lives; i++) {
-        gl_set_color(0.0f, 1.0f, 0.5f);
-        gl_draw_circle(20.0f + i * 20.0f, height - 30.0f, 5.0f, 12);
+    (void)height;   // Suppress unused parameter warning
+    
+    char text[256];
+    
+    // --- TOP LEFT SECTION ---
+    // Score (with multiplier indicator)
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    sprintf(text, "SCORE: %d (x%.1f)", game->score, game->score_multiplier);
+    gl_draw_text_simple(text, 20, 30, 18);
+    
+    // Lives
+    sprintf(text, "LIVES: %d", game->ship_lives);
+    gl_draw_text_simple(text, 20, 55, 18);
+    
+    // Shield status
+    sprintf(text, "SHIELD: %d/%d", game->shield_health, game->max_shield_health);
+    if (game->shield_health <= 0) {
+        gl_set_color(1.0f, 0.3f, 0.3f);  // Red when no shield
+    } else if (game->shield_health == 1) {
+        gl_set_color(1.0f, 0.8f, 0.0f);  // Orange when low
+    } else {
+        gl_set_color(0.0f, 1.0f, 1.0f);  // Cyan when healthy
+    }
+    gl_draw_text_simple(text, 20, 105, 18);
+    gl_set_color(1.0f, 1.0f, 1.0f);  // Reset to white
+    
+    // --- TOP RIGHT SECTION ---
+    // Wave
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    sprintf(text, "WAVE: %d", game->current_wave);
+    gl_draw_text_simple(text, width - 180, 30, 18);
+    
+    // Asteroids remaining
+    sprintf(text, "ASTEROIDS: %d", game->comet_count);
+    gl_draw_text_simple(text, width - 280, 55, 18);
+    
+    // Wave progress info (only show if wave is incomplete)
+    if (game->wave_complete_timer > 0) {
+        sprintf(text, "NEXT WAVE in %.1fs", game->wave_complete_timer);
+        gl_set_color(1.0f, 1.0f, 0.0f);
+        gl_draw_text_simple(text, width / 2 - 160, height / 2 - 50, 18);
+        gl_set_color(1.0f, 1.0f, 1.0f);
+    } else if (game->comet_count > 0) {
+        int expected_count = comet_buster_get_wave_comet_count(game->current_wave);
+        sprintf(text, "DESTROYED: %d/%d", expected_count - game->comet_count, expected_count);
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_text_simple(text, width - 280, 75, 12);
+    }
+    
+    // --- FLOATING TEXT POPUPS ---
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    for (int i = 0; i < game->floating_text_count; i++) {
+        FloatingText *ft = &game->floating_texts[i];
+        if (ft->active) {
+            // Calculate fade (alpha) based on remaining lifetime
+            float alpha = (float)(ft->lifetime / ft->max_lifetime);
+            
+            // Set color with fade
+            gl_set_color_alpha((float)ft->color[0], (float)ft->color[1], (float)ft->color[2], alpha);
+            
+            // Draw text
+            gl_draw_text_simple(ft->text, (int)ft->x - 30, (int)ft->y, 16);
+        }
+    }
+    gl_set_color(1.0f, 1.0f, 1.0f);  // Reset to white
+    
+    // --- BOTTOM LEFT SECTION ---
+    // Energy bar
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    sprintf(text, "ENERGY: %.0f%%", game->energy_amount);
+    
+    // Color based on fuel level
+    if (game->energy_amount < 20) {
+        gl_set_color(1.0f, 0.2f, 0.2f);  // Red - critical
+    } else if (game->energy_amount < 50) {
+        gl_set_color(1.0f, 1.0f, 0.0f);  // Yellow - low
+    } else {
+        gl_set_color(0.2f, 1.0f, 0.2f);  // Green - good
+    }
+    
+    gl_draw_text_simple(text, 20, height - 40, 14);
+    
+    // Draw fuel bar (visual indicator)
+    double bar_width = 150;
+    double bar_height = 12;
+    double bar_x = 20;
+    double bar_y = height - 25;
+    
+    // Background (dark)
+    gl_set_color(0.2f, 0.2f, 0.2f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+    
+    // Fuel level (colored)
+    double fuel_percent = game->energy_amount / game->max_energy;
+    if (fuel_percent > 0.5) {
+        gl_set_color(0.2f, 1.0f, 0.2f);  // Green
+    } else if (fuel_percent > 0.2) {
+        gl_set_color(1.0f, 1.0f, 0.0f);  // Yellow
+    } else {
+        gl_set_color(1.0f, 0.2f, 0.2f);  // Red
+    }
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)(bar_width * fuel_percent), (float)bar_height);
+    
+    // Border
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
+    
+    // --- MISSILES DISPLAY ---
+    // Missile ammo display (bottom left, above Energy)
+    if (game->missile_ammo > 0 || game->using_missiles) {
+        gl_set_color(1.0f, 0.8f, 0.0f);  // Yellow/orange
+        char missile_text[32];
+        sprintf(missile_text, "MISSILES: %d", game->missile_ammo);
+        
+        gl_draw_text_simple(missile_text, 20, height - 110, 14);
+        
+        // Draw missile bar
+        double missile_bar_width = 150;
+        double missile_bar_height = 12;
+        double missile_bar_x = 20;
+        double missile_bar_y = height - 95;
+        
+        // Background
+        gl_set_color(0.2f, 0.2f, 0.2f);
+        gl_draw_rect_filled((float)missile_bar_x, (float)missile_bar_y, (float)missile_bar_width, (float)missile_bar_height);
+        
+        // Missile bar (assume max 100 for display, each pickup adds 20)
+        double missile_percent = (game->missile_ammo > 100) ? 1.0 : (game->missile_ammo / 100.0);
+        gl_set_color(1.0f, 0.8f, 0.0f);  // Yellow
+        gl_draw_rect_filled((float)missile_bar_x, (float)missile_bar_y, (float)(missile_bar_width * missile_percent), (float)missile_bar_height);
+        
+        // Border
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_rect_outline((float)missile_bar_x, (float)missile_bar_y, (float)missile_bar_width, (float)missile_bar_height, 1.0f);
+    }
+    
+    // --- BOMBS DISPLAY ---
+    // Bomb ammo display
+    if (game->bomb_ammo > 0 || game->bomb_count > 0) {
+        gl_set_color(1.0f, 0.6f, 0.0f);  // Orange for bombs
+        char bomb_text[32];
+        sprintf(bomb_text, "BOMBS: %d", game->bomb_ammo);
+        
+        gl_draw_text_simple(bomb_text, 20, height - 65, 14);
+        
+        // Show active bombs
+        if (game->bomb_count > 0) {
+            gl_set_color(1.0f, 1.0f, 0.0f);  // Yellow for active
+            char active_text[32];
+            sprintf(active_text, "Armed: %d", game->bomb_count);
+            gl_draw_text_simple(active_text, 20, height - 50, 12);
+        }
+        
+        // Draw bomb bar
+        double bomb_bar_width = 150;
+        double bomb_bar_height = 12;
+        double bomb_bar_x = 20;
+        double bomb_bar_y = game->bomb_count > 0 ? (height - 35) : (height - 50);
+        
+        // Background
+        gl_set_color(0.2f, 0.2f, 0.2f);
+        gl_draw_rect_filled((float)bomb_bar_x, (float)bomb_bar_y, (float)bomb_bar_width, (float)bomb_bar_height);
+        
+        // Bomb bar
+        double bomb_percent = (game->bomb_ammo > 10) ? 1.0 : (game->bomb_ammo / 10.0);
+        gl_set_color(1.0f, 0.6f, 0.0f);  // Orange
+        gl_draw_rect_filled((float)bomb_bar_x, (float)bomb_bar_y, (float)(bomb_bar_width * bomb_percent), (float)bomb_bar_height);
+        
+        // Border
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_rect_outline((float)bomb_bar_x, (float)bomb_bar_y, (float)bomb_bar_width, (float)bomb_bar_height, 1.0f);
     }
 }
 

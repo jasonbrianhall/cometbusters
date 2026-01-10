@@ -2514,6 +2514,64 @@ static int parse_command_line_args(int argc, char *argv[]) {
     
     return rendering_engine;
 }
+// ============================================================
+// RENDERING ENGINE SELECTION FUNCTIONS
+// ============================================================
+
+/**
+ * Switch to Cairo rendering engine
+ */
+void on_rendering_cairo(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // If already using Cairo, do nothing
+    if (gui->rendering_engine == 0) return;
+    
+    printf("[RENDERING] Switched to Cairo rendering\n");
+    
+    // Remove OpenGL from container and add Cairo
+    GtkWidget *parent = gtk_widget_get_parent(gui->gl_area);
+    if (parent && GTK_IS_CONTAINER(parent)) {
+        gtk_container_remove(GTK_CONTAINER(parent), gui->gl_area);
+        gtk_box_pack_start(GTK_BOX(parent), gui->drawing_area, TRUE, TRUE, 0);
+        gtk_widget_show(gui->drawing_area);
+    }
+    
+    gtk_widget_grab_focus(gui->drawing_area);
+    gui->rendering_engine = 0;
+    gtk_widget_queue_draw(gui->drawing_area);
+}
+
+/**
+ * Switch to OpenGL rendering engine
+ */
+void on_rendering_opengl(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    
+    // If already using OpenGL, do nothing
+    if (gui->rendering_engine == 1) return;
+    
+    printf("[RENDERING] Switched to OpenGL rendering\n");
+    
+    // Remove Cairo from container and add OpenGL
+    GtkWidget *parent = gtk_widget_get_parent(gui->drawing_area);
+    if (parent && GTK_IS_CONTAINER(parent)) {
+        gtk_container_remove(GTK_CONTAINER(parent), gui->drawing_area);
+        gtk_box_pack_start(GTK_BOX(parent), gui->gl_area, TRUE, TRUE, 0);
+        gtk_widget_show(gui->gl_area);
+    }
+    
+    gtk_widget_grab_focus(gui->gl_area);
+    gui->rendering_engine = 1;
+    gtk_widget_queue_draw(gui->gl_area);
+}
+
+// ============================================================
+// END RENDERING ENGINE SELECTION FUNCTIONS
+// ============================================================
+
 
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
@@ -2738,16 +2796,33 @@ int main(int argc, char *argv[]) {
     GtkWidget *options_menu = gtk_menu_new();
     GtkWidget *options_item = gtk_menu_item_new_with_label("Options");
     
+    // Rendering Engine submenu
+    GtkWidget *rendering_submenu = gtk_menu_new();
+    GtkWidget *rendering_item = gtk_menu_item_new_with_label("Rendering Engine");
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(rendering_item), rendering_submenu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(options_menu), rendering_item);
+    
+    GtkWidget *rendering_cairo_item = gtk_menu_item_new_with_label("Cairo");
+    g_signal_connect(rendering_cairo_item, "activate", G_CALLBACK(on_rendering_cairo), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(rendering_submenu), rendering_cairo_item);
+    
+    GtkWidget *rendering_opengl_item = gtk_menu_item_new_with_label("OpenGL");
+    g_signal_connect(rendering_opengl_item, "activate", G_CALLBACK(on_rendering_opengl), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(rendering_submenu), rendering_opengl_item);
+    
+    GtkWidget *rendering_separator = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(options_menu), rendering_separator);
+    
     GtkWidget *joystick_test_item = gtk_menu_item_new_with_label("Joystick Test");
     g_signal_connect(joystick_test_item, "activate", G_CALLBACK(on_joystick_test), &gui);
     gtk_menu_shell_append(GTK_MENU_SHELL(options_menu), joystick_test_item);
     
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(options_item), options_menu);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), options_item);
-
     GtkWidget *fullscreen_item = gtk_menu_item_new_with_label("Toggle Fullscreen (F11)");
     g_signal_connect(fullscreen_item, "activate", G_CALLBACK(on_toggle_fullscreen), &gui);
     gtk_menu_shell_append(GTK_MENU_SHELL(options_menu), fullscreen_item);
+    
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(options_item), options_menu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), options_item);
         
 #ifdef DEBUG
     // Debug menu
@@ -2829,57 +2904,64 @@ int main(int argc, char *argv[]) {
     gtk_box_pack_start(GTK_BOX(vbox), gui.status_label, FALSE, FALSE, 5);
     update_status_text(&gui);
     
-    // Create rendering surface based on selected engine
+    // Create BOTH rendering surfaces for switching capability
+    fprintf(stdout, "[MAIN] Creating both Cairo and OpenGL rendering surfaces\n");
+    
+    // Create Cairo drawing area
+    gui.drawing_area = gtk_drawing_area_new();
+    gtk_widget_set_size_request(gui.drawing_area, -1, -1);
+    gtk_widget_set_can_focus(gui.drawing_area, TRUE);
+    gtk_widget_add_events(gui.drawing_area, 
+                         GDK_BUTTON_PRESS_MASK | 
+                         GDK_BUTTON_RELEASE_MASK | 
+                         GDK_POINTER_MOTION_MASK |
+                         GDK_KEY_PRESS_MASK |
+                         GDK_KEY_RELEASE_MASK |
+                         GDK_SCROLL_MASK);
+    g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
+    g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
+    g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
+    g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
+    g_signal_connect(gui.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
+    g_signal_connect(gui.drawing_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
+    g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
+    
+    // Create OpenGL area
+    gui.gl_area = gtk_gl_area_new();
+    gtk_widget_set_size_request(gui.gl_area, -1, -1);
+    gtk_widget_set_can_focus(gui.gl_area, TRUE);
+    gtk_widget_add_events(gui.gl_area, 
+                         GDK_BUTTON_PRESS_MASK | 
+                         GDK_BUTTON_RELEASE_MASK | 
+                         GDK_POINTER_MOTION_MASK |
+                         GDK_KEY_PRESS_MASK |
+                         GDK_KEY_RELEASE_MASK |
+                         GDK_SCROLL_MASK);
+    
+    // Connect OpenGL callbacks
+    g_signal_connect(gui.gl_area, "realize", G_CALLBACK(on_realize), NULL);
+    g_signal_connect(gui.gl_area, "render", G_CALLBACK(on_render), &gui.visualizer);
+    g_signal_connect(gui.gl_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
+    g_signal_connect(gui.gl_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
+    g_signal_connect(gui.gl_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
+    g_signal_connect(gui.gl_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
+    g_signal_connect(gui.gl_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
+    g_signal_connect(gui.gl_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
+    
+    // Pack only the initially visible widget - we'll swap in callbacks
     if (gui.rendering_engine == 1) {
-        // OpenGL rendering
-        fprintf(stdout, "[MAIN] Creating OpenGL rendering surface\n");
-        
-        gui.gl_area = gtk_gl_area_new();
-        gtk_widget_set_size_request(gui.gl_area, -1, -1);
-        gtk_widget_set_can_focus(gui.gl_area, TRUE);
-        gtk_widget_add_events(gui.gl_area, 
-                             GDK_BUTTON_PRESS_MASK | 
-                             GDK_BUTTON_RELEASE_MASK | 
-                             GDK_POINTER_MOTION_MASK |
-                             GDK_KEY_PRESS_MASK |
-                             GDK_KEY_RELEASE_MASK |
-                             GDK_SCROLL_MASK);
-        
-        // Connect OpenGL callbacks (IMPORTANT: render callback must be connected!)
-        g_signal_connect(gui.gl_area, "realize", G_CALLBACK(on_realize), NULL);
-        g_signal_connect(gui.gl_area, "render", G_CALLBACK(on_render), &gui.visualizer);
-        g_signal_connect(gui.gl_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
-        g_signal_connect(gui.gl_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
-        g_signal_connect(gui.gl_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
-        g_signal_connect(gui.gl_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
-        g_signal_connect(gui.gl_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
-        g_signal_connect(gui.gl_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
-        
+        fprintf(stdout, "[MAIN] Starting with OpenGL rendering\n");
         gtk_box_pack_start(GTK_BOX(vbox), gui.gl_area, TRUE, TRUE, 0);
-        
     } else {
-        // Cairo rendering (original code)
-        fprintf(stdout, "[MAIN] Creating Cairo rendering surface\n");
-        
-        gui.drawing_area = gtk_drawing_area_new();
-        gtk_widget_set_size_request(gui.drawing_area, -1, -1);  // Dynamic sizing
-        gtk_widget_set_can_focus(gui.drawing_area, TRUE);  // Allow focus
-        gtk_widget_add_events(gui.drawing_area, 
-                             GDK_BUTTON_PRESS_MASK | 
-                             GDK_BUTTON_RELEASE_MASK | 
-                             GDK_POINTER_MOTION_MASK |
-                             GDK_KEY_PRESS_MASK |
-                             GDK_KEY_RELEASE_MASK |
-                             GDK_SCROLL_MASK);
-        g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
-        g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
-        g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
-        g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
-        g_signal_connect(gui.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
-        g_signal_connect(gui.drawing_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
-        g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
+        fprintf(stdout, "[MAIN] Starting with Cairo rendering\n");
         gtk_box_pack_start(GTK_BOX(vbox), gui.drawing_area, TRUE, TRUE, 0);
     }
+    
+    // Add extra references to keep widgets alive during container swaps
+    // This prevents segfaults when switching back and forth
+    g_object_ref(gui.drawing_area);
+    g_object_ref(gui.gl_area);
+    fprintf(stdout, "[MAIN] Added widget references for safe switching\n");
     
     gtk_widget_show_all(gui.window);
     gtk_widget_hide(gui.cheat_menu_item);  // Hide the cheat menu by default (after show_all)
