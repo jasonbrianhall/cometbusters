@@ -116,6 +116,53 @@ bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p, V
     return false;
 }
 
+void draw_comet_buster_bomb_pickups(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game || !cr) return;
+    
+    cairo_set_line_width(cr, 2.0);
+    
+    for (int i = 0; i < game->bomb_pickup_count; i++) {
+        BombPickup *p = &game->bomb_pickups[i];
+        if (!p->active) continue;
+        
+        // Convert rotation to radians
+        double rotation_rad = p->rotation * (M_PI / 180.0);
+        
+        // Draw bomb icon - a circle with a larger outline to look like a bomb
+        // Outer circle (bomb body)
+        cairo_save(cr);
+        cairo_translate(cr, p->x, p->y);
+        cairo_rotate(cr, rotation_rad);
+        
+        // Color: orange/yellow for bomb
+        cairo_set_source_rgb(cr, 1.0, 0.7, 0.0);
+        
+        // Main circle
+        cairo_arc(cr, 0, 0, 12.0, 0, 2 * M_PI);
+        cairo_fill(cr);
+        
+        // Fuse sticking out
+        cairo_set_source_rgb(cr, 0.8, 0.4, 0.2);
+        cairo_set_line_width(cr, 1.5);
+        cairo_move_to(cr, 0, -12);
+        cairo_line_to(cr, 0, -22);
+        cairo_stroke(cr);
+        
+        // Small spark at fuse tip
+        cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);
+        cairo_arc(cr, 0, -22, 2.0, 0, 2 * M_PI);
+        cairo_fill(cr);
+        
+        cairo_restore(cr);
+        
+        // Draw pickup radius indicator (faint circle)
+        cairo_set_source_rgba(cr, 1.0, 0.8, 0.0, 0.2);
+        cairo_set_line_width(cr, 1.0);
+        cairo_arc(cr, p->x, p->y, 25.0, 0, 2 * M_PI);
+        cairo_stroke(cr);
+    }
+}
+
 // ============================================================================
 // BOMB DROPPING AND MANAGEMENT
 // ============================================================================
@@ -386,6 +433,91 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
             game->bomb_count--;
             i--;
         }
+    }
+}
+
+void draw_comet_buster_bombs(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game || !cr) return;
+    
+    for (int i = 0; i < game->bomb_count; i++) {
+        Bomb *bomb = &game->bombs[i];
+        if (!bomb->active) continue;
+        
+        cairo_save(cr);
+        cairo_translate(cr, bomb->x, bomb->y);
+        
+        if (!bomb->detonated) {
+            // Draw inactive bomb - rotating animation
+            double rotation_rad = bomb->rotation * (M_PI / 180.0);
+            cairo_rotate(cr, rotation_rad);
+            
+            // Pulsing effect based on time left
+            double pulse = 1.0 - (bomb->lifetime / bomb->max_lifetime) * 0.3;  // Pulses as countdown happens
+            
+            // Main bomb body - orange circle
+            cairo_set_source_rgb(cr, 1.0 * pulse, 0.6, 0.0);
+            cairo_arc(cr, 0, 0, 15.0, 0, 2 * M_PI);
+            cairo_fill(cr);
+            
+            // Outline
+            cairo_set_source_rgb(cr, 1.0, 0.8, 0.0);
+            cairo_set_line_width(cr, 2.0);
+            cairo_arc(cr, 0, 0, 15.0, 0, 2 * M_PI);
+            cairo_stroke(cr);
+            
+            // Fuse
+            cairo_set_source_rgb(cr, 0.7, 0.3, 0.1);
+            cairo_set_line_width(cr, 2.0);
+            cairo_move_to(cr, 0, -15);
+            cairo_line_to(cr, 0, -28);
+            cairo_stroke(cr);
+            
+            // Spark at fuse
+            cairo_set_source_rgb(cr, 1.0, 1.0, 0.2);
+            cairo_arc(cr, 0, -28, 3.0, 0, 2 * M_PI);
+            cairo_fill(cr);
+            
+            // Countdown text
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+            cairo_set_font_size(cr, 12.0);
+            int countdown = (int)(bomb->lifetime + 1);
+            if (countdown < 1) countdown = 1;
+            
+            char text[8];
+            snprintf(text, sizeof(text), "%d", countdown);
+            
+            cairo_text_extents_t extents;
+            cairo_text_extents(cr, text, &extents);
+            cairo_move_to(cr, -extents.width / 2, extents.height / 2);
+            cairo_show_text(cr, text);
+            
+        } else {
+            // Draw explosion wave
+            // Expanding circle with pulsing opacity
+            double wave_progress = bomb->wave_radius / bomb->wave_max_radius;
+            double opacity = 1.0 - wave_progress;  // Fades out as it expands
+            
+            // Draw wave circle
+            cairo_set_source_rgba(cr, 1.0, 0.7, 0.0, opacity * 0.8);  // Orange
+            cairo_set_line_width(cr, 3.0 * (1.0 - wave_progress));  // Gets thinner
+            cairo_arc(cr, 0, 0, bomb->wave_radius, 0, 2 * M_PI);
+            cairo_stroke(cr);
+            
+            // Inner shock ring
+            if (bomb->wave_radius > 20) {
+                cairo_set_source_rgba(cr, 1.0, 1.0, 0.5, opacity * 0.6);
+                cairo_set_line_width(cr, 2.0);
+                cairo_arc(cr, 0, 0, bomb->wave_radius - 20, 0, 2 * M_PI);
+                cairo_stroke(cr);
+            }
+            
+            // Fill inner area with gradient effect
+            cairo_set_source_rgba(cr, 1.0, 0.5, 0.0, opacity * 0.15);
+            cairo_arc(cr, 0, 0, bomb->wave_radius, 0, 2 * M_PI);
+            cairo_fill(cr);
+        }
+        
+        cairo_restore(cr);
     }
 }
 
