@@ -1153,16 +1153,48 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
 
 void draw_comet_buster_bombs_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr; (void)width; (void)height;
     for (int i = 0; i < game->bomb_count; i++) {
         Bomb *bomb = &game->bombs[i];
         if (!bomb->active) continue;
+        
         if (!bomb->detonated) {
-            gl_set_color(1.0f, 0.5f, 0.0f);
-            gl_draw_circle(bomb->x, bomb->y, 10.0f, 12);
+            // Pulsing effect based on time left
+            double pulse = 1.0 - (bomb->lifetime / bomb->max_lifetime) * 0.3;  // Pulses as countdown happens
+            
+            // Main bomb body - orange circle with pulsing
+            gl_set_color_alpha((float)(1.0 * pulse), 0.6f, 0.0f, 1.0f);
+            gl_draw_circle(bomb->x, bomb->y, 15.0f, 24);
+            
+            // Outline - yellow
+            gl_set_color(1.0f, 0.8f, 0.0f);
+            gl_draw_circle_outline(bomb->x, bomb->y, 15.0f, 2.0f, 24);
+            
+            // Fuse - brown line sticking up
+            gl_set_color(0.7f, 0.3f, 0.1f);
+            gl_draw_line(bomb->x, bomb->y - 15.0f, bomb->x, bomb->y - 28.0f, 2.0f);
+            
+            // Spark at fuse - yellow circle
+            gl_set_color(1.0f, 1.0f, 0.2f);
+            gl_draw_circle(bomb->x, bomb->y - 28.0f, 3.0f, 12);
+            
+            // Countdown text - white number
             gl_set_color(1.0f, 1.0f, 1.0f);
-            gl_draw_circle_outline(bomb->x, bomb->y, 10.0f, 1.5f, 12);
+            int countdown = (int)(bomb->lifetime + 1);
+            if (countdown < 1) countdown = 1;
+            
+            char text[8];
+            snprintf(text, sizeof(text), "%d", countdown);
+            
+            // Draw countdown text centered on bomb
+            gl_draw_text_simple(text, (int)bomb->x - 3, (int)bomb->y - 2, 12);
         } else {
-            gl_set_color_alpha(1.0f, 0.5f, 0.0f, 0.5f);
+            // Draw explosion wave
+            // Expanding circle with fading opacity
+            double wave_progress = bomb->wave_radius / bomb->wave_max_radius;
+            double opacity = 1.0 - wave_progress;  // Fades out as it expands
+            
+            gl_set_color_alpha(1.0f, 0.5f, 0.0f, (float)opacity);
             gl_draw_circle_outline(bomb->x, bomb->y, bomb->wave_radius, 2.0f, 24);
         }
     }
