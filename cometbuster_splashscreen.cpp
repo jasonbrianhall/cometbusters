@@ -337,6 +337,177 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
     game->comet_count = write_index;
 }
 
+// Draw splash screen with proper line-by-line scrolling crawl
+void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game || !game->splash_screen_active) return;
+    
+    // Draw background (dark space)
+    cairo_set_source_rgb(cr, 0.04, 0.06, 0.15);
+    cairo_paint(cr);
+
+    // Draw grid (extended 50 pixels further to the right)
+    cairo_set_source_rgb(cr, 0.1, 0.15, 0.35);
+    cairo_set_line_width(cr, 0.5);
+    for (int i = 0; i <= width + 50; i += 50) {  // Extend 50 pixels beyond width
+        cairo_move_to(cr, i, 0);
+        cairo_line_to(cr, i, height);
+    }
+    for (int i = 0; i <= height; i += 50) {
+        cairo_move_to(cr, 0, i);
+        cairo_line_to(cr, width + 50, i);  // Extend 50 pixels to the right
+    }
+    cairo_stroke(cr);
+    
+    // Use existing game functions to draw all animated objects
+    draw_comet_buster_comets(game, cr, width, height);
+    draw_comet_buster_enemy_ships(game, cr, width, height);
+    draw_comet_buster_enemy_bullets(game, cr, width, height);
+    draw_comet_buster_particles(game, cr, width, height);
+    
+    // Draw boss if active
+    if (game->boss_active) {
+        draw_comet_buster_boss(&game->boss, cr, width, height);
+    }
+    
+    // Dim the background with overlay for text visibility
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.3);
+    cairo_paint(cr);
+    
+    // ===== OPENING CRAWL PHASE =====
+    // Duration: approximately 0-38 seconds (much longer to account for extended fade zones)
+    double scroll_speed = 1.0;  // seconds per line - SLOWER
+
+    if (game->splash_timer < 38.0) {
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_set_font_size(cr, 24.0);
+        
+        // Yellow Star Wars style text
+        cairo_set_source_rgb(cr, 1.0, 0.95, 0.0);
+        
+        // Calculate line height
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, "A", &extents);
+        double line_height = extents.height * 1.8;
+        
+        // Each line appears and scrolls from bottom to top SLOWLY
+        // Scroll speed: one line per 0.6 seconds (slower than before)
+        double lines_visible = (height + 200.0) / line_height;
+        
+        // Calculate which lines should be visible
+        double current_line_offset = (game->splash_timer / scroll_speed);
+        double fractional_offset = fmod(game->splash_timer, scroll_speed) / scroll_speed;
+        
+        // Draw all lines that could be visible
+        for (int i = 0; i < (int)lines_visible + 2; i++) {
+            int line_index = (int)current_line_offset + i;
+            if (line_index < 0 || line_index >= (int)NUM_CRAWL_LINES) continue;
+            
+            // Calculate Y position (lines scroll up from bottom to top)
+            double y_pos = height - (fractional_offset * line_height) + (i * line_height) - (current_line_offset * line_height);
+            
+            // Calculate fade for lines entering (bottom) and leaving (top) - MUCH LONGER FADE
+            double alpha = 1.0;
+            if (y_pos < 200.0) {
+                alpha = y_pos / 200.0;  // Fade in at top - MUCH LONGER (200px instead of 120px)
+            } else if (y_pos > height - 200.0) {
+                alpha = (height - y_pos) / 200.0;  // Fade out at bottom - MUCH LONGER
+            }
+            
+            if (alpha < 0.0) alpha = 0.0;
+            if (alpha > 1.0) alpha = 1.0;
+            
+            cairo_set_source_rgba(cr, 1.0, 0.95, 0.0, alpha);
+            
+            // Center the text
+            cairo_text_extents(cr, OPENING_CRAWL_LINES[line_index], &extents);
+            double x_pos = (width - extents.width) / 2.0;
+            
+            cairo_move_to(cr, x_pos, y_pos);
+            cairo_show_text(cr, OPENING_CRAWL_LINES[line_index]);
+        }
+    }
+    // ===== TITLE PHASE =====
+    // After crawl ends, show big GALAXY RAIDERS title
+    else if (game->splash_timer < 43.0) {
+        // Fade in the title
+        double phase_timer = game->splash_timer - 38.0;
+        double title_alpha = phase_timer / 2.0;  // Fade in over 2 seconds
+        if (title_alpha > 1.0) title_alpha = 1.0;
+        
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size(cr, 120.0);
+        
+        // Draw glowing text effect
+        for (int i = 5; i > 0; i--) {
+            double alpha = 0.1 * (5 - i) / 5.0 * title_alpha;
+            cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, alpha);
+            
+            cairo_text_extents_t extents;
+            cairo_text_extents(cr, "COMET BUSTERS", &extents);
+            double title_x = (width - extents.width) / 2.0;
+            double title_y = height / 2.0 + 20;
+            
+            cairo_move_to(cr, title_x, title_y);
+            cairo_show_text(cr, "COMET BUSTERS");
+        }
+        
+        // Draw bright main title text
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, "COMET BUSTERS", &extents);
+        double title_x = (width - extents.width) / 2.0;
+        double title_y = height / 2.0 + 20;
+        
+        cairo_set_source_rgba(cr, 0.0, 1.0, 1.0, title_alpha);
+        cairo_move_to(cr, title_x, title_y);
+        cairo_show_text(cr, "COMET BUSTERS");
+        
+        // Draw subtitle
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_set_font_size(cr, 28.0);
+        
+        cairo_text_extents(cr, "Press fire key to start", &extents);
+        double subtitle_x = (width - extents.width) / 2.0;
+        double subtitle_y = title_y + 80;
+        
+        // Blinking text effect for subtitle
+        double blink_alpha = 0.5 + 0.5 * sin(game->splash_timer * 3.0);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, blink_alpha * title_alpha);
+        cairo_move_to(cr, subtitle_x, subtitle_y);
+        cairo_show_text(cr, "Press fire key to start");
+    }
+    // ===== WAIT PHASE =====
+    // Just show the title and wait for input
+    else {
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size(cr, 120.0);
+        
+        // Full brightness
+        cairo_set_source_rgb(cr, 0.0, 1.0, 1.0);
+        
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, "COMET BUSTERS", &extents);
+        double title_x = (width - extents.width) / 2.0;
+        double title_y = height / 2.0 + 20;
+        
+        cairo_move_to(cr, title_x, title_y);
+        cairo_show_text(cr, "COMET BUSTERS");
+        
+        // Draw subtitle
+        cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+        cairo_set_font_size(cr, 28.0);
+        
+        cairo_text_extents(cr, "Press fire key to start", &extents);
+        double subtitle_x = (width - extents.width) / 2.0;
+        double subtitle_y = title_y + 80;
+        
+        // Blinking text effect for subtitle
+        double blink_alpha = 0.5 + 0.5 * sin(game->splash_timer * 3.0);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, blink_alpha);
+        cairo_move_to(cr, subtitle_x, subtitle_y);
+        cairo_show_text(cr, "Press fire key to start");
+    }
+}
+
 // Check if splash screen should exit (any key pressed)
 bool comet_buster_splash_screen_input_detected(Visualizer *visualizer) {
     if (!visualizer) return false;
@@ -488,6 +659,53 @@ void comet_buster_update_victory_scroll(CometBusterGame *game, double dt) {
     }
 }
 
+void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game || !game->splash_screen_active || game->game_won == false) return;
+    
+    double timer = game->splash_timer;
+    
+    // Draw semi-transparent black background
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.95);
+    cairo_rectangle(cr, 0, 0, width, height);
+    cairo_fill(cr);
+    
+    // Setup text
+    cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);  // Yellow text like Star Wars
+    cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 24);
+    
+    // Calculate scroll
+    double line_duration = 0.8;  // Seconds per line
+    int start_line = (int)(timer / line_duration);
+    double line_alpha = 1.0 - fmod(timer, line_duration) / (line_duration * 0.3);
+    line_alpha = (line_alpha < 0) ? 0 : (line_alpha > 1) ? 1 : line_alpha;
+    
+    // Draw visible lines
+    int y_pos = height / 3;
+    for (int i = 0; i < 8 && start_line + i < NUM_VICTORY_LINES; i++) {
+        double fade = 1.0;
+        
+        // First line fades in
+        if (i == 0) {
+            fade = line_alpha;
+        }
+        // Last visible line fades out
+        if (i == 7) {
+            fade = 1.0 - (double)i / 10.0;
+        }
+        
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, fade);
+        
+        // Center text horizontally
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, VICTORY_SCROLL_LINES[start_line + i], &extents);
+        double x_pos = (width - extents.width) / 2.0;
+        
+        cairo_move_to(cr, x_pos, y_pos + i * 40);
+        cairo_show_text(cr, VICTORY_SCROLL_LINES[start_line + i]);
+    }
+}
+
 bool comet_buster_victory_scroll_input_detected(CometBusterGame *game, Visualizer *visualizer) {
     if (!game || !game->splash_screen_active || !game->game_won) return false;
     if (game->splash_timer < 2.0) return false;  // Minimum display time
@@ -540,5 +758,53 @@ void comet_buster_update_finale_splash(CometBusterGame *game, double dt) {
             game->finale_waiting_for_input = true;
             game->finale_scroll_line_index = NUM_VICTORY_LINES - 1;
         }
+    }
+}
+
+void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int width, int height) {
+    if (!game || !game->finale_splash_active) return;
+    
+    // Semi-transparent dark overlay
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.75);
+    cairo_rectangle(cr, 0, 0, width, height);
+    cairo_fill(cr);
+    
+    // Title
+    cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);
+    cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 36);
+    cairo_text_extents_t extents;
+    
+    const char *title = "WAVE 30 COMPLETE";
+    cairo_text_extents(cr, title, &extents);
+    cairo_move_to(cr, width/2.0 - extents.width/2.0, 80);
+    cairo_show_text(cr, title);
+    
+    // Victory scroll text - scrolling effect (show 24 lines at a time)
+    cairo_set_source_rgb(cr, 0.2, 0.8, 1.0);
+    cairo_set_font_size(cr, 15);
+    
+    int visible_lines = 40;  // Show 24 lines at a time
+    int start_line = (game->finale_scroll_line_index > visible_lines) ? 
+                     (game->finale_scroll_line_index - visible_lines) : 0;
+    
+    double y_pos = 150;
+    for (int i = start_line; i <= game->finale_scroll_line_index && i < NUM_VICTORY_LINES; i++) {
+        cairo_text_extents(cr, VICTORY_SCROLL_LINES[i], &extents);
+        cairo_move_to(cr, width/2.0 - extents.width/2.0, y_pos);
+        cairo_show_text(cr, VICTORY_SCROLL_LINES[i]);
+        y_pos += 22;
+    }
+    
+    // Show "RIGHT-CLICK TO CONTINUE" when done scrolling
+    if (game->finale_waiting_for_input) {
+        double pulse = 0.5 + 0.5 * sin(game->finale_splash_timer * 2.5);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, pulse);
+        
+        cairo_set_font_size(cr, 16);
+        const char *continue_text = "RIGHT-CLICK TO CONTINUE TO WAVE 31";
+        cairo_text_extents(cr, continue_text, &extents);
+        cairo_move_to(cr, width/2.0 - extents.width/2.0, height - 50);
+        cairo_show_text(cr, continue_text);
     }
 }
