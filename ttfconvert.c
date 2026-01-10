@@ -23,6 +23,7 @@ typedef struct {
     int width;
     int height;
     int advance;
+    int yoffset;  // Vertical offset from baseline
 } Glyph;
 
 int main(int argc, char *argv[]) {
@@ -107,6 +108,7 @@ int main(int argc, char *argv[]) {
         glyphs[ch].width = width;
         glyphs[ch].height = height;
         glyphs[ch].advance = face->glyph->advance.x >> 6;
+        glyphs[ch].yoffset = face->glyph->bitmap_top;  // Vertical offset from baseline
         
         // Allocate and copy bitmap data (even if all zeros for spaces)
         if (width > 0 && height > 0) {
@@ -156,6 +158,7 @@ int main(int argc, char *argv[]) {
     fprintf(out, "    int width;\n");
     fprintf(out, "    int height;\n");
     fprintf(out, "    int advance;\n");
+    fprintf(out, "    int yoffset;  // Vertical offset from baseline\n");
     fprintf(out, "    const unsigned char *bitmap;\n");
     fprintf(out, "} GlyphData;\n\n");
     
@@ -189,7 +192,7 @@ int main(int argc, char *argv[]) {
         if (!glyphs[ch].bitmap) continue;
         
         fprintf(out, "static const GlyphData glyph_%d = {\n", ch);
-        fprintf(out, "    %d, %d, %d,\n", glyphs[ch].width, glyphs[ch].height, glyphs[ch].advance);
+        fprintf(out, "    %d, %d, %d, %d,\n", glyphs[ch].width, glyphs[ch].height, glyphs[ch].advance, glyphs[ch].yoffset);
         fprintf(out, "    glyph_%d_bitmap\n", ch);
         fprintf(out, "};\n\n");
     }

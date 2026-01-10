@@ -197,11 +197,10 @@ static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     float scale = (float)font_size / ref_height;
     
     float current_x = (float)x;
-    float current_y = (float)y;
+    float baseline_y = (float)y;  // y is the baseline
     
-    // Build vertex array - MUCH LARGER buffer for all text
-    // Each text character can have many pixels, each with 6 vertices (2 triangles)
-    static Vertex verts[100000];  // Increased from 60000
+    // Build vertex array
+    static Vertex verts[100000];
     int vert_count = 0;
     
     for (int i = 0; text[i] && vert_count < 99990; i++) {
@@ -210,39 +209,37 @@ static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         // Get glyph from font
         const GlyphData *glyph = get_glyph(ch);
         if (!glyph || !glyph->bitmap) {
-            // Character not in font, skip it
             continue;
         }
         
         float glyph_width = (float)glyph->width * scale;
         float pixel_scale = scale;
         
+        // Use glyph's vertical offset for proper baseline alignment
+        // yoffset is the distance from baseline to top of glyph
+        float glyph_top = baseline_y - (float)glyph->yoffset * scale;
+        
         // Render each pixel in the glyph
         for (int row = 0; row < glyph->height; row++) {
-            float pixel_y = current_y + row * pixel_scale;
+            float pixel_y = glyph_top + row * pixel_scale;
             
             for (int col = 0; col < glyph->width; col++) {
-                // Get pixel value (grayscale 0-255)
                 unsigned char pixel = glyph->bitmap[row * glyph->width + col];
                 
-                // Only render non-transparent pixels (lower threshold for more detail)
                 if (pixel > 3 && vert_count < 99994) {
                     float pixel_x = current_x + col * pixel_scale;
-                    
-                    // Scale alpha based on pixel intensity (anti-aliasing)
                     float alpha = gl_state.color[3] * ((float)pixel / 255.0f);
                     
                     float r = gl_state.color[0];
                     float g = gl_state.color[1];
                     float b = gl_state.color[2];
                     
-                    // Quad as two triangles
-                    // Triangle 1: top-left, top-right, bottom-right
+                    // Triangle 1
                     verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
                     verts[vert_count++] = {pixel_x + pixel_scale, pixel_y, r, g, b, alpha};
                     verts[vert_count++] = {pixel_x + pixel_scale, pixel_y + pixel_scale, r, g, b, alpha};
                     
-                    // Triangle 2: top-left, bottom-right, bottom-left
+                    // Triangle 2
                     verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
                     verts[vert_count++] = {pixel_x + pixel_scale, pixel_y + pixel_scale, r, g, b, alpha};
                     verts[vert_count++] = {pixel_x, pixel_y + pixel_scale, r, g, b, alpha};

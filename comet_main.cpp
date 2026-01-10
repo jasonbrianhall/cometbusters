@@ -2494,7 +2494,7 @@ static void sigint_handler(int sig) {
  * Returns 0 for CAIRO, 1 for OPENGL
  */
 static int parse_command_line_args(int argc, char *argv[]) {
-    int rendering_engine = 0;  // Default to Cairo
+    int rendering_engine = 1;  // Default to OpenGL (3D accelerated)
     
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--gl") == 0 || strcmp(argv[i], "--opengl") == 0) {
@@ -2506,8 +2506,8 @@ static int parse_command_line_args(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "--help") == 0) {
             printf("Usage: cometbuster [OPTIONS]\n");
             printf("Options:\n");
-            printf("  --gl, --opengl   Use OpenGL rendering engine\n");
-            printf("  --cairo          Use Cairo rendering engine (default)\n");
+            printf("  --gl, --opengl   Use OpenGL rendering engine (default)\n");
+            printf("  --cairo          Use Cairo rendering engine\n");
             printf("  --help           Show this help message\n");
             exit(0);
         }
