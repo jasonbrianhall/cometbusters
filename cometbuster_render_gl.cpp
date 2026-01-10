@@ -12,9 +12,7 @@
 #include "audio_wad.h"
 #endif
 
-// ============================================================================
-// MODERN OPENGL RENDERING ENGINE - Core Profile Compatible
-// ============================================================================
+static GLuint global_vao = 0;
 
 // Simple matrix math
 typedef struct {
@@ -115,6 +113,7 @@ static void gl_init(void) {
     if (gl_state.program) return;
     
     fprintf(stderr, "[GL] Initializing modern GL 3.3+ renderer\n");
+    glGenVertexArrays(1, &global_vao);
     
     gl_state.program = create_program(vertex_shader, fragment_shader);
     
