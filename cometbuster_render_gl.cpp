@@ -133,7 +133,7 @@ static void gl_rotate(float angle_rad) {
 // RENDERING - VECTOR-BASED ASTEROIDS (OpenGL Version)
 // ============================================================================
 
-void draw_comet_buster(Visualizer *visualizer, void *gl_context) {
+void draw_comet_buster_gl(Visualizer *visualizer, void *gl_context) {
     if (!visualizer) return;
     
     CometBusterGame *game = &visualizer->comet_buster;
@@ -143,7 +143,7 @@ void draw_comet_buster(Visualizer *visualizer, void *gl_context) {
 #ifdef ExternalSound
     // Draw splash screen if active
     if (game->splash_screen_active) {
-        comet_buster_draw_splash_screen(game, NULL, width, height);
+        comet_buster_draw_splash_screen_gl(game, NULL, width, height);
         return;
     }
 #endif
@@ -166,50 +166,50 @@ void draw_comet_buster(Visualizer *visualizer, void *gl_context) {
     }
     
     // Draw game elements
-    draw_comet_buster_comets(game, NULL, width, height);
-    draw_comet_buster_bullets(game, NULL, width, height);
-    draw_comet_buster_enemy_ships(game, NULL, width, height);
-    draw_comet_buster_ufos(game, NULL, width, height);
+    draw_comet_buster_comets_gl(game, NULL, width, height);
+    draw_comet_buster_bullets_gl(game, NULL, width, height);
+    draw_comet_buster_enemy_ships_gl(game, NULL, width, height);
+    draw_comet_buster_ufos_gl(game, NULL, width, height);
     
     // Draw boss (either Spawn Queen or regular Death Star)
     if (game->boss_active) {
         if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
-            draw_spawn_queen_boss(&game->spawn_queen, NULL, width, height);
+            draw_spawn_queen_boss_gl(&game->spawn_queen, NULL, width, height);
         } else if (game->boss.active) {
             if (game->current_wave % 30 == 5) {
-                draw_comet_buster_boss(&game->boss, NULL, width, height);
+                draw_comet_buster_boss_gl(&game->boss, NULL, width, height);
             } else if (game->current_wave % 30 == 10) {
-                draw_spawn_queen_boss(&game->spawn_queen, NULL, width, height);
+                draw_spawn_queen_boss_gl(&game->spawn_queen, NULL, width, height);
             } else if (game->current_wave % 30 == 15) {
-                draw_void_nexus_boss(&game->boss, NULL, width, height);
+                draw_void_nexus_boss_gl(&game->boss, NULL, width, height);
             } else if (game->current_wave % 30 == 20) {
-                draw_harbinger_boss(&game->boss, NULL, width, height);
+                draw_harbinger_boss_gl(&game->boss, NULL, width, height);
             } else if (game->current_wave % 30 == 25) {
-                draw_star_vortex_boss(&game->boss, NULL, width, height);
+                draw_star_vortex_boss_gl(&game->boss, NULL, width, height);
             } else if (game->current_wave % 30 == 0) {
-                draw_singularity_boss(&game->boss, NULL, width, height);
+                draw_singularity_boss_gl(&game->boss, NULL, width, height);
             }
         }
     }
     
-    draw_comet_buster_enemy_bullets(game, NULL, width, height);
-    draw_comet_buster_canisters(game, NULL, width, height);
-    draw_comet_buster_missile_pickups(game, NULL, width, height);
-    draw_comet_buster_bomb_pickups(game, NULL, width, height);
-    draw_comet_buster_missiles(game, NULL, width, height);
-    draw_comet_buster_bombs(game, NULL, width, height);
-    draw_comet_buster_particles(game, NULL, width, height);
-    draw_comet_buster_ship(game, NULL, width, height);
+    draw_comet_buster_enemy_bullets_gl(game, NULL, width, height);
+    draw_comet_buster_canisters_gl(game, NULL, width, height);
+    draw_comet_buster_missile_pickups_gl(game, NULL, width, height);
+    draw_comet_buster_bomb_pickups_gl(game, NULL, width, height);
+    draw_comet_buster_missiles_gl(game, NULL, width, height);
+    draw_comet_buster_bombs_gl(game, NULL, width, height);
+    draw_comet_buster_particles_gl(game, NULL, width, height);
+    draw_comet_buster_ship_gl(game, NULL, width, height);
     
     // Draw boss explosion effect
-    boss_explosion_draw(&game->boss_explosion_effect, (void*)NULL);
+    boss_explosion_draw_gl(&game->boss_explosion_effect, (void*)NULL);
     
     // Draw HUD
-    draw_comet_buster_hud(game, NULL, width, height);
+    draw_comet_buster_hud_gl(game, NULL, width, height);
     
     // Draw game over
     if (game->game_over) {
-        draw_comet_buster_game_over(game, NULL, width, height);
+        draw_comet_buster_game_over_gl(game, NULL, width, height);
     }
     
     gl_restore_projection();
@@ -217,7 +217,7 @@ void draw_comet_buster(Visualizer *visualizer, void *gl_context) {
 }
 
 // ✓ VECTOR-BASED ASTEROIDS (like original Asteroids arcade game)
-void draw_comet_buster_comets(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -249,7 +249,7 @@ void draw_comet_buster_comets(CometBusterGame *game, void *cr, int width, int he
     }
 }
 
-void draw_comet_buster_bullets(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_bullets_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -278,7 +278,7 @@ void draw_comet_buster_bullets(CometBusterGame *game, void *cr, int width, int h
     }
 }
 
-void draw_comet_buster_enemy_ships(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -338,7 +338,7 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, void *cr, int width, i
     }
 }
 
-void draw_comet_buster_ufos(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_ufos_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -368,7 +368,7 @@ void draw_comet_buster_ufos(CometBusterGame *game, void *cr, int width, int heig
     }
 }
 
-void draw_comet_buster_enemy_bullets(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_enemy_bullets_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -389,7 +389,7 @@ void draw_comet_buster_enemy_bullets(CometBusterGame *game, void *cr, int width,
     }
 }
 
-void draw_comet_buster_missiles(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -426,7 +426,7 @@ void draw_comet_buster_missiles(CometBusterGame *game, void *cr, int width, int 
     }
 }
 
-void draw_comet_buster_bombs(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_bombs_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -464,7 +464,7 @@ void draw_comet_buster_bombs(CometBusterGame *game, void *cr, int width, int hei
     }
 }
 
-void draw_comet_buster_canisters(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_canisters_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -489,7 +489,7 @@ void draw_comet_buster_canisters(CometBusterGame *game, void *cr, int width, int
     }
 }
 
-void draw_comet_buster_missile_pickups(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_missile_pickups_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -518,7 +518,7 @@ void draw_comet_buster_missile_pickups(CometBusterGame *game, void *cr, int widt
     }
 }
 
-void draw_comet_buster_bomb_pickups(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_bomb_pickups_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -547,7 +547,7 @@ void draw_comet_buster_bomb_pickups(CometBusterGame *game, void *cr, int width, 
     }
 }
 
-void draw_comet_buster_particles(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
     (void)height;
@@ -569,7 +569,7 @@ void draw_comet_buster_particles(CometBusterGame *game, void *cr, int width, int
     }
 }
 
-void draw_comet_buster_ship(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game || game->ship_lives <= 0) return;
     (void)width;
     (void)height;
@@ -615,7 +615,7 @@ void draw_comet_buster_ship(CometBusterGame *game, void *cr, int width, int heig
     gl_pop_transform();
 }
 
-void draw_comet_buster_boss(BossShip *boss, void *cr, int width, int height) {
+void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)width;
     (void)height;
@@ -673,7 +673,7 @@ void draw_comet_buster_boss(BossShip *boss, void *cr, int width, int height) {
     gl_draw_rect_outline(bar_x, bar_y, bar_width, bar_height, 1.0f);
 }
 
-void draw_spawn_queen_boss(SpawnQueenBoss *queen, void *cr, int width, int height) {
+void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int height) {
     if (!queen || !queen->active) return;
     (void)width;
     (void)height;
@@ -733,7 +733,7 @@ void draw_spawn_queen_boss(SpawnQueenBoss *queen, void *cr, int width, int heigh
     gl_draw_rect_outline(bar_x, bar_y, bar_width, bar_height, 1.0f);
 }
 
-void draw_void_nexus_boss(BossShip *boss, void *cr, int width, int height) {
+void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)width;
     (void)height;
@@ -790,7 +790,7 @@ void draw_void_nexus_boss(BossShip *boss, void *cr, int width, int height) {
     gl_draw_rect_outline(bar_x, bar_y, bar_width, bar_height, 1.0f);
 }
 
-void draw_harbinger_boss(BossShip *boss, void *cr, int width, int height) {
+void draw_harbinger_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)width;
     (void)height;
@@ -853,7 +853,7 @@ void draw_harbinger_boss(BossShip *boss, void *cr, int width, int height) {
     gl_draw_rect_outline(bar_x, bar_y, bar_width, bar_height, 1.0f);
 }
 
-void draw_star_vortex_boss(BossShip *boss, void *cr, int width, int height) {
+void draw_star_vortex_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)width;
     (void)height;
@@ -926,7 +926,7 @@ void draw_star_vortex_boss(BossShip *boss, void *cr, int width, int height) {
     gl_draw_rect_outline(bar_x, bar_y, bar_width, bar_height, 1.0f);
 }
 
-void draw_singularity_boss(BossShip *boss, void *cr, int width, int height) {
+void draw_singularity_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)width;
     (void)height;
@@ -980,7 +980,7 @@ void draw_singularity_boss(BossShip *boss, void *cr, int width, int height) {
     gl_draw_rect_outline(bar_x, bar_y, bar_width, bar_height, 1.0f);
 }
 
-void draw_comet_buster_hud(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)cr;
     
@@ -996,7 +996,7 @@ void draw_comet_buster_hud(CometBusterGame *game, void *cr, int width, int heigh
     }
 }
 
-void draw_comet_buster_game_over(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_game_over_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game || !game->game_over) return;
     (void)cr;
     
@@ -1009,7 +1009,7 @@ void draw_comet_buster_game_over(CometBusterGame *game, void *cr, int width, int
     gl_draw_rect_outline(width / 2.0f - 50.0f, height / 2.0f - 30.0f, 100.0f, 60.0f, 2.0f);
 }
 
-void boss_explosion_draw(BossExplosion *explosion, void *cr) {
+void boss_explosion_draw_gl(BossExplosion *explosion, void *cr) {
     if (!explosion) return;
     (void)cr;
     
@@ -1048,7 +1048,7 @@ void boss_explosion_draw(BossExplosion *explosion, void *cr) {
 }
 
 // Placeholder for splash screen in OpenGL
-void comet_buster_draw_splash_screen(CometBusterGame *game, void *cr, int width, int height) {
+void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game || !game->splash_screen_active) return;
     (void)cr;
     
@@ -1064,7 +1064,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, void *cr, int width,
 }
 
 // Placeholder functions that are called but only have OpenGL stubs
-void comet_buster_draw_victory_scroll(CometBusterGame *game, void *cr, int width, int height) {
+void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int width, int height) {
     (void)game;
     (void)cr;
     (void)width;
@@ -1072,7 +1072,7 @@ void comet_buster_draw_victory_scroll(CometBusterGame *game, void *cr, int width
     // Text rendering would go here
 }
 
-void comet_buster_draw_finale_splash(CometBusterGame *game, void *cr, int width, int height) {
+void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game || !game->finale_splash_active) return;
     (void)cr;
     
@@ -1083,12 +1083,12 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, void *cr, int width,
     gl_draw_rect_outline(width / 2.0f - 100.0f, height / 2.0f - 50.0f, 200.0f, 100.0f, 2.0f);
 }
 
-void comet_buster_update_victory_scroll(CometBusterGame *game, double dt) {
+void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt) {
     (void)game;
     (void)dt;
 }
 
-void comet_buster_update_finale_splash(CometBusterGame *game, double dt) {
+void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {
     if (!game || !game->finale_splash_active) return;
     
     game->finale_splash_timer += dt;
@@ -1182,7 +1182,7 @@ static gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data)
     gui->visualizer.height = game_height;
     
     // Draw the game using OpenGL
-    draw_comet_buster(&gui->visualizer, NULL);
+    draw_comet_buster_gl(&gui->visualizer, NULL);
     
     // Update game logic
     double current_time = g_get_monotonic_time() / 1000000.0;
