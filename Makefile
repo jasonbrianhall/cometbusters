@@ -38,7 +38,7 @@ SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/nu
 
 CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
 CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX
-LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++
+LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
 
 # Optimization flags
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
@@ -71,7 +71,8 @@ SOURCES_CPP_COMMON = comet_main.cpp wad.cpp audio_wad.cpp cometbuster_spawn.cpp 
 	cometbuster_init.cpp cometbuster_physics.cpp cometbuster_collision.cpp \
 	cometbuster_boss.cpp cometbuster_render.cpp cometbuster_starboss.cpp \
 	cometbuster_util.cpp cometbuster_splashscreen.cpp joystick.cpp \
-	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_help.cpp
+	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_help.cpp \
+	cometbuster_render_gl.cpp
 
 # Source files - Miniz WAD system (C files)
 SOURCES_C = miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c
