@@ -91,6 +91,9 @@ CairoWidget::CairoWidget(Visualizer *vis, QWidget *parent)
 void CairoWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event);
     if (!visualizer) return;
+    
+    // Only render if this widget is visible (active)
+    if (!isVisible()) return;
 
     int widget_width = this->width();
     int widget_height = this->height();
@@ -336,6 +339,9 @@ void GLWidget::paintGL() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     if (!visualizer) return;
+    
+    // Don't render if this widget isn't active/visible
+    if (!isVisible()) return;
 
     // Game always renders at 1920x1080
     int game_width = 1920;
@@ -877,11 +883,13 @@ void CometBusterWindow::onSwitchToCairo() {
     renderingEngine = 0;
     renderingStack->setCurrentWidget(cairoWidget);
     cairoWidget->show();
+    cairoWidget->setEnabled(true);
     cairoWidget->setFocus();
     cairoWidget->grabKeyboard();
-    // Stop any pending OpenGL rendering
+    // Disable OpenGL widget completely
     if (glWidget) {
         glWidget->hide();
+        glWidget->setEnabled(false);
     }
     statusLabel->setText("Switched to Cairo Rendering");
     fprintf(stdout, "[RENDER] Switched to Cairo rendering (OpenGL disabled)\n");
@@ -891,11 +899,13 @@ void CometBusterWindow::onSwitchToOpenGL() {
     renderingEngine = 1;
     renderingStack->setCurrentWidget(glWidget);
     glWidget->show();
+    glWidget->setEnabled(true);
     glWidget->setFocus();
     glWidget->grabKeyboard();
-    // Stop any pending Cairo rendering
+    // Disable Cairo widget completely
     if (cairoWidget) {
         cairoWidget->hide();
+        cairoWidget->setEnabled(false);
     }
     statusLabel->setText("Switched to OpenGL Rendering");
     fprintf(stdout, "[RENDER] Switched to OpenGL rendering (Cairo disabled)\n");
@@ -942,6 +952,10 @@ void CometBusterWindow::createUI() {
     renderingStack->addWidget(cairoWidget);
     renderingStack->addWidget(glWidget);
     renderingStack->setCurrentWidget(cairoWidget);  // Start with Cairo
+    
+    // Make sure OpenGL widget is hidden/disabled at startup
+    glWidget->hide();
+    glWidget->setEnabled(false);
 
     contentLayout->addWidget(renderingStack);
 
