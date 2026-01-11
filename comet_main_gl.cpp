@@ -255,7 +255,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     
     gui->window = SDL_CreateWindow(
-        "Comet Busters - SDL2+OpenGL",
+        "Comet Busters",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         width, height,
@@ -363,7 +363,7 @@ static void handle_events(CometGUI *gui) {
                             }
                         }
                     } else if (event.key.keysym.sym == SDLK_RIGHT) {
-                        if (gui->menu_state == 3) {  // Audio menu
+                        if (gui->menu_state == 3) {  // Audio menuf
                             if (gui->menu_selection == 0) {  // Music
                                 gui->music_volume = (gui->music_volume <= 90) ? gui->music_volume + 10 : 100;
                                 audio_set_music_volume(&gui->audio, gui->music_volume);
@@ -815,7 +815,7 @@ static void cleanup(CometGUI *gui) {
 // ============================================================
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused))) {
-    printf("=== CometBuster SDL2+OpenGL ===\n");
+    printf("=== Comet Busters ===\n");
     
     CometGUI gui;
     memset(&gui, 0, sizeof(CometGUI));
@@ -907,10 +907,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         gui.total_time += gui.delta_time;
         gui.frame_count++;
-        
-        if ((int)gui.total_time > 0 && gui.frame_count % 60 == 0) {
-            printf("[FPS] %.1f\n", gui.frame_count / gui.total_time);
-        }
         
         handle_events(&gui);
         update_game(&gui);
