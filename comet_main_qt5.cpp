@@ -5,8 +5,6 @@
 // ============================================================
 
 // Qt5 Core includes - MUST come BEFORE GLEW!
-// NOTE: Do NOT include QOpenGLWidget, QOpenGLContext, or QOpenGLFunctions here
-//       They conflict with GLEW. We'll include them after GLEW in the classes.
 #include <QApplication>
 #include <QMainWindow>
 #include <QWidget>
@@ -71,19 +69,12 @@
 #include "cometbuster.h"
 #include "comet_main_qt5.h"  // ← CRITICAL: Include the header with class declarations
 
-// IMPORTANT: If visualization.h includes GTK headers, you'll get a compilation error:
-// "gtk/gtk.h: No such file or directory"
-// 
-// SOLUTION: Edit visualization.h and comment out/remove GTK includes:
-//   // #include <gtk/gtk.h>
-//   // #include <gdk/gdk.h>
-// 
-// See FIX_VISUALIZATION_H.md for detailed instructions.
-// GTK includes in visualization.h are only needed for the old GTK build,
-// not for Qt5. The structs in visualization.h don't depend on GTK.
 #include "visualization.h"
-
 #include "audio_wad.h"
+
+// Forward declarations of game functions (implemented in other .cpp files)
+extern void update_comet_buster(Visualizer *vis, double delta_time);
+extern void draw_comet_buster(Visualizer *vis, cairo_t *cr);
 
 // ============================================================
 // CAIRO WIDGET IMPLEMENTATION
@@ -99,14 +90,17 @@ void CairoWidget::paintEvent(QPaintEvent *event) {
     Q_UNUSED(event);
     if (!visualizer) return;
 
-    // Create Cairo surface from widget
-    int width = this->width();
-    int height = this->height();
+    int widget_width = this->width();
+    int widget_height = this->height();
     
-    if (width <= 0 || height <= 0) return;
+    if (widget_width <= 0 || widget_height <= 0) return;
 
-    // Create image buffer
-    QImage image(width, height, QImage::Format_ARGB32);
+    // Game always renders at 1920x1080
+    int game_width = 1920;
+    int game_height = 1080;
+
+    // Create image buffer at game resolution
+    QImage image(game_width, game_height, QImage::Format_ARGB32);
     image.fill(Qt::black);
 
     // Create Cairo surface from QImage
@@ -120,20 +114,35 @@ void CairoWidget::paintEvent(QPaintEvent *event) {
 
     cairo_t *cr = cairo_create(surface);
 
-    // Update visualizer dimensions
-    visualizer->width = width;
-    visualizer->height = height;
+    // Always render at 1920x1080
+    visualizer->width = game_width;
+    visualizer->height = game_height;
 
     // Call the game rendering function
-    // This would call your existing Cairo rendering functions
-    // e.g., render_frame(visualizer, cr, width, height);
+    draw_comet_buster(visualizer, cr);
 
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
 
-    // Draw the image to the widget
+    // Now scale the rendered image to fit the widget
     QPainter painter(this);
-    painter.drawImage(0, 0, image);
+    
+    // Calculate scale to fit widget while maintaining aspect ratio
+    double scale_x = (double)widget_width / game_width;
+    double scale_y = (double)widget_height / game_height;
+    double scale = (scale_x < scale_y) ? scale_x : scale_y;
+    
+    // Calculate destination size
+    int dest_width = (int)(game_width * scale);
+    int dest_height = (int)(game_height * scale);
+    
+    // Center in widget
+    int offset_x = (widget_width - dest_width) / 2;
+    int offset_y = (widget_height - dest_height) / 2;
+    
+    // Draw scaled image
+    QImage scaled = image.scaledToWidth(dest_width, Qt::SmoothTransformation);
+    painter.drawImage(offset_x, offset_y, scaled);
 }
 
 void CairoWidget::keyPressEvent(QKeyEvent *event) {
@@ -182,16 +191,16 @@ void CairoWidget::mouseMoveEvent(QMouseEvent *event) {
     visualizer->last_mouse_x = event->x();
     visualizer->last_mouse_y = event->y();
     visualizer->mouse_just_moved = true;
-    visualizer->mouse_movement_timer = 2.0;  // Show for 2 seconds
+    visualizer->mouse_movement_timer = 2.0;
 }
 
 void CairoWidget::wheelEvent(QWheelEvent *event) {
     if (!visualizer) return;
     
     if (event->angleDelta().y() > 0) {
-        visualizer->scroll_direction = 1;  // Scroll up
+        visualizer->scroll_direction = 1;
     } else if (event->angleDelta().y() < 0) {
-        visualizer->scroll_direction = -1;  // Scroll down
+        visualizer->scroll_direction = -1;
     }
 }
 
@@ -283,8 +292,67 @@ void GLWidget::paintGL() {
     
     if (!visualizer) return;
 
-    // Your OpenGL rendering code here
-    // e.g., render_frame_gl(visualizer);
+    // Game always renders at 1920x1080
+    int game_width = 1920;
+    int game_height = 1080;
+    
+    int widget_width = this->width();
+    int widget_height = this->height();
+    
+    if (widget_width <= 0 || widget_height <= 0) return;
+
+    // Create Cairo image at game resolution
+    QImage image(game_width, game_height, QImage::Format_RGB32);
+    image.fill(Qt::black);
+
+    cairo_surface_t *surface = cairo_image_surface_create_for_data(
+        image.bits(),
+        CAIRO_FORMAT_RGB24,
+        image.width(),
+        image.height(),
+        image.bytesPerLine()
+    );
+
+    cairo_t *cr = cairo_create(surface);
+    visualizer->width = game_width;
+    visualizer->height = game_height;
+    
+    // Render game with Cairo
+    draw_comet_buster(visualizer, cr);
+    
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+
+    // Set up orthographic projection for 2D rendering
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0.0, widget_width, widget_height, 0.0, -1.0, 1.0);
+    
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Calculate scaling to fit game into widget
+    double scale_x = (double)widget_width / game_width;
+    double scale_y = (double)widget_height / game_height;
+    double scale = (scale_x < scale_y) ? scale_x : scale_y;
+    
+    int dest_width = (int)(game_width * scale);
+    int dest_height = (int)(game_height * scale);
+    int offset_x = (widget_width - dest_width) / 2;
+    int offset_y = (widget_height - dest_height) / 2;
+
+    // Use glDrawPixels to render the image
+    // Note: glDrawPixels is slower but works with core OpenGL
+    glWindowPos2i(offset_x, offset_y);
+    glPixelZoom(scale, scale);
+    glDrawPixels(game_width, game_height, GL_BGR, GL_UNSIGNED_BYTE, image.bits());
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {
@@ -442,21 +510,79 @@ CometBusterWindow::CometBusterWindow(QWidget *parent)
     setWindowTitle("Comet Busters");
     setWindowIcon(QIcon("cometbuster.ico"));
     
-    // Initialize audio
-    audio_init(&audio);
+    // Initialize audio system
+    fprintf(stdout, "[INIT] Initializing audio system\n");
+    memset(&audio, 0, sizeof(AudioManager));
     
-    // Load saved volumes
+    if (!audio_init(&audio)) {
+        fprintf(stderr, "[AUDIO] Warning: Audio initialization failed\n");
+    }
+    
+    // Load WAD file with sounds
+    fprintf(stdout, "[INIT] Loading audio WAD file\n");
+#ifdef _WIN32
+    {
+        std::string wadPath = getExecutableDir() + "\\cometbuster.wad";
+        if (!audio_load_wad(&audio, wadPath.c_str())) {
+            fprintf(stderr, "[AUDIO] Warning: Could not load cometbuster.wad\n");
+        }
+    }
+#else
+    if (!audio_load_wad(&audio, "cometbuster.wad")) {
+        fprintf(stderr, "[AUDIO] Warning: Could not load cometbuster.wad\n");
+    }
+#endif
+    
+    // Load saved volumes and apply them
     SettingsManager::loadVolumes(musicVolume, sfxVolume);
+    audio_set_music_volume(&audio, musicVolume);
+    audio_set_sfx_volume(&audio, sfxVolume);
+    
+    // Pre-load background music tracks
+#ifdef ExternalSound
+    fprintf(stdout, "[INIT] Pre-loading music tracks\n");
+    audio_play_music(&audio, "music/track1.mp3", false);
+    audio_play_music(&audio, "music/track2.mp3", false);
+    audio_play_music(&audio, "music/track3.mp3", false);
+    audio_play_music(&audio, "music/track4.mp3", false);
+    audio_play_music(&audio, "music/track5.mp3", false);
+    audio_play_music(&audio, "music/track6.mp3", false);
+    
+    fprintf(stdout, "[INIT] Starting intro music\n");
+    audio_play_intro_music(&audio, "music/intro.mp3");
+#endif
+    
+    // Initialize game
+    fprintf(stdout, "[INIT] Initializing game state\n");
+    memset(&visualizer, 0, sizeof(Visualizer));
+    visualizer.width = 1920;
+    visualizer.height = 1080;
+    
+    // Copy audio to visualizer
+    visualizer.audio = audio;
+    
+    // Show splash screen
+    fprintf(stdout, "[INIT] Showing splash screen\n");
+    comet_buster_reset_game_with_splash(&visualizer.comet_buster, true, EASY);
     
     // Create UI
     createUI();
     
-    // Setup game timer
+    // Setup game timer - 60 FPS
     gameTimer = new QTimer(this);
     connect(gameTimer, &QTimer::timeout, this, &CometBusterWindow::updateGame);
-    gameTimer->start(16);  // ~60 FPS
+    gameTimer->start(16);  // ~60 FPS (16.67ms per frame)
     
+    // Set window size and grab focus
     resize(1024, 768);
+    
+    // Grab keyboard focus
+    if (cairoWidget) {
+        cairoWidget->setFocus();
+        cairoWidget->grabKeyboard();
+    }
+    
+    fprintf(stdout, "[INIT] Initialization complete\n");
 }
 
 CometBusterWindow::~CometBusterWindow() {
@@ -464,12 +590,48 @@ CometBusterWindow::~CometBusterWindow() {
         gameTimer->stop();
     }
     audio_cleanup(&audio);
+    fprintf(stdout, "[CLEANUP] Game shutdown complete\n");
 }
 
 void CometBusterWindow::updateGame() {
+    static int frameCounter = 0;
+    
     if (!gamePaused) {
+        // Sync audio state to visualizer
+        visualizer.audio = audio;
+        
         // Update game state
-        // comet_buster_update(&visualizer.comet_buster);
+        update_comet_buster(&visualizer, 1.0 / 60.0);
+        
+        // Reset scroll wheel input after processing
+        visualizer.scroll_direction = 0;
+        
+        // Check if game ended and it's a high score
+        if ((visualizer.comet_buster.game_over || visualizer.comet_buster.ship_lives <= 0) &&
+            comet_buster_is_high_score(&visualizer.comet_buster, visualizer.comet_buster.score)) {
+            gamePaused = true;
+            // TODO: Show high score dialog
+            fprintf(stdout, "[HIGH SCORE] New high score: %d\n", visualizer.comet_buster.score);
+        }
+        
+        // Check if music finished and queue next
+#ifdef ExternalSound
+        if (!gamePaused && !audio_is_music_playing(&audio)) {
+            fprintf(stdout, "[AUDIO] Queuing next music track\n");
+            audio_play_random_music(&audio);
+        }
+#endif
+        
+        // Update status bar every 60 frames
+        frameCounter++;
+        if (frameCounter % 60 == 0) {
+            QString status = QString("Score: %1 | Lives: %2 | Wave: %3 | Bombs: %4")
+                .arg(visualizer.comet_buster.score)
+                .arg(visualizer.comet_buster.ship_lives)
+                .arg(visualizer.comet_buster.current_wave + 1)
+                .arg(visualizer.comet_buster.bomb_ammo);
+            statusLabel->setText(status);
+        }
         
         // Trigger render
         if (renderingEngine == 0) {
@@ -481,21 +643,36 @@ void CometBusterWindow::updateGame() {
 }
 
 void CometBusterWindow::onNewGameEasy() {
+    audio_stop_music(&audio);
     comet_buster_reset_game_with_splash(&visualizer.comet_buster, false, EASY);
+#ifdef ExternalSound
+    audio_play_music(&audio, "music/intro.mp3", false);
+#endif
     gamePaused = false;
     statusLabel->setText("Game Started - Easy");
+    fprintf(stdout, "[GAME] New game started - EASY\n");
 }
 
 void CometBusterWindow::onNewGameMedium() {
+    audio_stop_music(&audio);
     comet_buster_reset_game_with_splash(&visualizer.comet_buster, false, MEDIUM);
+#ifdef ExternalSound
+    audio_play_music(&audio, "music/intro.mp3", false);
+#endif
     gamePaused = false;
     statusLabel->setText("Game Started - Medium");
+    fprintf(stdout, "[GAME] New game started - MEDIUM\n");
 }
 
 void CometBusterWindow::onNewGameHard() {
+    audio_stop_music(&audio);
     comet_buster_reset_game_with_splash(&visualizer.comet_buster, false, HARD);
+#ifdef ExternalSound
+    audio_play_music(&audio, "music/intro.mp3", false);
+#endif
     gamePaused = false;
     statusLabel->setText("Game Started - Hard");
+    fprintf(stdout, "[GAME] New game started - HARD\n");
 }
 
 void CometBusterWindow::onTogglePause() {
@@ -503,10 +680,11 @@ void CometBusterWindow::onTogglePause() {
     if (gamePaused) {
         audio_stop_music(&audio);
         statusLabel->setText("Game Paused");
-        fprintf(stdout, "[*] Game Paused\n");
+        fprintf(stdout, "[GAME] Game Paused\n");
     } else {
+        audio_play_random_music(&audio);
         statusLabel->setText("Game Resumed");
-        fprintf(stdout, "[*] Game Resumed\n");
+        fprintf(stdout, "[GAME] Game Resumed\n");
     }
 }
 
@@ -514,9 +692,11 @@ void CometBusterWindow::onToggleFullscreen() {
     if (isFullScreen()) {
         showNormal();
         statusLabel->setText("Windowed Mode");
+        fprintf(stdout, "[DISPLAY] Switched to Windowed Mode\n");
     } else {
         showFullScreen();
         statusLabel->setText("Fullscreen Mode");
+        fprintf(stdout, "[DISPLAY] Switched to Fullscreen\n");
     }
 }
 
@@ -524,12 +704,14 @@ void CometBusterWindow::onVolumeChanged(int value) {
     musicVolume = value;
     audio_set_music_volume(&audio, musicVolume);
     SettingsManager::saveVolumes(musicVolume, sfxVolume);
+    fprintf(stdout, "[AUDIO] Music volume set to %d\n", musicVolume);
 }
 
 void CometBusterWindow::onSFXVolumeChanged(int value) {
     sfxVolume = value;
     audio_set_sfx_volume(&audio, sfxVolume);
     SettingsManager::saveVolumes(musicVolume, sfxVolume);
+    fprintf(stdout, "[AUDIO] SFX volume set to %d\n", sfxVolume);
 }
 
 void CometBusterWindow::onShowVolumeDialog() {
@@ -543,12 +725,16 @@ void CometBusterWindow::onShowVolumeDialog() {
     musicSlider->setMinimum(0);
     musicSlider->setMaximum(128);
     musicSlider->setValue(musicVolume);
+    connect(musicSlider, QOverload<int>::of(&QSlider::valueChanged), 
+            this, &CometBusterWindow::onVolumeChanged);
     
     QLabel *sfxLabel = new QLabel("SFX Volume:");
     QSlider *sfxSlider = new QSlider(Qt::Horizontal);
     sfxSlider->setMinimum(0);
     sfxSlider->setMaximum(128);
     sfxSlider->setValue(sfxVolume);
+    connect(sfxSlider, QOverload<int>::of(&QSlider::valueChanged), 
+            this, &CometBusterWindow::onSFXVolumeChanged);
     
     layout->addWidget(musicLabel);
     layout->addWidget(musicSlider);
@@ -559,27 +745,25 @@ void CometBusterWindow::onShowVolumeDialog() {
     connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
     layout->addWidget(okButton);
     
-    if (dialog.exec() == QDialog::Accepted) {
-        musicVolume = musicSlider->value();
-        sfxVolume = sfxSlider->value();
-        audio_set_music_volume(&audio, musicVolume);
-        audio_set_sfx_volume(&audio, sfxVolume);
-        SettingsManager::saveVolumes(musicVolume, sfxVolume);
-    }
+    dialog.exec();
 }
 
 void CometBusterWindow::onSwitchToCairo() {
     renderingEngine = 0;
     renderingStack->setCurrentWidget(cairoWidget);
     cairoWidget->setFocus();
+    cairoWidget->grabKeyboard();
     statusLabel->setText("Switched to Cairo Rendering");
+    fprintf(stdout, "[RENDER] Switched to Cairo rendering\n");
 }
 
 void CometBusterWindow::onSwitchToOpenGL() {
     renderingEngine = 1;
     renderingStack->setCurrentWidget(glWidget);
     glWidget->setFocus();
+    glWidget->grabKeyboard();
     statusLabel->setText("Switched to OpenGL Rendering");
+    fprintf(stdout, "[RENDER] Switched to OpenGL rendering\n");
 }
 
 void CometBusterWindow::onAbout() {
@@ -623,6 +807,8 @@ void CometBusterWindow::createUI() {
     // Status bar
     statusLabel = new QLabel("Ready");
     statusBar()->addWidget(statusLabel);
+    
+    fprintf(stdout, "[UI] UI created\n");
 }
 
 void CometBusterWindow::createMenuBar() {
@@ -672,6 +858,8 @@ void CometBusterWindow::createMenuBar() {
     
     QAction *aboutAction = helpMenu->addAction(tr("&About"));
     connect(aboutAction, &QAction::triggered, this, &CometBusterWindow::onAbout);
+    
+    fprintf(stdout, "[UI] Menu bar created\n");
 }
 
 std::string CometBusterWindow::getExecutableDir() {
@@ -716,10 +904,39 @@ void CometBusterWindow::closeEvent(QCloseEvent *event) {
 }
 
 // ============================================================
+// HIGH SCORE MANAGEMENT
+// ============================================================
+
+bool comet_buster_is_high_score(CometBusterGame *game, int score) {
+    if (!game) return false;
+    
+    printf("IS HIGH SCORE CALLED\n");
+    
+    // If we haven't filled the high score list yet, any score is a high score
+    if (game->high_score_count < MAX_HIGH_SCORES) {
+        printf("List not full yet (%d/%d), score %d qualifies\n", 
+               game->high_score_count, MAX_HIGH_SCORES, score);
+        return true;
+    }
+    
+    // List is full - check if score beats the lowest (last) score
+    if (score > game->high_scores[MAX_HIGH_SCORES - 1].score) {
+        printf("Is a High Score: %d (beats lowest of %d)\n", 
+               score, game->high_scores[MAX_HIGH_SCORES - 1].score);
+        return true;
+    }
+    
+    printf("Not a high score: %d\n", score);
+    return false;
+}
+
+// ============================================================
 // MAIN APPLICATION
 // ============================================================
 
 int main(int argc, char *argv[]) {
+    fprintf(stdout, "[MAIN] Comet Busters Qt5 Starting...\n");
+    
     QApplication app(argc, argv);
 
     // Configure application
@@ -734,10 +951,9 @@ int main(int argc, char *argv[]) {
     CometBusterWindow window;
     window.show();
 
-    return app.exec();
+    fprintf(stdout, "[MAIN] Entering Qt event loop\n");
+    int result = app.exec();
+    fprintf(stdout, "[MAIN] Qt event loop ended, shutting down\n");
+    
+    return result;
 }
-
-// ============================================================
-// DO NOT include the .moc file here!
-// The Makefile compiles the moc file separately and links it.
-// ============================================================
