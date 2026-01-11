@@ -44,6 +44,11 @@ private:
      * Handle key events for the visualizer
      */
     void handleKeyEvent(QKeyEvent *event, bool pressed);
+    
+    /**
+     * Transform widget mouse coordinates to game coordinates (1920x1080)
+     */
+    void transformMouseCoordinates(int widget_x, int widget_y, int &game_x, int &game_y);
 };
 
 /**
@@ -76,6 +81,11 @@ private:
      * Handle key events for the visualizer
      */
     void handleKeyEvent(QKeyEvent *event, bool pressed);
+    
+    /**
+     * Transform widget mouse coordinates to game coordinates (1920x1080)
+     */
+    void transformMouseCoordinates(int widget_x, int widget_y, int &game_x, int &game_y);
 };
 
 /**

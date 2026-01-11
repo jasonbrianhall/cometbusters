@@ -84,6 +84,7 @@ CairoWidget::CairoWidget(Visualizer *vis, QWidget *parent)
     : QWidget(parent), visualizer(vis) {
     setFocusPolicy(Qt::StrongFocus);
     setAttribute(Qt::WA_OpaquePaintEvent);
+    setMouseTracking(true);  // Enable continuous mouse move events
 }
 
 void CairoWidget::paintEvent(QPaintEvent *event) {
@@ -136,13 +137,10 @@ void CairoWidget::paintEvent(QPaintEvent *event) {
     int dest_width = (int)(game_width * scale);
     int dest_height = (int)(game_height * scale);
     
-    // Center in widget
-    int offset_x = (widget_width - dest_width) / 2;
-    int offset_y = (widget_height - dest_height) / 2;
-    
-    // Draw scaled image
-    QImage scaled = image.scaledToWidth(dest_width, Qt::SmoothTransformation);
-    painter.drawImage(offset_x, offset_y, scaled);
+    // Game fills widget from top-left (no centering)
+    // Draw scaled image - use QRect for proper scaling
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.drawImage(QRect(0, 0, dest_width, dest_height), image);
 }
 
 void CairoWidget::keyPressEvent(QKeyEvent *event) {
@@ -158,8 +156,12 @@ void CairoWidget::keyReleaseEvent(QKeyEvent *event) {
 void CairoWidget::mousePressEvent(QMouseEvent *event) {
     if (!visualizer) return;
     
-    visualizer->mouse_x = event->x();
-    visualizer->mouse_y = event->y();
+    // Transform widget coordinates to game coordinates (1920x1080)
+    int game_x, game_y;
+    transformMouseCoordinates(event->x(), event->y(), game_x, game_y);
+    
+    visualizer->mouse_x = game_x;
+    visualizer->mouse_y = game_y;
     visualizer->mouse_just_moved = true;
 
     if (event->button() == Qt::LeftButton) {
@@ -186,10 +188,14 @@ void CairoWidget::mouseReleaseEvent(QMouseEvent *event) {
 void CairoWidget::mouseMoveEvent(QMouseEvent *event) {
     if (!visualizer) return;
     
-    visualizer->mouse_x = event->x();
-    visualizer->mouse_y = event->y();
-    visualizer->last_mouse_x = event->x();
-    visualizer->last_mouse_y = event->y();
+    // Transform widget coordinates to game coordinates (1920x1080)
+    int game_x, game_y;
+    transformMouseCoordinates(event->x(), event->y(), game_x, game_y);
+    
+    visualizer->mouse_x = game_x;
+    visualizer->mouse_y = game_y;
+    visualizer->last_mouse_x = game_x;
+    visualizer->last_mouse_y = game_y;
     visualizer->mouse_just_moved = true;
     visualizer->mouse_movement_timer = 2.0;
 }
@@ -201,6 +207,37 @@ void CairoWidget::wheelEvent(QWheelEvent *event) {
         visualizer->scroll_direction = 1;
     } else if (event->angleDelta().y() < 0) {
         visualizer->scroll_direction = -1;
+    }
+}
+
+void CairoWidget::transformMouseCoordinates(int widget_x, int widget_y, int &game_x, int &game_y) {
+    // Game always renders at 1920x1080
+    int game_width = 1920;
+    int game_height = 1080;
+    
+    int widget_width = this->width();
+    int widget_height = this->height();
+    
+    // Calculate scale to fit game into widget
+    // Game is on LEFT side, not centered
+    double scale_x = (double)widget_width / game_width;
+    double scale_y = (double)widget_height / game_height;
+    double scale = (scale_x < scale_y) ? scale_x : scale_y;
+    
+    // Transform widget coordinates directly to game coordinates
+    // No offset needed - game fills from top-left
+    if (scale > 0) {
+        game_x = (int)(widget_x / scale);
+        game_y = (int)(widget_y / scale);
+        
+        // Clamp to game bounds
+        if (game_x < 0) game_x = 0;
+        if (game_y < 0) game_y = 0;
+        if (game_x >= game_width) game_x = game_width - 1;
+        if (game_y >= game_height) game_y = game_height - 1;
+    } else {
+        game_x = 0;
+        game_y = 0;
     }
 }
 
@@ -251,6 +288,7 @@ void CairoWidget::handleKeyEvent(QKeyEvent *event, bool pressed) {
 GLWidget::GLWidget(Visualizer *vis, QWidget *parent)
     : QOpenGLWidget(parent), visualizer(vis) {
     setFocusPolicy(Qt::StrongFocus);
+    setMouseTracking(true);  // Enable continuous mouse move events
     
     // Request OpenGL 3.3 core profile
     QSurfaceFormat format;
@@ -288,6 +326,7 @@ void GLWidget::resizeGL(int w, int h) {
 }
 
 void GLWidget::paintGL() {
+    // Clear the OpenGL buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     if (!visualizer) return;
@@ -302,12 +341,12 @@ void GLWidget::paintGL() {
     if (widget_width <= 0 || widget_height <= 0) return;
 
     // Create Cairo image at game resolution
-    QImage image(game_width, game_height, QImage::Format_RGB32);
+    QImage image(game_width, game_height, QImage::Format_ARGB32);
     image.fill(Qt::black);
 
     cairo_surface_t *surface = cairo_image_surface_create_for_data(
         image.bits(),
-        CAIRO_FORMAT_RGB24,
+        CAIRO_FORMAT_ARGB32,
         image.width(),
         image.height(),
         image.bytesPerLine()
@@ -323,36 +362,24 @@ void GLWidget::paintGL() {
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
 
-    // Set up orthographic projection for 2D rendering
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0.0, widget_width, widget_height, 0.0, -1.0, 1.0);
+    // Use QPainter to draw the image on the OpenGL widget
+    // This is the reliable way that works with modern OpenGL
+    QPainter painter(this);
     
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    // Calculate scaling to fit game into widget
+    // Calculate scale to fit widget while maintaining aspect ratio
     double scale_x = (double)widget_width / game_width;
     double scale_y = (double)widget_height / game_height;
     double scale = (scale_x < scale_y) ? scale_x : scale_y;
     
+    // Calculate destination size
     int dest_width = (int)(game_width * scale);
     int dest_height = (int)(game_height * scale);
-    int offset_x = (widget_width - dest_width) / 2;
-    int offset_y = (widget_height - dest_height) / 2;
-
-    // Use glDrawPixels to render the image
-    // Note: glDrawPixels is slower but works with core OpenGL
-    glWindowPos2i(offset_x, offset_y);
-    glPixelZoom(scale, scale);
-    glDrawPixels(game_width, game_height, GL_BGR, GL_UNSIGNED_BYTE, image.bits());
-
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+    
+    // Game fills widget from top-left (no centering)
+    // Draw scaled image - QPainter handles OpenGL context automatically
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.drawImage(QRect(0, 0, dest_width, dest_height), image);
+    painter.end();
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {
@@ -368,8 +395,12 @@ void GLWidget::keyReleaseEvent(QKeyEvent *event) {
 void GLWidget::mousePressEvent(QMouseEvent *event) {
     if (!visualizer) return;
     
-    visualizer->mouse_x = event->x();
-    visualizer->mouse_y = event->y();
+    // Transform widget coordinates to game coordinates (1920x1080)
+    int game_x, game_y;
+    transformMouseCoordinates(event->x(), event->y(), game_x, game_y);
+    
+    visualizer->mouse_x = game_x;
+    visualizer->mouse_y = game_y;
     visualizer->mouse_just_moved = true;
 
     if (event->button() == Qt::LeftButton) {
@@ -396,10 +427,14 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event) {
 void GLWidget::mouseMoveEvent(QMouseEvent *event) {
     if (!visualizer) return;
     
-    visualizer->mouse_x = event->x();
-    visualizer->mouse_y = event->y();
-    visualizer->last_mouse_x = event->x();
-    visualizer->last_mouse_y = event->y();
+    // Transform widget coordinates to game coordinates (1920x1080)
+    int game_x, game_y;
+    transformMouseCoordinates(event->x(), event->y(), game_x, game_y);
+    
+    visualizer->mouse_x = game_x;
+    visualizer->mouse_y = game_y;
+    visualizer->last_mouse_x = game_x;
+    visualizer->last_mouse_y = game_y;
     visualizer->mouse_just_moved = true;
     visualizer->mouse_movement_timer = 2.0;
 }
@@ -451,6 +486,37 @@ void GLWidget::handleKeyEvent(QKeyEvent *event, bool pressed) {
         case Qt::Key_Q:
             visualizer->key_q_pressed = pressed;
             break;
+    }
+}
+
+void GLWidget::transformMouseCoordinates(int widget_x, int widget_y, int &game_x, int &game_y) {
+    // Game always renders at 1920x1080
+    int game_width = 1920;
+    int game_height = 1080;
+    
+    int widget_width = this->width();
+    int widget_height = this->height();
+    
+    // Calculate scale (same as in paintGL)
+    // Game is on LEFT side, not centered
+    double scale_x = (double)widget_width / game_width;
+    double scale_y = (double)widget_height / game_height;
+    double scale = (scale_x < scale_y) ? scale_x : scale_y;
+    
+    // Transform widget coordinates directly to game coordinates
+    // No offset needed - game fills from top-left
+    if (scale > 0) {
+        game_x = (int)(widget_x / scale);
+        game_y = (int)(widget_y / scale);
+        
+        // Clamp to game bounds
+        if (game_x < 0) game_x = 0;
+        if (game_y < 0) game_y = 0;
+        if (game_x >= game_width) game_x = game_width - 1;
+        if (game_y >= game_height) game_y = game_height - 1;
+    } else {
+        game_x = 0;
+        game_y = 0;
     }
 }
 
@@ -557,6 +623,12 @@ CometBusterWindow::CometBusterWindow(QWidget *parent)
     memset(&visualizer, 0, sizeof(Visualizer));
     visualizer.width = 1920;
     visualizer.height = 1080;
+    
+    // Initialize mouse coordinates to center of screen
+    visualizer.mouse_x = visualizer.width / 2;
+    visualizer.mouse_y = visualizer.height / 2;
+    visualizer.last_mouse_x = visualizer.width / 2;
+    visualizer.last_mouse_y = visualizer.height / 2;
     
     // Copy audio to visualizer
     visualizer.audio = audio;
@@ -792,8 +864,14 @@ void CometBusterWindow::createUI() {
     // Create menu bar
     createMenuBar();
 
-    // Create rendering stack
+    // Create horizontal layout for game and content
+    QHBoxLayout *contentLayout = new QHBoxLayout();
+    contentLayout->setContentsMargins(0, 0, 0, 0);
+    contentLayout->setSpacing(0);
+
+    // Create rendering stack on LEFT side
     renderingStack = new QStackedWidget();
+    renderingStack->setMinimumWidth(1200);  // Game takes up more space on left
     
     cairoWidget = new CairoWidget(&visualizer);
     glWidget = new GLWidget(&visualizer);
@@ -802,7 +880,16 @@ void CometBusterWindow::createUI() {
     renderingStack->addWidget(glWidget);
     renderingStack->setCurrentWidget(cairoWidget);  // Start with Cairo
 
-    mainLayout->addWidget(renderingStack);
+    contentLayout->addWidget(renderingStack);
+
+    // Add right side panel for future content/narrative
+    QWidget *rightPanel = new QWidget();
+    rightPanel->setStyleSheet("background-color: black;");
+    rightPanel->setMinimumWidth(300);
+    contentLayout->addWidget(rightPanel);
+
+    // Add content layout to main layout
+    mainLayout->addLayout(contentLayout);
 
     // Status bar
     statusLabel = new QLabel("Ready");
