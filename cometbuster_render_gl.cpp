@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+//#include <pango/pango.h>
 #include "cometbuster.h"
 #include "visualization.h"
 #include "cometbuster_splashscreen.h"
@@ -193,29 +194,20 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 // ============================================================================
 
 // Calculate actual text width based on glyph metrics
-// For monospace fonts, use the width of reference character 'X' times char count
+// Use advance field which includes proper character spacing
 static float gl_calculate_text_width(const char *text, int font_size) {
     if (!text || !text[0]) return 0.0f;
     
-    // Get reference character width from 'X'
-    const GlyphData *ref_glyph = get_glyph('X');
-    if (!ref_glyph) return (float)strlen(text) * (float)font_size * 0.6f;  // Fallback
-    
     float ref_height = (float)FONT_MAX_HEIGHT;
     float scale = (float)font_size / ref_height;
-    float char_width = (float)ref_glyph->width * scale;
-    
-    // For monospace, all characters have the same width
     float width = 0.0f;
+    
     for (int i = 0; text[i]; i++) {
         unsigned char ch = (unsigned char)text[i];
         const GlyphData *glyph = get_glyph(ch);
         if (glyph) {
-            // Use the actual glyph width (should all be same for monospace)
-            width += (float)glyph->width * scale;
-        } else {
-            // Fallback to reference width
-            width += char_width;
+            // Use advance field (includes character width + proper spacing)
+            width += (float)glyph->advance * scale;
         }
     }
     
@@ -241,11 +233,18 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         
         // Get glyph from font
         const GlyphData *glyph = get_glyph(ch);
+        
+        // Calculate advance (proper character spacing) BEFORE checking if it exists
+        // Use the advance field which includes character width + proper spacing
+        float glyph_advance = glyph ? (float)glyph->advance * scale : (scale * 17.0f);
+        
+        // Only render if glyph exists and has bitmap
         if (!glyph || !glyph->bitmap) {
+            // Still advance position for missing glyphs (like spaces)
+            current_x += glyph_advance;
             continue;
         }
         
-        float glyph_width = (float)glyph->width * scale;
         float pixel_scale = scale;
         
         // Use glyph's vertical offset for proper baseline alignment
@@ -280,8 +279,8 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
             }
         }
         
-        // Move to next character position
-        current_x += glyph_width;
+        // Move to next character position using advance width
+        current_x += glyph_advance;
     }
     
     // Draw all glyphs at once
@@ -1925,6 +1924,8 @@ void boss_explosion_draw_gl(BossExplosion *explosion, void *cr) {
         gl_draw_circle(p->x, p->y, 3.0f, 12);
     }
 }
+
+
 
 void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game || !game->splash_screen_active) return;
