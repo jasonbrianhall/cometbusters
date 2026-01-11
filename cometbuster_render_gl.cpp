@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-//#include <pango/pango.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#include "cometbuster_splashscreen.h"
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -191,6 +191,36 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 // ============================================================================
 // TEXT RENDERING - Monospace.h Font Support
 // ============================================================================
+
+// Calculate actual text width based on glyph metrics
+// For monospace fonts, use the width of reference character 'X' times char count
+static float gl_calculate_text_width(const char *text, int font_size) {
+    if (!text || !text[0]) return 0.0f;
+    
+    // Get reference character width from 'X'
+    const GlyphData *ref_glyph = get_glyph('X');
+    if (!ref_glyph) return (float)strlen(text) * (float)font_size * 0.6f;  // Fallback
+    
+    float ref_height = (float)FONT_MAX_HEIGHT;
+    float scale = (float)font_size / ref_height;
+    float char_width = (float)ref_glyph->width * scale;
+    
+    // For monospace, all characters have the same width
+    float width = 0.0f;
+    for (int i = 0; text[i]; i++) {
+        unsigned char ch = (unsigned char)text[i];
+        const GlyphData *glyph = get_glyph(ch);
+        if (glyph) {
+            // Use the actual glyph width (should all be same for monospace)
+            width += (float)glyph->width * scale;
+        } else {
+            // Fallback to reference width
+            width += char_width;
+        }
+    }
+    
+    return width;
+}
 
 void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     if (!text || !text[0]) return;
@@ -1898,13 +1928,180 @@ void boss_explosion_draw_gl(BossExplosion *explosion, void *cr) {
 
 void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game || !game->splash_screen_active) return;
-    gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.9f);
-    gl_draw_rect_filled(0.0f, 0.0f, width, height);
+    
+    // Draw background (dark space)
+    gl_set_color(0.04f, 0.06f, 0.15f);
+    gl_draw_rect_filled(0.0f, 0.0f, (float)width, (float)height);
+    
+    // Draw grid (extended 50 pixels further to the right)
+    gl_set_color(0.1f, 0.15f, 0.35f);
+    for (int i = 0; i <= width + 50; i += 50) {
+        gl_draw_line((float)i, 0.0f, (float)i, (float)height, 0.5f);
+    }
+    for (int i = 0; i <= height; i += 50) {
+        gl_draw_line(0.0f, (float)i, (float)(width + 50), (float)i, 0.5f);
+    }
+    
+    // Draw game elements in background
+    draw_comet_buster_comets_gl(game, cr, width, height);
+    draw_comet_buster_enemy_ships_gl(game, cr, width, height);
+    draw_comet_buster_enemy_bullets_gl(game, cr, width, height);
+    draw_comet_buster_particles_gl(game, cr, width, height);
+    
+    // Draw boss if active
+    if (game->boss_active) {
+        draw_comet_buster_boss_gl(&game->boss, cr, width, height);
+    }
+    
+    // Dim the background with overlay for text visibility
+    gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.3f);
+    gl_draw_rect_filled(0.0f, 0.0f, (float)width, (float)height);
+    
+    // ===== OPENING CRAWL PHASE =====
+    // Duration: approximately 0-38 seconds
+    double scroll_speed = 1.0;  // seconds per line
+    
+    if (game->splash_timer < 38.0) {
+        gl_set_color(1.0f, 0.95f, 0.0f);
+        
+        // Approximate line height (monospace font)
+        float line_height = 24.0f * 1.8f;
+        
+        // Calculate which lines should be visible
+        double current_line_offset = (game->splash_timer / scroll_speed);
+        double fractional_offset = fmod(game->splash_timer, scroll_speed) / scroll_speed;
+        double lines_visible = (height + 200.0) / line_height;
+        
+        // Draw all lines that could be visible
+        for (int i = 0; i < (int)lines_visible + 2; i++) {
+            int line_index = (int)current_line_offset + i;
+            if (line_index < 0 || line_index >= (int)NUM_CRAWL_LINES) continue;
+            
+            // Calculate Y position (lines scroll up from bottom to top)
+            double y_pos = height - (fractional_offset * line_height) + (i * line_height) - (current_line_offset * line_height);
+            
+            // Calculate fade for lines entering (bottom) and leaving (top)
+            double alpha = 1.0;
+            if (y_pos < 200.0) {
+                alpha = y_pos / 200.0;
+            } else if (y_pos > height - 200.0) {
+                alpha = (height - y_pos) / 200.0;
+            }
+            
+            if (alpha < 0.0) alpha = 0.0;
+            if (alpha > 1.0) alpha = 1.0;
+            
+            gl_set_color_alpha(1.0f, 0.95f, 0.0f, (float)alpha);
+            
+            // Center text horizontally using actual text width
+            float text_width = gl_calculate_text_width(OPENING_CRAWL_LINES[line_index], 24);
+            int x_pos = (width - (int)text_width) / 2;
+            gl_draw_text_simple(OPENING_CRAWL_LINES[line_index], x_pos, (int)y_pos, 24);
+        }
+    }
+    // ===== TITLE PHASE =====
+    // After crawl ends, show big COMET BUSTERS title
+    else if (game->splash_timer < 43.0) {
+        // Fade in the title
+        double phase_timer = game->splash_timer - 38.0;
+        double title_alpha = phase_timer / 2.0;
+        if (title_alpha > 1.0) title_alpha = 1.0;
+        
+        // Draw glowing text effect
+        const char *title_text = "COMET BUSTERS";
+        float title_width = gl_calculate_text_width(title_text, 120);
+        int title_x = (width - (int)title_width) / 2;
+        int title_y = height / 2 + 20;
+        
+        for (int i = 5; i > 0; i--) {
+            double alpha = 0.1 * (5 - i) / 5.0 * title_alpha;
+            gl_set_color_alpha(0.0f, 1.0f, 1.0f, (float)alpha);
+            gl_draw_text_simple(title_text, title_x, title_y, 120);
+        }
+        
+        // Draw bright main title text
+        gl_set_color_alpha(0.0f, 1.0f, 1.0f, (float)title_alpha);
+        gl_draw_text_simple(title_text, title_x, title_y, 120);
+        
+        // Draw subtitle
+        const char *subtitle = "Press fire key to start";
+        float subtitle_width = gl_calculate_text_width(subtitle, 28);
+        int subtitle_x = (width - (int)subtitle_width) / 2;
+        int subtitle_y = title_y + 80;
+        
+        // Blinking text effect for subtitle
+        double blink_alpha = 0.5 + 0.5 * sin(game->splash_timer * 3.0);
+        gl_set_color_alpha(1.0f, 1.0f, 0.0f, (float)(blink_alpha * title_alpha));
+        gl_draw_text_simple(subtitle, subtitle_x, subtitle_y, 28);
+    }
+    // ===== WAIT PHASE =====
+    // Just show the title and wait for input
+    else {
+        gl_set_color(0.0f, 1.0f, 1.0f);
+        
+        const char *title_text = "COMET BUSTERS";
+        float title_width = gl_calculate_text_width(title_text, 120);
+        int title_x = (width - (int)title_width) / 2;
+        int title_y = height / 2 + 20;
+        
+        gl_draw_text_simple(title_text, title_x, title_y, 120);
+        
+        // Draw subtitle
+        const char *subtitle = "Press fire key to start";
+        float subtitle_width = gl_calculate_text_width(subtitle, 28);
+        int subtitle_x = (width - (int)subtitle_width) / 2;
+        int subtitle_y = title_y + 80;
+        
+        // Blinking text effect for subtitle
+        double blink_alpha = 0.5 + 0.5 * sin(game->splash_timer * 3.0);
+        gl_set_color_alpha(1.0f, 1.0f, 0.0f, (float)blink_alpha);
+        gl_draw_text_simple(subtitle, subtitle_x, subtitle_y, 28);
+    }
 }
 
-void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int width, int height) {}
+void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int width, int height) {
+    if (!game || !game->splash_screen_active || game->game_won == false) return;
+    
+    double timer = game->splash_timer;
+    
+    // Draw semi-transparent black background
+    gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.95f);
+    gl_draw_rect_filled(0.0f, 0.0f, (float)width, (float)height);
+    
+    // Setup text
+    gl_set_color(1.0f, 1.0f, 0.0f);
+    
+    // Calculate scroll
+    double line_duration = 0.8;  // Seconds per line
+    int start_line = (int)(timer / line_duration);
+    double line_alpha = 1.0 - fmod(timer, line_duration) / (line_duration * 0.3);
+    line_alpha = (line_alpha < 0) ? 0 : (line_alpha > 1) ? 1 : line_alpha;
+    
+    // Draw visible lines
+    int y_pos = height / 3;
+    for (int i = 0; i < 8 && start_line + i < NUM_VICTORY_LINES; i++) {
+        double fade = 1.0;
+        
+        // First line fades in
+        if (i == 0) {
+            fade = line_alpha;
+        }
+        // Last visible line fades out
+        if (i == 7) {
+            fade = 1.0 - (double)i / 10.0;
+        }
+        
+        gl_set_color_alpha(1.0f, 1.0f, 0.0f, (float)fade);
+        
+        // Center text horizontally using actual text width
+        const char *line_text = VICTORY_SCROLL_LINES[start_line + i];
+        float text_width = gl_calculate_text_width(line_text, 24);
+        int x_pos = (width - (int)text_width) / 2;
+        
+        gl_draw_text_simple(line_text, x_pos, y_pos + i * 40, 24);
+    }
+}
+
 void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int width, int height) {}
 void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt) {}
 void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {}
-
-
