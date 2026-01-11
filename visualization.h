@@ -2,7 +2,6 @@
 #define VISUALIZATION_H
 
 #include <stdbool.h>
-#include <gtk/gtk.h>
 #include <cairo.h>
 #include <math.h>
 #include <string.h>
