@@ -10,6 +10,7 @@
 #include <QStatusBar>
 #include <QKeyEvent>
 #include <QCloseEvent>
+#include <QEvent>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QPaintEvent>

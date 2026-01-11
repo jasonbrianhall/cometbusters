@@ -85,6 +85,7 @@ CairoWidget::CairoWidget(Visualizer *vis, QWidget *parent)
     setFocusPolicy(Qt::StrongFocus);
     setAttribute(Qt::WA_OpaquePaintEvent);
     setMouseTracking(true);  // Enable continuous mouse move events
+    setStyleSheet("background-color: black;");  // Ensure black background
 }
 
 void CairoWidget::paintEvent(QPaintEvent *event) {
@@ -245,6 +246,11 @@ void CairoWidget::handleKeyEvent(QKeyEvent *event, bool pressed) {
     if (!visualizer) return;
 
     int key = event->key();
+    
+    // When a key is pressed, disable mouse control (keyboard takes priority)
+    if (pressed) {
+        visualizer->mouse_just_moved = false;
+    }
 
     switch (key) {
         case Qt::Key_A:
@@ -453,6 +459,11 @@ void GLWidget::handleKeyEvent(QKeyEvent *event, bool pressed) {
     if (!visualizer) return;
 
     int key = event->key();
+    
+    // When a key is pressed, disable mouse control (keyboard takes priority)
+    if (pressed) {
+        visualizer->mouse_just_moved = false;
+    }
 
     switch (key) {
         case Qt::Key_A:
@@ -645,8 +656,8 @@ CometBusterWindow::CometBusterWindow(QWidget *parent)
     connect(gameTimer, &QTimer::timeout, this, &CometBusterWindow::updateGame);
     gameTimer->start(16);  // ~60 FPS (16.67ms per frame)
     
-    // Set window size and grab focus
-    resize(1024, 768);
+    // Start window maximized
+    showMaximized();
     
     // Grab keyboard focus
     if (cairoWidget) {
@@ -667,6 +678,34 @@ CometBusterWindow::~CometBusterWindow() {
 
 void CometBusterWindow::updateGame() {
     static int frameCounter = 0;
+    static bool last_splash_screen_active = true;  // Track splash state for music transition
+    static bool was_minimized = false;  // Track minimize state
+    
+    // Pause game if minimized
+    if (isMinimized() && !gamePaused && !visualizer.comet_buster.splash_screen_active) {
+        gamePaused = true;
+        audio_stop_music(&audio);
+        was_minimized = true;
+        fprintf(stdout, "[GAME] Window minimized - Game paused\n");
+        return;  // Don't update while minimized
+    }
+    
+    // Resume when restored
+    if (!isMinimized() && was_minimized) {
+        was_minimized = false;
+        fprintf(stdout, "[GAME] Window restored (stay paused until user resumes)\n");
+    }
+    
+    // Handle splash screen exit - transition from intro to gameplay music
+    if (last_splash_screen_active && !visualizer.comet_buster.splash_screen_active) {
+        fprintf(stdout, "[SPLASH] Exited splash screen - switching music\n");
+        audio_stop_music(&audio);
+#ifdef ExternalSound
+        audio_play_random_music(&audio);
+        fprintf(stdout, "[AUDIO] Started gameplay music\n");
+#endif
+    }
+    last_splash_screen_active = visualizer.comet_buster.splash_screen_active;
     
     if (!gamePaused) {
         // Sync audio state to visualizer
@@ -688,7 +727,7 @@ void CometBusterWindow::updateGame() {
         
         // Check if music finished and queue next
 #ifdef ExternalSound
-        if (!gamePaused && !audio_is_music_playing(&audio)) {
+        if (!gamePaused && !visualizer.comet_buster.splash_screen_active && !audio_is_music_playing(&audio)) {
             fprintf(stdout, "[AUDIO] Queuing next music track\n");
             audio_play_random_music(&audio);
         }
@@ -705,10 +744,11 @@ void CometBusterWindow::updateGame() {
             statusLabel->setText(status);
         }
         
-        // Trigger render
+        // Trigger render - ONLY the active rendering engine
+        // Cairo = 0, OpenGL = 1
         if (renderingEngine == 0) {
             if (cairoWidget) cairoWidget->update();
-        } else {
+        } else if (renderingEngine == 1) {
             if (glWidget) glWidget->update();
         }
     }
@@ -770,6 +810,19 @@ void CometBusterWindow::onToggleFullscreen() {
         statusLabel->setText("Fullscreen Mode");
         fprintf(stdout, "[DISPLAY] Switched to Fullscreen\n");
     }
+    
+    // Force widget to update and grab focus
+    if (renderingEngine == 0) {
+        if (cairoWidget) {
+            cairoWidget->setFocus();
+            cairoWidget->update();
+        }
+    } else {
+        if (glWidget) {
+            glWidget->setFocus();
+            glWidget->update();
+        }
+    }
 }
 
 void CometBusterWindow::onVolumeChanged(int value) {
@@ -823,19 +876,29 @@ void CometBusterWindow::onShowVolumeDialog() {
 void CometBusterWindow::onSwitchToCairo() {
     renderingEngine = 0;
     renderingStack->setCurrentWidget(cairoWidget);
+    cairoWidget->show();
     cairoWidget->setFocus();
     cairoWidget->grabKeyboard();
+    // Stop any pending OpenGL rendering
+    if (glWidget) {
+        glWidget->hide();
+    }
     statusLabel->setText("Switched to Cairo Rendering");
-    fprintf(stdout, "[RENDER] Switched to Cairo rendering\n");
+    fprintf(stdout, "[RENDER] Switched to Cairo rendering (OpenGL disabled)\n");
 }
 
 void CometBusterWindow::onSwitchToOpenGL() {
     renderingEngine = 1;
     renderingStack->setCurrentWidget(glWidget);
+    glWidget->show();
     glWidget->setFocus();
     glWidget->grabKeyboard();
+    // Stop any pending Cairo rendering
+    if (cairoWidget) {
+        cairoWidget->hide();
+    }
     statusLabel->setText("Switched to OpenGL Rendering");
-    fprintf(stdout, "[RENDER] Switched to OpenGL rendering\n");
+    fprintf(stdout, "[RENDER] Switched to OpenGL rendering (Cairo disabled)\n");
 }
 
 void CometBusterWindow::onAbout() {
@@ -990,9 +1053,6 @@ void CometBusterWindow::closeEvent(QCloseEvent *event) {
     QMainWindow::closeEvent(event);
 }
 
-// ============================================================
-// HIGH SCORE MANAGEMENT
-// ============================================================
 
 bool comet_buster_is_high_score(CometBusterGame *game, int score) {
     if (!game) return false;
