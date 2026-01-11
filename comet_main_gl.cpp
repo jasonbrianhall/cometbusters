@@ -24,6 +24,14 @@
 #include "audio_wad.h"
 #include "comet_help.h"
 
+// Forward declare functions from visualization.h and other headers
+extern void update_comet_buster(Visualizer *vis_ptr, double dt);
+extern void draw_comet_buster_gl(Visualizer *visualizer, void *cr);
+extern void high_scores_load(CometBusterGame *game);
+extern void audio_set_music_volume(AudioManager *audio, int volume);
+extern void audio_set_sfx_volume(AudioManager *audio, int volume);
+extern void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen_height);
+
 #ifdef _WIN32
 std::string getExecutableDir() { 
     char buffer[MAX_PATH];
@@ -49,6 +57,10 @@ typedef struct {
     bool fullscreen;
     bool running;
     bool game_paused;
+    
+    // Menu state
+    bool show_menu;
+    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Quit
     
     int frame_count;
     double total_time;
@@ -248,8 +260,36 @@ static void handle_events(CometGUI *gui) {
                 break;
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    // Escape opens pause menu instead of quitting
-                    gui->game_paused = !gui->game_paused;
+                    // Escape toggles menu
+                    gui->show_menu = !gui->show_menu;
+                    gui->menu_selection = 0;  // Reset to Continue option
+                } else if (gui->show_menu) {
+                    // Menu is open - handle navigation
+                    if (event.key.keysym.sym == SDLK_UP) {
+                        gui->menu_selection = (gui->menu_selection - 1 + 4) % 4;
+                    } else if (event.key.keysym.sym == SDLK_DOWN) {
+                        gui->menu_selection = (gui->menu_selection + 1) % 4;
+                    } else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_SPACE) {
+                        // Select menu option
+                        switch (gui->menu_selection) {
+                            case 0:  // Continue
+                                gui->show_menu = false;
+                                break;
+                            case 1:  // New Game
+                                comet_buster_reset_game(&gui->visualizer.comet_buster);
+                                comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                                gui->show_menu = false;
+                                printf("[MENU] New game started\n");
+                                break;
+                            case 2:  // High Scores - just close menu for now
+                                gui->show_menu = false;
+                                printf("[MENU] High scores selected\n");
+                                break;
+                            case 3:  // Quit
+                                gui->running = false;
+                                break;
+                        }
+                    }
                 } else if (event.key.keysym.sym == SDLK_p) {
                     gui->game_paused = !gui->game_paused;
                 } else {
@@ -320,7 +360,8 @@ static void handle_events(CometGUI *gui) {
 }
 
 static void update_game(CometGUI *gui) {
-    if (gui->game_paused) return;
+    // Don't update if menu is open or game is paused
+    if (gui->show_menu || gui->game_paused) return;
     
     // Call the master update function from visualization.h
     // This handles ALL game updates including collisions, audio, wave progression, etc.
@@ -366,6 +407,62 @@ static void render_frame(CometGUI *gui) {
     
     // Call the master render function
     draw_comet_buster_gl(&gui->visualizer, NULL);
+    
+    // Render menu overlay if open
+    if (gui->show_menu) {
+        extern void gl_set_color_alpha(float r, float g, float b, float a);
+        extern void gl_draw_rect_filled(float x, float y, float width, float height);
+        extern void gl_set_color(float r, float g, float b);
+        extern void gl_draw_text_simple(const char *text, int x, int y, int font_size);
+        
+        // Darken background
+        gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+        gl_draw_rect_filled(0, 0, 1920, 1080);
+        
+        // Menu title
+        gl_set_color(0.0f, 1.0f, 1.0f);
+        gl_draw_text_simple("COMET BUSTERS MENU", 860, 150, 24);
+        
+        // Menu options
+        const char *options[] = {
+            "CONTINUE GAME",
+            "NEW GAME",
+            "HIGH SCORES",
+            "QUIT"
+        };
+        
+        int menu_y_start = 300;
+        int menu_spacing = 140;
+        int menu_width = 600;
+        int menu_height = 80;
+        
+        for (int i = 0; i < 4; i++) {
+            int option_y = menu_y_start + (i * menu_spacing);
+            int option_x = (1920 - menu_width) / 2;
+            
+            // Highlight selected option
+            if (i == gui->menu_selection) {
+                gl_set_color(1.0f, 1.0f, 0.0f);  // Yellow border for selected
+                gl_draw_rect_filled(option_x - 5, option_y - 5, menu_width + 10, menu_height + 10);
+                gl_set_color(0.0f, 0.5f, 1.0f);  // Blue background
+                gl_draw_rect_filled(option_x, option_y, menu_width, menu_height);
+                gl_set_color(1.0f, 1.0f, 0.0f);  // Yellow text for selected
+            } else {
+                gl_set_color(0.2f, 0.2f, 0.4f);  // Dark background
+                gl_draw_rect_filled(option_x, option_y, menu_width, menu_height);
+                gl_set_color(0.7f, 0.7f, 1.0f);  // Light blue text for unselected
+            }
+            
+            // Draw option text
+            int text_x = option_x + 50;
+            int text_y = option_y + 20;
+            gl_draw_text_simple(options[i], text_x, text_y, 16);
+        }
+        
+        // Instructions
+        gl_set_color(0.8f, 0.8f, 0.8f);
+        gl_draw_text_simple("UP/DOWN arrows to select | ENTER to choose", 650, 900, 12);
+    }
     
     SDL_GL_SwapWindow(gui->window);
 }
