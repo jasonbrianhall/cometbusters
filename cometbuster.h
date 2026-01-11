@@ -710,4 +710,11 @@ void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int wid
 void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt);
 void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt);
 
+// High Scores
+void high_scores_load(CometBusterGame *game);
+void high_scores_save(CometBusterGame *game);
+bool comet_buster_is_high_score(CometBusterGame *game, int score);
+void high_scores_add(CometBusterGame *game, int score, int wave, const char *name);
+const char* high_scores_get_path(void);
+
 #endif // COMETBUSTER_H

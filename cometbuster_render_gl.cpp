@@ -192,7 +192,7 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 // TEXT RENDERING - Monospace.h Font Support
 // ============================================================================
 
-static void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
+void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     if (!text || !text[0]) return;
     
     // Monospace.h has max height
