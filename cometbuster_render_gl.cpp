@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <pango/pango.h>
+//#include <pango/pango.h>
 #include <gtk/gtk.h>
 #include "cometbuster.h"
 #include "visualization.h"
