@@ -24,14 +24,6 @@
 #include "audio_wad.h"
 #include "comet_help.h"
 
-// Forward declare functions from visualization.h and other headers
-extern void update_comet_buster(Visualizer *vis_ptr, double dt);
-extern void draw_comet_buster_gl(Visualizer *visualizer, void *cr);
-extern void high_scores_load(CometBusterGame *game);
-extern void audio_set_music_volume(AudioManager *audio, int volume);
-extern void audio_set_sfx_volume(AudioManager *audio, int volume);
-extern void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen_height);
-
 #ifdef _WIN32
 std::string getExecutableDir() { 
     char buffer[MAX_PATH];
@@ -187,12 +179,15 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         return false;
     }
     
+    uint32_t flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_RESIZABLE;
+    if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+    
     gui->window = SDL_CreateWindow(
-        "CometBuster - SDL2+OpenGL",
+        "Comet Busters - SDL2+OpenGL",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         width, height,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN
+        flags
     );
     
     if (!gui->window) {
@@ -200,6 +195,10 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Quit();
         return false;
     }
+    
+    // Get the actual window size (might be different if maximized)
+    SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
+    printf("[SDL] Window created: %dx%d\n", gui->window_width, gui->window_height);
     
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
@@ -227,7 +226,8 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     
     printf("[INIT] SDL2, OpenGL %s, GLEW OK\n", glGetString(GL_VERSION));
     
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    // Set background to match Cairo version dark blue
+    glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
@@ -248,7 +248,8 @@ static void handle_events(CometGUI *gui) {
                 break;
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    gui->running = false;
+                    // Escape opens pause menu instead of quitting
+                    gui->game_paused = !gui->game_paused;
                 } else if (event.key.keysym.sym == SDLK_p) {
                     gui->game_paused = !gui->game_paused;
                 } else {
@@ -274,7 +275,8 @@ static void handle_events(CometGUI *gui) {
                 } else if (event.button.button == SDL_BUTTON_RIGHT) {
                     gui->visualizer.mouse_right_pressed = true;
                 } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-                    gui->visualizer.mouse_middle_pressed = true;
+                    // Middle button triggers omnidirectional fire (map to Q key)
+                    gui->visualizer.key_q_pressed = true;
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
@@ -283,7 +285,8 @@ static void handle_events(CometGUI *gui) {
                 } else if (event.button.button == SDL_BUTTON_RIGHT) {
                     gui->visualizer.mouse_right_pressed = false;
                 } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-                    gui->visualizer.mouse_middle_pressed = false;
+                    // Middle button release
+                    gui->visualizer.key_q_pressed = false;
                 }
                 break;
             case SDL_MOUSEWHEEL:
@@ -303,6 +306,13 @@ static void handle_events(CometGUI *gui) {
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
                     gui->window_width = event.window.data1;
                     gui->window_height = event.window.data2;
+                    printf("[WINDOW] Resized to %dx%d\n", gui->window_width, gui->window_height);
+                } else if (event.window.event == SDL_WINDOWEVENT_MAXIMIZED) {
+                    SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
+                    printf("[WINDOW] Maximized to %dx%d\n", gui->window_width, gui->window_height);
+                } else if (event.window.event == SDL_WINDOWEVENT_RESTORED) {
+                    SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
+                    printf("[WINDOW] Restored to %dx%d\n", gui->window_width, gui->window_height);
                 }
                 break;
         }
@@ -318,14 +328,43 @@ static void update_game(CometGUI *gui) {
 }
 
 static void render_frame(CometGUI *gui) {
-    glViewport(0, 0, gui->window_width, gui->window_height);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Update visualizer dimensions
-    gui->visualizer.width = gui->window_width;
-    gui->visualizer.height = gui->window_height;
+    // Calculate scaling to fit window while maintaining 1920x1080 aspect ratio
+    const float GAME_WIDTH = 1920.0f;
+    const float GAME_HEIGHT = 1080.0f;
     
-    // Call the master render function - this handles everything
+    float window_aspect = (float)gui->window_width / gui->window_height;
+    float game_aspect = GAME_WIDTH / GAME_HEIGHT;
+    
+    int viewport_x = 0;
+    int viewport_y = 0;
+    int viewport_width = gui->window_width;
+    int viewport_height = gui->window_height;
+    
+    // Scale to fit, aligned to top-left
+    if (window_aspect > game_aspect) {
+        // Window is wider than game aspect - fit to height, align left
+        viewport_height = gui->window_height;
+        viewport_width = (int)(GAME_WIDTH * gui->window_height / GAME_HEIGHT);
+        viewport_x = 0;
+        viewport_y = 0;
+    } else {
+        // Window is narrower - fit to width
+        viewport_width = gui->window_width;
+        viewport_height = (int)(GAME_HEIGHT * gui->window_width / GAME_WIDTH);
+        viewport_x = 0;
+        viewport_y = 0;
+    }
+    
+    // Set viewport to scaled region
+    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
+    
+    // Update visualizer dimensions for display
+    gui->visualizer.width = 1920;
+    gui->visualizer.height = 1080;
+    
+    // Call the master render function
     draw_comet_buster_gl(&gui->visualizer, NULL);
     
     SDL_GL_SwapWindow(gui->window);
@@ -357,6 +396,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
         return 1;
     }
+    
+    // Window is now maximized, get the actual size
+    SDL_GetWindowSize(gui.window, &gui.window_width, &gui.window_height);
+    printf("[INIT] Window maximized size: %dx%d\n", gui.window_width, gui.window_height);
     
     // Initialize visualizer with GAME space (1920x1080), not window size
     memset(&gui.visualizer, 0, sizeof(Visualizer));
