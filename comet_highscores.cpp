@@ -2,6 +2,20 @@
 #include <cstdio>
 #include <cstring>
 
+#ifdef _WIN32
+    #include <direct.h>
+    #include <windows.h>  // For Sleep function on Windows
+    #include <shlobj.h>
+    #include <appmodel.h>
+    #include <vector>
+#else
+    #include <unistd.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <signal.h>
+#endif
+
+
 /**
  * Load high scores from disk (text format)
  */

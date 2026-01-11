@@ -24,14 +24,13 @@
 #include "audio_wad.h"
 #include "comet_help.h"
 
-// Forward declare GL functions
-extern void gl_setup_2d_projection(int width, int height);
+// Forward declare functions from visualization.h and other headers
+extern void update_comet_buster(Visualizer *vis_ptr, double dt);
 extern void draw_comet_buster_gl(Visualizer *visualizer, void *cr);
-
-// Forward declare audio functions
 extern void high_scores_load(CometBusterGame *game);
 extern void audio_set_music_volume(AudioManager *audio, int volume);
 extern void audio_set_sfx_volume(AudioManager *audio, int volume);
+extern void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen_height);
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -259,6 +258,41 @@ static void handle_events(CometGUI *gui) {
             case SDL_KEYUP:
                 handle_keyboard_input(&event, gui);
                 break;
+            case SDL_MOUSEMOTION: {
+                // Scale mouse from window space (1024x768) to game space (1920x1080)
+                float scale_x = 1920.0f / gui->window_width;
+                float scale_y = 1080.0f / gui->window_height;
+                gui->visualizer.mouse_x = (int)(event.motion.x * scale_x);
+                gui->visualizer.mouse_y = (int)(event.motion.y * scale_y);
+                gui->visualizer.mouse_just_moved = true;
+                gui->visualizer.mouse_movement_timer = 0.1f;  // 100ms
+                break;
+            }
+            case SDL_MOUSEBUTTONDOWN:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    gui->visualizer.mouse_left_pressed = true;
+                } else if (event.button.button == SDL_BUTTON_RIGHT) {
+                    gui->visualizer.mouse_right_pressed = true;
+                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
+                    gui->visualizer.mouse_middle_pressed = true;
+                }
+                break;
+            case SDL_MOUSEBUTTONUP:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    gui->visualizer.mouse_left_pressed = false;
+                } else if (event.button.button == SDL_BUTTON_RIGHT) {
+                    gui->visualizer.mouse_right_pressed = false;
+                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
+                    gui->visualizer.mouse_middle_pressed = false;
+                }
+                break;
+            case SDL_MOUSEWHEEL:
+                if (event.wheel.y > 0) {
+                    gui->visualizer.scroll_direction = 1;
+                } else if (event.wheel.y < 0) {
+                    gui->visualizer.scroll_direction = -1;
+                }
+                break;
             case SDL_JOYAXISMOTION:
             case SDL_JOYBUTTONDOWN:
             case SDL_JOYBUTTONUP:
@@ -278,32 +312,9 @@ static void handle_events(CometGUI *gui) {
 static void update_game(CometGUI *gui) {
     if (gui->game_paused) return;
     
-    CometBusterGame *game = &gui->visualizer.comet_buster;
-    
-    // Don't update if game over - just let it display
-    if (game->game_over) return;
-    
-    // Update all game systems
-    comet_buster_update_ship(game, gui->delta_time, 0, 0, gui->window_width, gui->window_height, false);
-    comet_buster_update_comets(game, gui->delta_time, gui->window_width, gui->window_height);
-    comet_buster_update_bullets(game, gui->delta_time, gui->window_width, gui->window_height, &gui->visualizer);
-    comet_buster_update_particles(game, gui->delta_time);
-    comet_buster_update_floating_text(game, gui->delta_time);
-    comet_buster_update_canisters(game, gui->delta_time);
-    comet_buster_update_missile_pickups(game, gui->delta_time);
-    comet_buster_update_missiles(game, gui->delta_time, gui->window_width, gui->window_height);
-    comet_buster_update_bomb_pickups(game, gui->delta_time);
-    comet_buster_update_bombs(game, gui->delta_time, gui->window_width, gui->window_height, &gui->visualizer);
-    comet_buster_update_enemy_bullets(game, gui->delta_time, gui->window_width, gui->window_height, &gui->visualizer);
-    comet_buster_update_burner_effects(game, gui->delta_time);
-    
-    // Update other systems
-    if (game->boss_active) {
-        comet_buster_update_boss(game, gui->delta_time, gui->window_width, gui->window_height);
-    }
-    if (game->spawn_queen.active) {
-        comet_buster_update_spawn_queen(game, gui->delta_time, gui->window_width, gui->window_height);
-    }
+    // Call the master update function from visualization.h
+    // This handles ALL game updates including collisions, audio, wave progression, etc.
+    update_comet_buster(&gui->visualizer, gui->delta_time);
 }
 
 static void render_frame(CometGUI *gui) {
@@ -347,12 +358,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         return 1;
     }
     
-    // Initialize visualizer
+    // Initialize visualizer with GAME space (1920x1080), not window size
     memset(&gui.visualizer, 0, sizeof(Visualizer));
-    gui.visualizer.width = gui.window_width;
-    gui.visualizer.height = gui.window_height;
-    gui.visualizer.mouse_x = gui.window_width / 2;
-    gui.visualizer.mouse_y = gui.window_height / 2;
+    gui.visualizer.width = 1920;
+    gui.visualizer.height = 1080;
+    gui.visualizer.mouse_x = 960;
+    gui.visualizer.mouse_y = 540;
     
     // Initialize game - NO SPLASH, go straight to gameplay
     comet_buster_reset_game(&gui.visualizer.comet_buster);
@@ -392,6 +403,15 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     audio_set_sfx_volume(&gui.audio, gui.sfx_volume);
     
     printf("[INIT] Ready to play - press W/A/D/S to move, Z to fire, ESC to quit, P to pause\n");
+    printf("[INIT] Skipping splash screen...\n");
+    
+    // SKIP SPLASH SCREEN - disable it immediately
+    gui.visualizer.comet_buster.splash_screen_active = false;
+    gui.visualizer.comet_buster.splash_timer = 0.0;
+    
+    // Spawn the first wave of comets
+    comet_buster_spawn_wave(&gui.visualizer.comet_buster, gui.window_width, gui.window_height);
+    printf("[INIT] First wave spawned\n");
     
     // Main loop
     gui.last_frame_ticks = SDL_GetTicks();
