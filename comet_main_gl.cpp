@@ -549,11 +549,11 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         if (gui->menu_state == 3) {
                             if (gui->menu_selection == 0) {
                                 gui->music_volume = (gui->music_volume + 5);
-                                if (gui->music_volume > 128) gui->music_volume = 128;
+                                if (gui->music_volume > 100) gui->music_volume = 100;
                                 audio_set_music_volume(&gui->audio, gui->music_volume);
                             } else {
                                 gui->sfx_volume = (gui->sfx_volume + 5);
-                                if (gui->sfx_volume > 128) gui->sfx_volume = 128;
+                                if (gui->sfx_volume > 100) gui->sfx_volume = 100;
                                 audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
                             }
                         }
