@@ -403,6 +403,10 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     gui->visualizer.comet_buster.enemy_bullet_count = 0;
                     gui->visualizer.comet_buster.bullet_count = 0;
                     gui->visualizer.comet_buster.particle_count = 0;
+                    gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_pickup_count = 0;
+                    gui->visualizer.comet_buster.score = 0;
                     
                     // Spawn wave 1
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
@@ -641,6 +645,10 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     gui->visualizer.comet_buster.enemy_bullet_count = 0;
                     gui->visualizer.comet_buster.bullet_count = 0;
                     gui->visualizer.comet_buster.particle_count = 0;
+                    gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_pickup_count = 0;
+                    gui->visualizer.comet_buster.score = 0;
                     
                     // Spawn wave 1
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
