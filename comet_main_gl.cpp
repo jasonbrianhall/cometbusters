@@ -32,6 +32,10 @@ extern void audio_set_music_volume(AudioManager *audio, int volume);
 extern void audio_set_sfx_volume(AudioManager *audio, int volume);
 extern void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen_height);
 extern void audio_play_random_music(AudioManager *audio);
+extern void audio_stop_music(AudioManager *audio);
+extern void audio_play_music(AudioManager *audio, const char *internal_path, bool loop);
+extern void audio_play_intro_music(AudioManager *audio, const char *internal_path);
+extern bool audio_is_music_playing(AudioManager *audio);
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -64,6 +68,9 @@ typedef struct {
     int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Quit
     int menu_state;      // 0=Main Menu, 1=Difficulty Select, 2=High Scores Display, 3=Audio Menu
     int difficulty_level; // 1-3
+    
+    // Music/Audio state tracking
+    bool finale_music_started;  // Tracks if finale music has been played
     
     int frame_count;
     double total_time;
@@ -151,10 +158,20 @@ static void handle_keyboard_input_special(SDL_Event *event, CometGUI *gui) {
     
     switch (event->key.keysym.sym) {
         case SDLK_p: {
-            // P key to pause (ESC is now for menu)
-            if (!gui->visualizer.comet_buster.splash_screen_active) {
+            // P key to pause - check three conditions
+            // Only allow pause if game is not over AND splash screen is not active AND finale is not active
+            if (!gui->visualizer.comet_buster.game_over && 
+                !gui->visualizer.comet_buster.splash_screen_active &&
+                !gui->visualizer.comet_buster.finale_splash_active) {
                 gui->game_paused = !gui->game_paused;
-                printf(gui->game_paused ? "[*] Game Paused\n" : "[*] Game Resumed\n");
+                
+                // Stop music immediately when pausing
+                if (gui->game_paused) {
+                    audio_stop_music(&gui->audio);
+                    printf("[*] Game Paused\n");
+                } else {
+                    printf("[*] Game Resumed\n");
+                }
             }
             break;
         }
@@ -171,60 +188,6 @@ static void handle_keyboard_input_special(SDL_Event *event, CometGUI *gui) {
             if ((event->key.keysym.mod & KMOD_CTRL)) {
                 printf("[*] CTRL+K pressed - cheat menu not yet implemented\n");
             }
-            break;
-        }
-    }
-}
-
-static void handle_joystick_input(SDL_Event *event, CometGUI *gui) {
-    if (!gui || !gui->joystick) return;
-    const int DEADZONE = 8000;
-    
-    switch (event->type) {
-        case SDL_JOYBUTTONDOWN:
-        case SDL_JOYBUTTONUP: {
-            bool pressed = (event->type == SDL_JOYBUTTONDOWN);
-            switch (event->jbutton.button) {
-                case 0: gui->visualizer.comet_buster.keyboard.key_z_pressed = pressed; break;
-                case 1: gui->visualizer.comet_buster.keyboard.key_x_pressed = pressed; break;
-                case 2: gui->visualizer.comet_buster.keyboard.key_space_pressed = pressed; break;
-            }
-            break;
-        }
-        case SDL_JOYAXISMOTION: {
-            int16_t value = event->jaxis.value;
-            if (event->jaxis.axis == 0) {
-                if (value < -DEADZONE) {
-                    gui->visualizer.comet_buster.keyboard.key_a_pressed = true;
-                    gui->visualizer.comet_buster.keyboard.key_d_pressed = false;
-                } else if (value > DEADZONE) {
-                    gui->visualizer.comet_buster.keyboard.key_d_pressed = true;
-                    gui->visualizer.comet_buster.keyboard.key_a_pressed = false;
-                } else {
-                    gui->visualizer.comet_buster.keyboard.key_a_pressed = false;
-                    gui->visualizer.comet_buster.keyboard.key_d_pressed = false;
-                }
-            }
-            else if (event->jaxis.axis == 1) {
-                if (value < -DEADZONE) {
-                    gui->visualizer.comet_buster.keyboard.key_w_pressed = true;
-                    gui->visualizer.comet_buster.keyboard.key_s_pressed = false;
-                } else if (value > DEADZONE) {
-                    gui->visualizer.comet_buster.keyboard.key_s_pressed = true;
-                    gui->visualizer.comet_buster.keyboard.key_w_pressed = false;
-                } else {
-                    gui->visualizer.comet_buster.keyboard.key_w_pressed = false;
-                    gui->visualizer.comet_buster.keyboard.key_s_pressed = false;
-                }
-            }
-            break;
-        }
-        case SDL_JOYHATMOTION: {
-            uint8_t hat = event->jhat.value;
-            gui->visualizer.comet_buster.keyboard.key_w_pressed = (hat & SDL_HAT_UP) != 0;
-            gui->visualizer.comet_buster.keyboard.key_s_pressed = (hat & SDL_HAT_DOWN) != 0;
-            gui->visualizer.comet_buster.keyboard.key_a_pressed = (hat & SDL_HAT_LEFT) != 0;
-            gui->visualizer.comet_buster.keyboard.key_d_pressed = (hat & SDL_HAT_RIGHT) != 0;
             break;
         }
     }
@@ -322,7 +285,27 @@ static void handle_events(CometGUI *gui) {
             case SDL_QUIT:
                 gui->running = false;
                 break;
-            case SDL_KEYDOWN:
+            
+            case SDL_KEYDOWN: {
+                // Handle splash screen exit first
+                if (gui->visualizer.comet_buster.splash_screen_active) {
+                    fprintf(stdout, "[SPLASH] User input detected - exiting splash screen\n");
+                    
+                    // Stop the intro music
+                    audio_stop_music(&gui->audio);
+                    
+                    // Exit the splash screen
+                    gui->visualizer.comet_buster.splash_screen_active = false;
+                    
+                    // Start gameplay music rotation
+#ifdef ExternalSound
+                    audio_play_random_music(&gui->audio);
+                    fprintf(stdout, "[SPLASH] Started gameplay music\n");
+#endif
+                    break;  // Don't process further keyboard input while splash exits
+                }
+                
+                // Only process menu input if splash is not active
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     // Escape toggles menu
                     if (gui->show_menu && gui->menu_state != 0) {
@@ -338,44 +321,47 @@ static void handle_events(CometGUI *gui) {
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
                             gui->menu_selection = (gui->menu_selection - 1 + 5) % 5;
-                        } else if (gui->menu_state == 1) {  // Difficulty selection
+                        } else if (gui->menu_state == 1) {
                             gui->difficulty_level = (gui->difficulty_level - 1);
                             if (gui->difficulty_level < 1) gui->difficulty_level = 3;
-                        } else if (gui->menu_state == 3) {  // Audio menu
+                        } else if (gui->menu_state == 3) {
                             gui->menu_selection = (gui->menu_selection - 1 + 2) % 2;
                         }
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
                             gui->menu_selection = (gui->menu_selection + 1) % 5;
-                        } else if (gui->menu_state == 1) {  // Difficulty selection
-                            gui->difficulty_level = (gui->difficulty_level % 3) + 1;
-                        } else if (gui->menu_state == 3) {  // Audio menu
+                        } else if (gui->menu_state == 1) {
+                            gui->difficulty_level = (gui->difficulty_level + 1);
+                            if (gui->difficulty_level > 3) gui->difficulty_level = 1;
+                        } else if (gui->menu_state == 3) {
                             gui->menu_selection = (gui->menu_selection + 1) % 2;
                         }
                     } else if (event.key.keysym.sym == SDLK_LEFT) {
-                        if (gui->menu_state == 3) {  // Audio menu
-                            if (gui->menu_selection == 0) {  // Music
-                                gui->music_volume = (gui->music_volume >= 10) ? gui->music_volume - 10 : 0;
+                        if (gui->menu_state == 3) {
+                            if (gui->menu_selection == 0) {
+                                gui->music_volume = (gui->music_volume - 5);
+                                if (gui->music_volume < 0) gui->music_volume = 0;
                                 audio_set_music_volume(&gui->audio, gui->music_volume);
-                            } else {  // SFX
-                                gui->sfx_volume = (gui->sfx_volume >= 10) ? gui->sfx_volume - 10 : 0;
+                            } else {
+                                gui->sfx_volume = (gui->sfx_volume - 5);
+                                if (gui->sfx_volume < 0) gui->sfx_volume = 0;
                                 audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
                             }
                         }
                     } else if (event.key.keysym.sym == SDLK_RIGHT) {
-                        if (gui->menu_state == 3) {  // Audio menuf
-                            if (gui->menu_selection == 0) {  // Music
-                                gui->music_volume = (gui->music_volume <= 90) ? gui->music_volume + 10 : 100;
+                        if (gui->menu_state == 3) {
+                            if (gui->menu_selection == 0) {
+                                gui->music_volume = (gui->music_volume + 5);
+                                if (gui->music_volume > 128) gui->music_volume = 128;
                                 audio_set_music_volume(&gui->audio, gui->music_volume);
-                            } else {  // SFX
-                                gui->sfx_volume = (gui->sfx_volume <= 90) ? gui->sfx_volume + 10 : 100;
+                            } else {
+                                gui->sfx_volume = (gui->sfx_volume + 5);
+                                if (gui->sfx_volume > 128) gui->sfx_volume = 128;
                                 audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
                             }
                         }
-                    } else if (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_SPACE) {
-                        // Select menu option
+                    } else if (event.key.keysym.sym == SDLK_RETURN) {
                         if (gui->menu_state == 0) {
-                            // Main menu
                             switch (gui->menu_selection) {
                                 case 0:  // Continue
                                     gui->show_menu = false;
@@ -400,9 +386,11 @@ static void handle_events(CometGUI *gui) {
                             comet_buster_reset_game(&gui->visualizer.comet_buster);
                             comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
                             
-                            // Start background music
-                            audio_play_random_music(&gui->audio);
-                            
+                            // Show splash screen with intro music
+                            gui->visualizer.comet_buster.splash_screen_active = true;
+#ifdef ExternalSound
+                            audio_play_intro_music(&gui->audio, "music/intro.mp3");
+#endif
                             gui->show_menu = false;
                             gui->menu_state = 0;
                             printf("[MENU] New game started with difficulty %d\n", gui->difficulty_level);
@@ -415,9 +403,6 @@ static void handle_events(CometGUI *gui) {
                             gui->menu_state = 0;
                             gui->menu_selection = 3;
                         }
-                    } else {
-                        // Regular keyboard input when menu is open but we're navigating
-                        handle_keyboard_input(&event, gui);
                     }
                 } else {
                     // Game is running - handle all input
@@ -425,50 +410,71 @@ static void handle_events(CometGUI *gui) {
                     handle_keyboard_input_special(&event, gui);
                 }
                 break;
-            case SDL_KEYUP:
-                handle_keyboard_input(&event, gui);
-                break;
-            case SDL_MOUSEMOTION: {
-                // Scale mouse from window space (1024x768) to game space (1920x1080)
-                float scale_x = 1920.0f / gui->window_width;
-                float scale_y = 1080.0f / gui->window_height;
-                gui->visualizer.mouse_x = (int)(event.motion.x * scale_x);
-                gui->visualizer.mouse_y = (int)(event.motion.y * scale_y);
-                gui->visualizer.mouse_just_moved = true;
-                gui->visualizer.mouse_movement_timer = 0.1f;  // 100ms
-                break;
             }
-            case SDL_MOUSEBUTTONDOWN:
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    gui->visualizer.mouse_left_pressed = true;
+            
+            case SDL_KEYUP:
+                if (!gui->visualizer.comet_buster.splash_screen_active) {
+                    handle_keyboard_input(&event, gui);
+                }
+                break;
+            
+            case SDL_MOUSEBUTTONDOWN: {
+                // Handle splash screen exit first
+                if (gui->visualizer.comet_buster.splash_screen_active) {
+                    fprintf(stdout, "[SPLASH] User input detected - exiting splash screen\n");
                     
-                    // Handle menu clicks if menu is open
-                    if (gui->show_menu) {
-                        float scale_x = 1920.0f / gui->window_width;
-                        float scale_y = 1080.0f / gui->window_height;
-                        int mouse_x = (int)(event.button.x * scale_x);
-                        int mouse_y = (int)(event.button.y * scale_y);
-                        
+                    // Stop the intro music
+                    audio_stop_music(&gui->audio);
+                    
+                    // Exit the splash screen
+                    gui->visualizer.comet_buster.splash_screen_active = false;
+                    
+                    // Start gameplay music rotation
+#ifdef ExternalSound
+                    audio_play_random_music(&gui->audio);
+                    fprintf(stdout, "[SPLASH] Started gameplay music\n");
+#endif
+                    break;  // Don't process further input while splash exits
+                }
+                
+                if (gui->show_menu) {
+                    // Handle menu clicks
+                    int mouse_x = event.button.x;
+                    int mouse_y = event.button.y;
+                    
+                    if (event.button.button == SDL_BUTTON_LEFT) {
                         // Main menu buttons
                         if (gui->menu_state == 0) {
-                            const int menu_y_start = 250;
-                            const int menu_spacing = 70;
+                            const int menu_y_start = 350;
+                            const int menu_spacing = 120;
                             const int menu_width = 400;
-                            const int menu_height = 50;
-                            const int menu_x = (1920 - menu_width) / 2;
+                            const int menu_height = 60;
                             
                             for (int i = 0; i < 5; i++) {
-                                int option_y = menu_y_start + (i * menu_spacing);
+                                int menu_y = menu_y_start + (i * menu_spacing);
+                                int menu_x = (1920 - menu_width) / 2;
+                                
                                 if (mouse_x >= menu_x && mouse_x <= menu_x + menu_width &&
-                                    mouse_y >= option_y && mouse_y <= option_y + menu_height) {
+                                    mouse_y >= menu_y && mouse_y <= menu_y + menu_height) {
                                     gui->menu_selection = i;
-                                    // Trigger selection
-                                    switch (i) {
-                                        case 0: gui->show_menu = false; break;  // Continue
-                                        case 1: gui->menu_state = 1; gui->difficulty_level = 1; break;  // New Game
-                                        case 2: gui->menu_state = 2; break;  // High Scores
-                                        case 3: gui->menu_state = 3; gui->menu_selection = 0; break;  // Audio
-                                        case 4: gui->running = false; break;  // Quit
+                                    switch (gui->menu_selection) {
+                                        case 0:  // Continue
+                                            gui->show_menu = false;
+                                            break;
+                                        case 1:  // New Game
+                                            gui->menu_state = 1;
+                                            gui->difficulty_level = 1;
+                                            break;
+                                        case 2:  // High Scores
+                                            gui->menu_state = 2;
+                                            break;
+                                        case 3:  // Audio
+                                            gui->menu_state = 3;
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 4:  // Quit
+                                            gui->running = false;
+                                            break;
                                     }
                                 }
                             }
@@ -489,7 +495,12 @@ static void handle_events(CometGUI *gui) {
                                     // Start game with selected difficulty
                                     comet_buster_reset_game(&gui->visualizer.comet_buster);
                                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-                                    audio_play_random_music(&gui->audio);
+                                    
+                                    // Show splash screen with intro music
+                                    gui->visualizer.comet_buster.splash_screen_active = true;
+#ifdef ExternalSound
+                                    audio_play_intro_music(&gui->audio, "music/intro.mp3");
+#endif
                                     gui->show_menu = false;
                                     gui->menu_state = 0;
                                 }
@@ -512,81 +523,45 @@ static void handle_events(CometGUI *gui) {
                                 }
                             }
                         }
+                    } else if (event.button.button == SDL_BUTTON_RIGHT) {
+                        gui->visualizer.mouse_right_pressed = true;
+                        
+                        // Right-click to restart game if game is over
+                        if (gui->visualizer.comet_buster.game_over) {
+                            comet_buster_reset_game(&gui->visualizer.comet_buster);
+                            comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                            gui->game_paused = false;
+                            
+                            // Show splash screen with intro music
+                            gui->visualizer.comet_buster.splash_screen_active = true;
+#ifdef ExternalSound
+                            audio_play_intro_music(&gui->audio, "music/intro.mp3");
+#endif
+                        }
                     }
-                } else if (event.button.button == SDL_BUTTON_RIGHT) {
-                    gui->visualizer.mouse_right_pressed = true;
-                    
-                    // Right-click to restart game if game is over
-                    if (gui->visualizer.comet_buster.game_over) {
-                        printf("[GAME] Restarting game via right-click...\n");
-                        comet_buster_reset_game(&gui->visualizer.comet_buster);
-                    }
-                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-                    // Middle button press
-                    gui->visualizer.mouse_middle_pressed = true;
                 }
                 break;
+            }
+            
             case SDL_MOUSEBUTTONUP:
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    gui->visualizer.mouse_left_pressed = false;
-                } else if (event.button.button == SDL_BUTTON_RIGHT) {
+                if (event.button.button == SDL_BUTTON_RIGHT) {
                     gui->visualizer.mouse_right_pressed = false;
-                } else if (event.button.button == SDL_BUTTON_MIDDLE) {
-                    // Middle button release
-                    gui->visualizer.mouse_middle_pressed = false;
                 }
                 break;
+            
+            case SDL_MOUSEMOTION:
+                gui->visualizer.mouse_x = event.motion.x;
+                gui->visualizer.mouse_y = event.motion.y;
+                gui->visualizer.mouse_just_moved = true;
+                break;
+            
             case SDL_MOUSEWHEEL:
-                // Scroll wheel works for menu navigation or weapon changing
-                if (gui->show_menu) {
-                    // Menu is open - scroll navigates menu
-                    if (event.wheel.y > 0) {
-                        // Scroll up = move up in menu
-                        if (gui->menu_state == 0) {
-                            gui->menu_selection = (gui->menu_selection - 1 + 5) % 5;
-                        } else if (gui->menu_state == 1) {  // Difficulty selection
-                            gui->difficulty_level = (gui->difficulty_level - 1);
-                            if (gui->difficulty_level < 1) gui->difficulty_level = 3;
-                        } else if (gui->menu_state == 3) {  // Audio menu
-                            gui->menu_selection = (gui->menu_selection - 1 + 2) % 2;
-                        }
-                    } else if (event.wheel.y < 0) {
-                        // Scroll down = move down in menu
-                        if (gui->menu_state == 0) {
-                            gui->menu_selection = (gui->menu_selection + 1) % 5;
-                        } else if (gui->menu_state == 1) {  // Difficulty selection
-                            gui->difficulty_level = (gui->difficulty_level % 3) + 1;
-                        } else if (gui->menu_state == 3) {  // Audio menu
-                            gui->menu_selection = (gui->menu_selection + 1) % 2;
-                        }
-                    }
-                } else {
-                    // Game is running - scroll changes weapons
-                    if (event.wheel.y > 0) {
-                        gui->visualizer.scroll_direction = 1;   // Previous weapon
-                    } else if (event.wheel.y < 0) {
-                        gui->visualizer.scroll_direction = -1;  // Next weapon
-                    }
-                }
+                gui->visualizer.scroll_direction = event.wheel.y;
                 break;
-            case SDL_JOYAXISMOTION:
-            case SDL_JOYBUTTONDOWN:
-            case SDL_JOYBUTTONUP:
-            case SDL_JOYHATMOTION:
-                handle_joystick_input(&event, gui);
-                break;
-            case SDL_WINDOWEVENT:
-                if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                    gui->window_width = event.window.data1;
-                    gui->window_height = event.window.data2;
-                    printf("[WINDOW] Resized to %dx%d\n", gui->window_width, gui->window_height);
-                } else if (event.window.event == SDL_WINDOWEVENT_MAXIMIZED) {
-                    SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
-                    printf("[WINDOW] Maximized to %dx%d\n", gui->window_width, gui->window_height);
-                } else if (event.window.event == SDL_WINDOWEVENT_RESTORED) {
-                    SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
-                    printf("[WINDOW] Restored to %dx%d\n", gui->window_width, gui->window_height);
-                }
+            
+            case SDL_JOYDEVICEADDED:
+            case SDL_JOYDEVICEREMOVED:
+                init_joystick(gui);
                 break;
         }
     }
@@ -599,6 +574,44 @@ static void update_game(CometGUI *gui) {
     // Call the master update function from visualization.h
     // This handles ALL game updates including collisions, audio, wave progression, etc.
     update_comet_buster(&gui->visualizer, gui->delta_time);
+    
+    // Check if current music track has finished and queue the next one
+#ifdef ExternalSound
+    if (!gui->game_paused && !audio_is_music_playing(&gui->audio)) {
+        fprintf(stdout, "[AUDIO] Current track finished, queuing next track...\n");
+        audio_play_random_music(&gui->audio);
+    }
+#endif
+    
+    // Handle finale splash if active (Wave 30 victory)
+    if (gui->visualizer.comet_buster.finale_splash_active) {
+        // Start finale music on first frame of finale splash
+        if (!gui->finale_music_started) {
+            fprintf(stdout, "[FINALE] Starting finale music...\n");
+            audio_stop_music(&gui->audio);
+#ifdef ExternalSound
+            audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
+#endif
+            gui->finale_music_started = true;
+        }
+        
+        // Check if user wants to skip finale (right-click to continue)
+        if (gui->visualizer.mouse_right_pressed) {
+            fprintf(stdout, "[FINALE] Player skipping finale\n");
+            
+            // Stop the finale music
+            audio_stop_music(&gui->audio);
+            
+            // Clean up finale splash
+            gui->visualizer.comet_buster.finale_splash_active = false;
+            gui->finale_music_started = false;
+        }
+    }
+    
+    // Stop music if game ends
+    if (gui->visualizer.comet_buster.game_over) {
+        audio_stop_music(&gui->audio);
+    }
 }
 
 static void render_frame(CometGUI *gui) {
@@ -649,16 +662,16 @@ static void render_frame(CometGUI *gui) {
         extern void gl_set_color(float r, float g, float b);
         extern void gl_draw_text_simple(const char *text, int x, int y, int font_size);
         
-        // Darken background
+        // Semi-transparent overlay
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
         gl_draw_rect_filled(0, 0, 1920, 1080);
         
+        // Main menu
         if (gui->menu_state == 0) {
-            // Main menu
             gl_set_color(0.0f, 1.0f, 1.0f);
-            gl_draw_text_simple("COMET BUSTERS", 850, 100, 20);
+            gl_draw_text_simple("COMET BUSTERS", 800, 100, 28);
             
-            const char *options[] = {
+            const char *menu_items[] = {
                 "CONTINUE",
                 "NEW GAME",
                 "HIGH SCORES",
@@ -666,37 +679,37 @@ static void render_frame(CometGUI *gui) {
                 "QUIT"
             };
             
-            int menu_y_start = 250;
-            int menu_spacing = 70;
+            int menu_y_start = 350;
+            int menu_spacing = 120;
             int menu_width = 400;
-            int menu_height = 50;
+            int menu_height = 60;
             
             for (int i = 0; i < 5; i++) {
-                int option_y = menu_y_start + (i * menu_spacing);
-                int option_x = (1920 - menu_width) / 2;
+                int menu_y = menu_y_start + (i * menu_spacing);
+                int menu_x = (1920 - menu_width) / 2;
                 
                 if (i == gui->menu_selection) {
                     gl_set_color(1.0f, 1.0f, 0.0f);
-                    gl_draw_rect_filled(option_x - 3, option_y - 3, menu_width + 6, menu_height + 6);
+                    gl_draw_rect_filled(menu_x - 3, menu_y - 3, menu_width + 6, menu_height + 6);
                     gl_set_color(0.0f, 0.5f, 1.0f);
-                    gl_draw_rect_filled(option_x, option_y, menu_width, menu_height);
+                    gl_draw_rect_filled(menu_x, menu_y, menu_width, menu_height);
                     gl_set_color(1.0f, 1.0f, 0.0f);
                 } else {
                     gl_set_color(0.2f, 0.2f, 0.4f);
-                    gl_draw_rect_filled(option_x, option_y, menu_width, menu_height);
+                    gl_draw_rect_filled(menu_x, menu_y, menu_width, menu_height);
                     gl_set_color(0.7f, 0.7f, 1.0f);
                 }
                 
-                gl_draw_text_simple(options[i], option_x + 80, option_y + 12, 14);
+                gl_draw_text_simple(menu_items[i], menu_x + 110, menu_y + 15, 14);
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
-            gl_draw_text_simple("UP/DOWN to select | ENTER to choose | ESC to close", 550, 950, 10);
+            gl_draw_text_simple("UP/DOWN to select | ENTER to start | ESC to close", 550, 950, 10);
             
         } else if (gui->menu_state == 1) {
-            // Difficulty selection
+            // Difficulty selection menu
             gl_set_color(0.0f, 1.0f, 1.0f);
-            gl_draw_text_simple("SELECT DIFFICULTY", 800, 150, 18);
+            gl_draw_text_simple("SELECT DIFFICULTY", 780, 150, 24);
             
             const char *difficulties[] = {
                 "EASY",
@@ -825,6 +838,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.running = true;
     gui.music_volume = 100;
     gui.sfx_volume = 100;
+    gui.finale_music_started = false;  // Initialize music state
     
     if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
         return 1;
@@ -842,7 +856,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.visualizer.mouse_y = 540;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
     
-    // Initialize game - NO SPLASH, go straight to gameplay
+    // Initialize game
     comet_buster_reset_game(&gui.visualizer.comet_buster);
     printf("[INIT] Game initialized\n");
     
@@ -875,25 +889,39 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     // Copy audio to visualizer so game code can access it
     gui.visualizer.audio = gui.audio;
     
-    // Set volumes
+    // Apply loaded settings to audio system
     audio_set_music_volume(&gui.audio, gui.music_volume);
     audio_set_sfx_volume(&gui.audio, gui.sfx_volume);
     
+    // Load background music tracks (BUT don't play them yet - wait for splash to exit)
+#ifdef ExternalSound
+    audio_play_music(&gui.audio, "music/track1.mp3", false);   // Load track 1
+    audio_play_music(&gui.audio, "music/track2.mp3", false);   // Load track 2
+    audio_play_music(&gui.audio, "music/track3.mp3", false);   // Load track 3
+    audio_play_music(&gui.audio, "music/track4.mp3", false);   // Load track 4
+    audio_play_music(&gui.audio, "music/track5.mp3", false);   // Load track 5
+    audio_play_music(&gui.audio, "music/track6.mp3", false);   // Load track 6
+    
+    // Play intro music during splash screen
+    audio_play_intro_music(&gui.audio, "music/intro.mp3");
+    
+    // DON'T start gameplay music yet - wait for splash to exit
+    // That happens in handle_events() when splash_screen_active becomes false
+#endif
+    
     printf("[INIT] Ready to play - press W/A/D/S to move, Z to fire, ESC to quit, P to pause\n");
-    printf("[INIT] Skipping splash screen...\n");
+    printf("[INIT] Splash screen initialized with intro music...\n");
     
-    // SKIP SPLASH SCREEN - disable it immediately
-    gui.visualizer.comet_buster.splash_screen_active = false;
-    gui.visualizer.comet_buster.splash_timer = 0.0;
+    // Keep splash screen ACTIVE - user must press key to exit
+    // The splash will be deactivated in handle_events() when user gives input
     
-    // Start game directly on medium difficulty (skip menu)
+    // Start game in background but don't activate it yet
     comet_buster_reset_game(&gui.visualizer.comet_buster);
     comet_buster_spawn_wave(&gui.visualizer.comet_buster, 1920, 1080);
-    audio_play_random_music(&gui.audio);
     gui.show_menu = false;
     gui.menu_state = 0;
     gui.difficulty_level = 2;  // Medium
-    printf("[INIT] Game starting directly on MEDIUM difficulty\n");
+    printf("[INIT] Game initialized with splash screen showing...\n");
     
     // Main loop
     gui.last_frame_ticks = SDL_GetTicks();
