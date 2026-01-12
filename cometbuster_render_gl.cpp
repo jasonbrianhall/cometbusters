@@ -602,6 +602,12 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
         comet_buster_draw_splash_screen_gl(game, cr, width, height);
         return;  // Don't draw game yet
     }
+    
+    // Draw finale splash if active (Wave 30 complete screen)
+    if (game->finale_splash_active) {
+        comet_buster_draw_finale_splash_gl(game, cr, width, height);
+        return;  // Don't draw game yet
+    }
 #endif
     
     // Background is already set in on_realize, no need to draw again
@@ -2137,6 +2143,63 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
     }
 }
 
-void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int width, int height) {}
+void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int width, int height) {
+    if (!game || !game->finale_splash_active) return;
+    
+    // Semi-transparent dark overlay
+    gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.75f);
+    gl_draw_rect_filled(0.0f, 0.0f, (float)width, (float)height);
+    
+    // Title "WAVE 30 COMPLETE"
+    gl_set_color(1.0f, 1.0f, 0.0f);
+    const char *title = "WAVE 30 COMPLETE";
+    float title_width = gl_calculate_text_width(title, 36);
+    float title_x = (width - title_width) / 2.0f;
+    gl_draw_text_simple(title, (int)title_x, 80, 36);
+    
+    // Victory scroll text - scrolling effect
+    gl_set_color(0.2f, 0.8f, 1.0f);
+    
+    int visible_lines = 40;  // Show 40 lines at a time
+    int start_line = (game->finale_scroll_line_index > visible_lines) ? 
+                     (game->finale_scroll_line_index - visible_lines) : 0;
+    
+    float y_pos = 150.0f;
+    for (int i = start_line; i <= game->finale_scroll_line_index && i < NUM_VICTORY_LINES; i++) {
+        const char *line_text = VICTORY_SCROLL_LINES[i];
+        float text_width = gl_calculate_text_width(line_text, 15);
+        float text_x = (width - text_width) / 2.0f;
+        gl_draw_text_simple(line_text, (int)text_x, (int)y_pos, 15);
+        y_pos += 22.0f;
+    }
+    
+    // Show "RIGHT-CLICK TO CONTINUE TO WAVE 31" when done scrolling
+    if (game->finale_waiting_for_input) {
+        double pulse = 0.5 + 0.5 * sin(game->finale_splash_timer * 2.5);
+        gl_set_color_alpha(1.0f, 1.0f, 0.0f, (float)pulse);
+        
+        const char *continue_text = "RIGHT-CLICK TO CONTINUE TO WAVE 31";
+        float continue_width = gl_calculate_text_width(continue_text, 16);
+        float continue_x = (width - continue_width) / 2.0f;
+        gl_draw_text_simple(continue_text, (int)continue_x, height - 50, 16);
+    }
+}
 void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt) {}
-void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {}
+void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {
+    if (!game || !game->finale_splash_active) return;
+    
+    game->finale_splash_timer += dt;
+    game->finale_scroll_timer += dt;
+    
+    // Auto-advance text lines every 0.6 seconds
+    if (game->finale_scroll_timer >= 0.6) {
+        game->finale_scroll_line_index++;
+        game->finale_scroll_timer = 0.0;
+        
+        // When we reach the end, wait for input
+        if (game->finale_scroll_line_index >= NUM_VICTORY_LINES) {
+            game->finale_waiting_for_input = true;
+            game->finale_scroll_line_index = NUM_VICTORY_LINES - 1;
+        }
+    }
+}

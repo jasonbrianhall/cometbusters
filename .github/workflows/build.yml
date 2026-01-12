@@ -68,7 +68,7 @@ jobs:
 
     - name: Build Windows GTK Version
       run: |
-        make windows
+        make -f Makefile.gl windows
 
     - name: Convert PNG Icon to ICO Format
       working-directory: build/windows
