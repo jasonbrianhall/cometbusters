@@ -654,38 +654,10 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 }
                 
                 if (gui->show_menu) {
-                    // Calculate viewport same as render_frame does for consistent scaling
-                    const float GAME_WIDTH = 1920.0f;
-                    const float GAME_HEIGHT = 1080.0f;
-                    float window_aspect = (float)gui->window_width / gui->window_height;
-                    float game_aspect = GAME_WIDTH / GAME_HEIGHT;
-                    
-                    int viewport_x = 0;
-                    int viewport_y = 0;
-                    int viewport_width = gui->window_width;
-                    int viewport_height = gui->window_height;
-                    
-                    if (window_aspect > game_aspect) {
-                        viewport_height = gui->window_height;
-                        viewport_width = (int)(GAME_WIDTH * gui->window_height / GAME_HEIGHT);
-                        viewport_x = 0;
-                        viewport_y = 0;
-                    } else {
-                        viewport_width = gui->window_width;
-                        viewport_height = (int)(GAME_HEIGHT * gui->window_width / GAME_WIDTH);
-                        viewport_x = 0;
-                        viewport_y = 0;
-                    }
-                    
-                    // Convert from window coordinates to game space
-                    float mouse_in_viewport_x = event.button.x - viewport_x;
-                    float mouse_in_viewport_y = event.button.y - viewport_y;
-                    
-                    float scale_x = GAME_WIDTH / viewport_width;
-                    float scale_y = GAME_HEIGHT / viewport_height;
-                    
-                    int mouse_x = (int)(mouse_in_viewport_x * scale_x);
-                    int mouse_y = (int)(mouse_in_viewport_y * scale_y);
+                    // Convert from window coordinates to game space (1920x1080)
+                    // This matches how render_frame uses glOrtho for scaling
+                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1920.0f);
+                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 1080.0f);
                     
                     if (event.button.button == SDL_BUTTON_LEFT) {
                         // Main menu buttons
