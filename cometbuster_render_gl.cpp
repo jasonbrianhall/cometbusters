@@ -164,11 +164,12 @@ static void draw_vertices(Vertex *verts, int count, GLenum mode) {
 // ============================================================================
 
 void gl_setup_2d_projection(int width, int height) {
-    // Always use 1920x1080 logical game coordinates (matches Cairo normalization)
-    // This ensures mouse tracking and rendering match Cairo exactly
-    (void)width;   // Unused - we always use 1920x1080
-    (void)height;  // Unused - we always use 1920x1080
-    gl_state.projection = mat4_ortho(0, 1920, 1080, 0, -1, 1);
+    // Set projection matrix to match the actual viewport dimensions
+    // This is CRITICAL to prevent text clipping when viewport != 1920x1080
+    // Use the actual viewport width and height passed in
+    if (width <= 0) width = 1920;     // Fallback to default if invalid
+    if (height <= 0) height = 1080;   // Fallback to default if invalid
+    gl_state.projection = mat4_ortho(0, width, height, 0, -1, 1);
 }
 
 void gl_restore_projection(void) {
@@ -1973,6 +1974,9 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double fractional_offset = fmod(game->splash_timer, scroll_speed) / scroll_speed;
         double lines_visible = (height + 200.0) / line_height;
         
+        // Use actual viewport bounds (1920x1080) since projection is hardcoded to those values
+        const int viewport_width = 1920;
+        
         // Draw all lines that could be visible
         for (int i = 0; i < (int)lines_visible + 2; i++) {
             int line_index = (int)current_line_offset + i;
@@ -1996,7 +2000,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
             
             // Center text horizontally using actual text width
             float text_width = gl_calculate_text_width(OPENING_CRAWL_LINES[line_index], 24);
-            int x_pos = (width - (int)text_width) / 2;
+            float ideal_x = (viewport_width - text_width) / 2.0f;
+            // Clamp to viewport bounds: min 30px margin to prevent cutoff (text can be long)
+            int x_pos = (int)ideal_x;
+            if (x_pos < 30) x_pos = 30;
+            if (x_pos + text_width > viewport_width - 30) x_pos = viewport_width - (int)text_width - 30;
             gl_draw_text_simple(OPENING_CRAWL_LINES[line_index], x_pos, (int)y_pos, 24);
         }
     }
@@ -2008,10 +2016,16 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double title_alpha = phase_timer / 2.0;
         if (title_alpha > 1.0) title_alpha = 1.0;
         
+        const int viewport_width = 1920;
+        
         // Draw glowing text effect
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
-        int title_x = (width - (int)title_width) / 2;
+        float ideal_title_x = (viewport_width - title_width) / 2.0f;
+        int title_x = (int)ideal_title_x;
+        // Clamp to viewport bounds with safe margin
+        if (title_x < 30) title_x = 30;
+        if (title_x + title_width > viewport_width - 30) title_x = viewport_width - (int)title_width - 30;
         int title_y = height / 2 + 20;
         
         for (int i = 5; i > 0; i--) {
@@ -2027,7 +2041,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         // Draw subtitle
         const char *subtitle = "Press fire key to start";
         float subtitle_width = gl_calculate_text_width(subtitle, 28);
-        int subtitle_x = (width - (int)subtitle_width) / 2;
+        float ideal_subtitle_x = (viewport_width - subtitle_width) / 2.0f;
+        int subtitle_x = (int)ideal_subtitle_x;
+        // Clamp to viewport bounds with safe margin
+        if (subtitle_x < 30) subtitle_x = 30;
+        if (subtitle_x + subtitle_width > viewport_width - 30) subtitle_x = viewport_width - (int)subtitle_width - 30;
         int subtitle_y = title_y + 80;
         
         // Blinking text effect for subtitle
@@ -2040,9 +2058,15 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
     else {
         gl_set_color(0.0f, 1.0f, 1.0f);
         
+        const int viewport_width = 1920;
+        
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
-        int title_x = (width - (int)title_width) / 2;
+        float ideal_title_x = (viewport_width - title_width) / 2.0f;
+        int title_x = (int)ideal_title_x;
+        // Clamp to viewport bounds with safe margin
+        if (title_x < 30) title_x = 30;
+        if (title_x + title_width > viewport_width - 30) title_x = viewport_width - (int)title_width - 30;
         int title_y = height / 2 + 20;
         
         gl_draw_text_simple(title_text, title_x, title_y, 120);
@@ -2050,7 +2074,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         // Draw subtitle
         const char *subtitle = "Press fire key to start";
         float subtitle_width = gl_calculate_text_width(subtitle, 28);
-        int subtitle_x = (width - (int)subtitle_width) / 2;
+        float ideal_subtitle_x = (viewport_width - subtitle_width) / 2.0f;
+        int subtitle_x = (int)ideal_subtitle_x;
+        // Clamp to viewport bounds with safe margin
+        if (subtitle_x < 30) subtitle_x = 30;
+        if (subtitle_x + subtitle_width > viewport_width - 30) subtitle_x = viewport_width - (int)subtitle_width - 30;
         int subtitle_y = title_y + 80;
         
         // Blinking text effect for subtitle
@@ -2078,6 +2106,8 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
     double line_alpha = 1.0 - fmod(timer, line_duration) / (line_duration * 0.3);
     line_alpha = (line_alpha < 0) ? 0 : (line_alpha > 1) ? 1 : line_alpha;
     
+    const int viewport_width = 1920;
+    
     // Draw visible lines
     int y_pos = height / 3;
     for (int i = 0; i < 8 && start_line + i < NUM_VICTORY_LINES; i++) {
@@ -2097,7 +2127,11 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
         // Center text horizontally using actual text width
         const char *line_text = VICTORY_SCROLL_LINES[start_line + i];
         float text_width = gl_calculate_text_width(line_text, 24);
-        int x_pos = (width - (int)text_width) / 2;
+        float ideal_x = (viewport_width - text_width) / 2.0f;
+        // Clamp to viewport bounds with safe margin to prevent cutoff
+        int x_pos = (int)ideal_x;
+        if (x_pos < 30) x_pos = 30;
+        if (x_pos + text_width > viewport_width - 30) x_pos = viewport_width - (int)text_width - 30;
         
         gl_draw_text_simple(line_text, x_pos, y_pos + i * 40, 24);
     }
