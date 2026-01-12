@@ -24,6 +24,22 @@
 #include "audio_wad.h"
 #include "comet_help.h"
 
+// ============================================================
+// LOCAL HIGH SCORE ENTRY STATE (Not in header - local only)
+// ============================================================
+
+typedef enum {
+    HIGH_SCORE_ENTRY_NONE = 0,
+    HIGH_SCORE_ENTRY_ACTIVE = 1,
+    HIGH_SCORE_ENTRY_SAVED = 2
+} HighScoreEntryState;
+
+typedef struct {
+    int state;                  // HighScoreEntryState
+    char name_input[32];        // Player's typed name
+    int cursor_pos;             // Current cursor position
+} HighScoreEntryUI;
+
 // Forward declare functions from visualization.h and other headers
 extern void update_comet_buster(Visualizer *vis_ptr, double dt);
 extern void draw_comet_buster_gl(Visualizer *visualizer, void *cr);
@@ -86,9 +102,61 @@ typedef struct {
 // INPUT HANDLING
 // ============================================================
 
-static void handle_keyboard_input(SDL_Event *event, CometGUI *gui) {
+static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntryUI *hs_entry) {
     if (!gui) return;
     bool pressed = (event->type == SDL_KEYDOWN);
+    
+    // Handle high score name entry
+    if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE && pressed) {
+        switch (event->key.keysym.sym) {
+            case SDLK_BACKSPACE: {
+                // Delete last character
+                if (hs_entry->cursor_pos > 0) {
+                    hs_entry->cursor_pos--;
+                    hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                }
+                break;
+            }
+            case SDLK_RETURN: {
+                // Submit the name
+                if (hs_entry->cursor_pos > 0) {
+                    // Save the high score
+                    high_scores_add(&gui->visualizer.comet_buster, 
+                                   gui->visualizer.comet_buster.score,
+                                   gui->visualizer.comet_buster.current_wave,
+                                   hs_entry->name_input);
+                    high_scores_save(&gui->visualizer.comet_buster);
+                    
+                    // Reset game to menu
+                    hs_entry->state = HIGH_SCORE_ENTRY_SAVED;
+                    gui->visualizer.comet_buster.game_over = false;
+                    gui->show_menu = true;
+                    gui->menu_state = 2;  // Show high scores
+                    gui->menu_selection = 2;
+                }
+                break;
+            }
+            default: {
+                // Add character (only letters A-Z)
+                if (hs_entry->cursor_pos < 31) {
+                    char c = event->key.keysym.sym;
+                    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+                        if (c >= 'a' && c <= 'z') c = c - 'a' + 'A'; // Convert to uppercase
+                        hs_entry->name_input[hs_entry->cursor_pos] = c;
+                        hs_entry->cursor_pos++;
+                        hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                    } else if (c == SDLK_SPACE) {
+                        // Allow spaces too
+                        hs_entry->name_input[hs_entry->cursor_pos] = ' ';
+                        hs_entry->cursor_pos++;
+                        hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                    }
+                }
+                break;
+            }
+        }
+        return;  // Don't process other input while in name entry
+    }
     
     switch (event->key.keysym.sym) {
         // Movement keys - A/D/W/S and Arrow keys
@@ -265,7 +333,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
 // GAME LOOP
 // ============================================================
 
-static void handle_events(CometGUI *gui) {
+static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -282,6 +350,12 @@ static void handle_events(CometGUI *gui) {
                 break;
             
             case SDL_KEYDOWN: {
+                // Check if we're in high score entry mode
+                if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
+                    handle_keyboard_input(&event, gui, hs_entry);
+                    break;  // Skip other input handling while entering name
+                }
+                
                 // Check for splash screen exit on any key
                 if (gui->visualizer.comet_buster.splash_screen_active) {
                     fprintf(stdout, "[SPLASH] User pressed key - exiting splash screen\n");
@@ -392,6 +466,11 @@ static void handle_events(CometGUI *gui) {
                             // Start game with selected difficulty
                             comet_buster_reset_game(&gui->visualizer.comet_buster);
                             gui->visualizer.comet_buster.splash_screen_active = true;
+                            if (hs_entry) {
+                                hs_entry->state = HIGH_SCORE_ENTRY_NONE;
+                                hs_entry->cursor_pos = 0;
+                                memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
+                            }
 #ifdef ExternalSound
                             audio_play_intro_music(&gui->audio, "music/intro.mp3");
 #endif
@@ -408,15 +487,15 @@ static void handle_events(CometGUI *gui) {
                     }
                 } else {
                     // Game is running - handle game input
-                    handle_keyboard_input(&event, gui);
+                    handle_keyboard_input(&event, gui, hs_entry);
                     handle_keyboard_input_special(&event, gui);
                 }
                 break;
             }
             
             case SDL_KEYUP:
-                if (!gui->show_menu) {
-                    handle_keyboard_input(&event, gui);
+                if (!gui->show_menu && (!hs_entry || hs_entry->state != HIGH_SCORE_ENTRY_ACTIVE)) {
+                    handle_keyboard_input(&event, gui, hs_entry);
                 }
                 break;
             
@@ -623,7 +702,7 @@ static void handle_events(CometGUI *gui) {
     }
 }
 
-static void update_game(CometGUI *gui) {
+static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     // Don't update if menu is open or game is paused
     if (gui->show_menu || gui->game_paused) return;
     
@@ -664,13 +743,56 @@ static void update_game(CometGUI *gui) {
         }
     }
     
-    // Stop music if game ends
+    // Stop music if game ends and trigger high score entry
     if (gui->visualizer.comet_buster.game_over) {
+        printf("\n[HS_FLOW] >>> GAME OVER DETECTED\n");
         audio_stop_music(&gui->audio);
+        
+        // Trigger high score entry if not already showing the dialog
+        if (!hs_entry) {
+            printf("[HS_FLOW] ERROR: hs_entry is NULL!\n");
+            return;
+        }
+        
+        printf("[HS_FLOW] hs_entry->state = %d (0=NONE, 1=ACTIVE, 2=SAVED)\n", hs_entry->state);
+        
+        if (hs_entry->state != HIGH_SCORE_ENTRY_ACTIVE) {
+            int score = gui->visualizer.comet_buster.score;
+            int count = gui->visualizer.comet_buster.high_score_count;
+            
+            printf("[HS_FLOW] Checking high score eligibility...\n");
+            printf("[HS_FLOW] score=%d, high_score_count=%d, MAX=%d\n", 
+                   score, count, 25);
+            
+            // Check if this is a high score
+            bool is_high_score = comet_buster_is_high_score(&gui->visualizer.comet_buster, score);
+            printf("[HS_FLOW] is_high_score() returned: %s\n", is_high_score ? "TRUE" : "FALSE");
+            
+            if (is_high_score) {
+                printf("[HS_FLOW] >>> SHOWING DIALOG\n");
+                // Show high score entry dialog
+                hs_entry->state = HIGH_SCORE_ENTRY_ACTIVE;
+                hs_entry->cursor_pos = 0;
+                memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
+                printf("[HIGHSCORE] New high score! Score: %d\n", score);
+            } else {
+                printf("[HS_FLOW] >>> SHOWING MENU (score doesn't qualify)\n");
+                // Score doesn't qualify - always go to menu
+                gui->show_menu = true;
+                gui->menu_state = 0;  // Main menu
+                gui->menu_selection = 0;
+                // Reset state so dialog can show again if next score qualifies
+                hs_entry->state = HIGH_SCORE_ENTRY_NONE;
+                printf("[HIGHSCORE] Game over. Score: %d (not a high score)\n", score);
+            }
+        } else {
+            printf("[HS_FLOW] Dialog already active, not triggering again\n");
+        }
+        printf("[HS_FLOW] <<< END GAME OVER HANDLING\n\n");
     }
 }
 
-static void render_frame(CometGUI *gui) {
+static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -852,6 +974,77 @@ static void render_frame(CometGUI *gui) {
         }
     }
     
+    // Render high score entry dialog if active
+    if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
+        extern void gl_set_color_alpha(float r, float g, float b, float a);
+        extern void gl_draw_rect_filled(float x, float y, float width, float height);
+        extern void gl_set_color(float r, float g, float b);
+        extern void gl_draw_text_simple(const char *text, int x, int y, int font_size);
+        
+        // Semi-transparent overlay
+        gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+        gl_draw_rect_filled(0, 0, 1920, 1080);
+        
+        // Dialog box background - Warm parchment (#F7F3E8)
+        int dialog_x = 560;
+        int dialog_y = 320;
+        int dialog_width = 800;
+        int dialog_height = 420;
+        
+        // Warm parchment background
+        gl_set_color(0.968f, 0.953f, 0.91f);  // #F7F3E8
+        gl_draw_rect_filled(dialog_x, dialog_y, dialog_width, dialog_height);
+        
+        // Warm gold/brown border
+        gl_set_color(0.8f, 0.6f, 0.2f);  // Warm gold
+        for (int i = 0; i < 3; i++) {
+            gl_draw_rect_filled(dialog_x - i, dialog_y - i, dialog_width + 2*i, dialog_height + 2*i);
+            if (i < 2) gl_set_color(0.8f, 0.6f, 0.2f);
+        }
+        
+        // Title - Dark brown text
+        gl_set_color(0.2f, 0.15f, 0.1f);  // Dark brown
+        gl_draw_text_simple("NEW HIGH SCORE!", 740, 345, 24);
+        
+        // Score display - Dark brown
+        gl_set_color(0.3f, 0.25f, 0.15f);
+        char score_text[128];
+        sprintf(score_text, "Score: %d | Wave: %d", 
+                gui->visualizer.comet_buster.score,
+                gui->visualizer.comet_buster.current_wave);
+        gl_draw_text_simple(score_text, 620, 395, 14);
+        
+        // Name entry label - Dark brown
+        gl_set_color(0.2f, 0.15f, 0.1f);
+        gl_draw_text_simple("Enter Your Name:", 620, 445, 13);
+        
+        // Input box background - Slightly off-white
+        gl_set_color(0.95f, 0.93f, 0.88f);
+        gl_draw_rect_filled(620, 475, 660, 50);
+        
+        // Input box border - Warm gold
+        gl_set_color(0.8f, 0.6f, 0.2f);
+        gl_draw_rect_filled(618, 473, 664, 54);
+        
+        // Display the typed name - Dark brown
+        gl_set_color(0.1f, 0.08f, 0.05f);  // Very dark brown
+        gl_draw_text_simple(hs_entry->name_input, 635, 490, 16);
+        
+        // Cursor (blinking underscore)
+        if ((int)(gui->total_time * 2) % 2 == 0) {  // Blink effect
+            char cursor_text[] = "_";
+            int cursor_x = 635 + (hs_entry->cursor_pos * 9);
+            gl_draw_text_simple(cursor_text, cursor_x, 490, 16);
+        }
+        
+        // Instructions - Split into two lines
+        gl_set_color(0.4f, 0.3f, 0.2f);  // Darker brown for readability
+        gl_draw_text_simple("Type your name (A-Z) | ENTER to save | BKSP to delete", 
+                           580, 550, 11);
+        gl_draw_text_simple("Max 32 characters", 
+                           580, 568, 11);
+    }
+    
     SDL_GL_SwapWindow(gui->window);
 }
 
@@ -955,6 +1148,11 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.menu_state = 0;
     gui.difficulty_level = 2;  // Medium
     
+    // Initialize local high score entry UI
+    HighScoreEntryUI hs_entry;
+    memset(&hs_entry, 0, sizeof(HighScoreEntryUI));
+    hs_entry.state = HIGH_SCORE_ENTRY_NONE;
+    
     // Main loop
     gui.last_frame_ticks = SDL_GetTicks();
     
@@ -968,8 +1166,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         gui.total_time += gui.delta_time;
         gui.frame_count++;
         
-        handle_events(&gui);
-        update_game(&gui);
+        handle_events(&gui, &hs_entry);
+        update_game(&gui, &hs_entry);
         
         // Reset scroll wheel input after processing (for weapon changing)
         gui.visualizer.scroll_direction = 0;
@@ -977,7 +1175,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         // Reset mouse_just_moved flag for next frame
         gui.visualizer.mouse_just_moved = false;
         
-        render_frame(&gui);
+        render_frame(&gui, &hs_entry);
         
         uint32_t elapsed = SDL_GetTicks() - current_ticks;
         if (elapsed < 16) SDL_Delay(16 - elapsed);
