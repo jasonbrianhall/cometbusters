@@ -841,16 +841,40 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
             gui->finale_music_started = true;
         }
         
-        // Check if user wants to skip finale (right-click to continue)
+        // Update the finale splash (THIS IS CRITICAL - animates the finale)
+        comet_buster_update_finale_splash(&gui->visualizer.comet_buster, 1.0 / 60.0);
+        
+        // Check if user wants to continue to next wave (can right-click anytime to skip)
         if (gui->visualizer.mouse_right_pressed) {
-            fprintf(stdout, "[FINALE] Player skipping finale\n");
+            fprintf(stdout, "[FINALE] Player skipping to Wave 31\n");
+            
+            // If scroll isn't done yet, fast-forward to the end
+            if (!gui->visualizer.comet_buster.finale_waiting_for_input) {
+                gui->visualizer.comet_buster.finale_scroll_line_index = 999;  // Jump to end of scroll
+                gui->visualizer.comet_buster.finale_waiting_for_input = true;
+            }
             
             // Stop the finale music
             audio_stop_music(&gui->audio);
             
             // Clean up finale splash
             gui->visualizer.comet_buster.finale_splash_active = false;
+            gui->visualizer.comet_buster.finale_splash_boss_paused = false;
+            gui->visualizer.comet_buster.boss.active = false;
+            gui->visualizer.comet_buster.boss_active = false;
+            
+            // Advance to next wave
+            gui->visualizer.comet_buster.current_wave++;
+            comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+            
+            // Reset flags and input
             gui->finale_music_started = false;
+            gui->visualizer.mouse_right_pressed = false;
+            
+            // Start gameplay music rotation
+#ifdef ExternalSound
+            audio_play_random_music(&gui->audio);
+#endif
         }
     }
     
