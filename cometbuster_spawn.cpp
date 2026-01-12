@@ -1271,6 +1271,7 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
         comet_buster_spawn_canister(game, ufo->x, ufo->y);
     }
     // 70% chance to drop nothing
+
     
     ufo->active = false;
 }

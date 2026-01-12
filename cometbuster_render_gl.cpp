@@ -1879,26 +1879,283 @@ void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height) {
 
 void draw_harbinger_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
-    gl_set_color(1.0f, 0.5f, 0.0f);
-    gl_draw_circle(boss->x, boss->y, 45.0f, 20);
+    (void)cr; (void)width; (void)height;
+    
+    // Main body - dark cosmic entity with 6 points
+    double core_size = 35.0;
+    
+    // Outer aura (pulsing based on phase)
+    double aura_pulse = 0.3 + 0.4 * sin(boss->rotation * M_PI / 180.0 * 0.05);
+    if (boss->phase == 2) {
+        aura_pulse = 0.7;  // Brighter in frenzy
+    }
+    
+    gl_set_color_alpha((float)(0.4 + aura_pulse * 0.3), 0.0f, (float)(0.8 + aura_pulse * 0.2), 0.6f);
+    gl_draw_circle(boss->x, boss->y, (float)(core_size + 15), 32);
+    
+    // Core body - dark purple with 6 angular points
+    gl_set_color(0.3f, 0.0f, 0.7f);
+    const int hex_points = 6;
+    Vertex hex_verts[6];
+    
+    for (int i = 0; i < hex_points; i++) {
+        double angle = (i * 2.0 * M_PI / hex_points) + (boss->rotation * M_PI / 180.0);
+        double x = cos(angle) * core_size;
+        double y = sin(angle) * core_size;
+        hex_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.3f, 0.0f, 0.7f, 1.0f};
+    }
+    
+    draw_vertices(hex_verts, hex_points, GL_POLYGON);
+    
+    // Magenta outline
+    gl_set_color(1.0f, 0.3f, 1.0f);
+    glLineWidth(2.0f);
+    draw_vertices(hex_verts, hex_points, GL_LINE_LOOP);
+    glLineWidth(1.0f);
+    
+    // Inner core (yellow center)
     gl_set_color(1.0f, 1.0f, 0.0f);
-    gl_draw_circle_outline(boss->x, boss->y, 45.0f, 2.0f, 20);
+    gl_draw_circle(boss->x, boss->y, 8.0f, 16);
+    
+    // Draw laser charging indicator (phase 1)
+    if (boss->phase == 1) {
+        gl_set_color(1.0f, 0.5f, 1.0f);  // Light magenta
+        glLineWidth(2.0f);
+        
+        for (int i = 0; i < 4; i++) {
+            double laser_angle = boss->laser_angle * M_PI / 180.0 + (i * M_PI / 2.0);
+            double x = cos(laser_angle) * 40.0;
+            double y = sin(laser_angle) * 40.0;
+            
+            // Draw line from center outward
+            Vertex laser_verts[2] = {
+                {(float)boss->x, (float)boss->y, 1.0f, 0.5f, 1.0f, 1.0f},
+                {(float)(boss->x + x), (float)(boss->y + y), 1.0f, 0.5f, 1.0f, 1.0f}
+            };
+            draw_vertices(laser_verts, 2, GL_LINES);
+        }
+        glLineWidth(1.0f);
+    }
+    
+    // Gravity well effect (phase 2 - visual ripples)
+    if (boss->phase == 2 && boss->gravity_well_strength > 0) {
+        gl_set_color_alpha(0.0f, 1.0f, 0.8f, 0.3f);
+        glLineWidth(1.5f);
+        double ripple_size = 20.0 + 10.0 * sin(boss->rotation * M_PI / 180.0 * 0.1);
+        
+        Vertex ripple_verts[32];
+        for (int i = 0; i < 32; i++) {
+            double angle = 2.0 * M_PI * i / 32;
+            double x = cos(angle) * ripple_size;
+            double y = sin(angle) * ripple_size;
+            ripple_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.0f, 1.0f, 0.8f, 0.3f};
+        }
+        draw_vertices(ripple_verts, 32, GL_LINE_LOOP);
+        glLineWidth(1.0f);
+    }
+    
+    // Damage flash overlay
+    if (boss->damage_flash_timer > 0) {
+        gl_set_color_alpha(1.0f, 0.2f, 0.2f, 0.6f);
+        gl_draw_circle(boss->x, boss->y, (float)core_size, 32);
+    }
+    
+    // Draw health bar
+    double bar_width = 100.0;
+    double bar_height = 8.0;
+    double bar_x = boss->x - bar_width / 2.0;
+    double bar_y = boss->y - 55.0;
+    
+    // Background
+    gl_set_color(0.2f, 0.2f, 0.2f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+    
+    // Health fill
+    double health_percent = (double)boss->health / boss->max_health;
+    if (health_percent < 0) health_percent = 0;
+    
+    gl_set_color(1.0f, 0.0f, 1.0f);  // Magenta
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)(bar_width * health_percent), (float)bar_height);
+    
+    // Border
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
 }
 
 void draw_star_vortex_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
-    gl_set_color(1.0f, 0.0f, 1.0f);
-    gl_draw_circle(boss->x, boss->y, 50.0f, 20);
+    (void)cr; (void)width; (void)height;
+    
+    // Draw a 6-pointed star with phase-based colors
+    int num_points = 6;
+    double outer_radius = 50.0;
+    double inner_radius = 25.0;
+    
+    // Star color (shifts based on phase)
+    float r = 1.0f, g = 0.6f, b = 0.0f;  // Orange by default
+    if (boss->phase == 1) {
+        r = 1.0f; g = 0.3f; b = 0.3f;  // Red for Phase 1
+    } else if (boss->phase == 2) {
+        r = 1.0f; g = 1.0f; b = 0.0f;  // Yellow for Phase 2
+    }
+    
+    // Draw the star shape with alternating inner/outer points
+    const int star_vertices = num_points * 2;
+    Vertex star_verts[12];
+    
+    for (int i = 0; i < star_vertices; i++) {
+        double angle = (i * M_PI / num_points) + (boss->rotation * M_PI / 180.0);
+        double radius = (i % 2 == 0) ? outer_radius : inner_radius;
+        double x = cos(angle) * radius;
+        double y = sin(angle) * radius;
+        star_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), r, g, b, 1.0f};
+    }
+    
+    // Fill star
+    draw_vertices(star_verts, star_vertices, GL_POLYGON);
+    
+    // Outline (darker shade)
+    gl_set_color(r * 0.5f, g * 0.5f, b * 0.5f);
+    glLineWidth(2.0f);
+    draw_vertices(star_verts, star_vertices, GL_LINE_LOOP);
+    glLineWidth(1.0f);
+    
+    // Damage flash (white highlight)
+    if (boss->damage_flash_timer > 0) {
+        gl_set_color_alpha(1.0f, 1.0f, 1.0f, (float)boss->damage_flash_timer);
+        gl_draw_circle(boss->x, boss->y, (float)(outer_radius * 1.2), 32);
+    }
+    
+    // Shield visualization (if active)
+    if (boss->shield_active && boss->shield_health > 0) {
+        double shield_ratio = (double)boss->shield_health / boss->max_shield_health;
+        gl_set_color_alpha(0.2f, 0.8f, 1.0f, (float)(shield_ratio * 0.6));
+        glLineWidth(3.0f);
+        
+        Vertex shield_verts[32];
+        for (int i = 0; i < 32; i++) {
+            double angle = 2.0 * M_PI * i / 32;
+            double x = cos(angle) * (outer_radius + 10.0);
+            double y = sin(angle) * (outer_radius + 10.0);
+            shield_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.2f, 0.8f, 1.0f, (float)(shield_ratio * 0.6)};
+        }
+        draw_vertices(shield_verts, 32, GL_LINE_LOOP);
+        glLineWidth(1.0f);
+    }
+    
+    // Draw health bar
+    double bar_width = 60.0;
+    double bar_height = 8.0;
+    double bar_x = boss->x - bar_width / 2.0;
+    double bar_y = boss->y - 50.0;
+    
+    // Background
+    gl_set_color_alpha(0.2f, 0.2f, 0.2f, 0.8f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+    
+    // Health fill (green)
+    double health_ratio = (double)boss->health / boss->max_health;
+    gl_set_color(0.0f, 1.0f, 0.0f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)(bar_width * health_ratio), (float)bar_height);
+    
+    // Border
     gl_set_color(1.0f, 1.0f, 1.0f);
-    gl_draw_circle_outline(boss->x, boss->y, 50.0f, 2.0f, 20);
+    gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
 }
 
 void draw_singularity_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
-    gl_set_color(0.1f, 0.1f, 0.1f);
-    gl_draw_circle(boss->x, boss->y, 50.0f, 20);
-    gl_set_color(0.5f, 0.0f, 1.0f);
-    gl_draw_circle_outline(boss->x, boss->y, 50.0f, 3.0f, 20);
+    (void)cr; (void)width; (void)height;
+    
+    // Determine phase for visual effects
+    int phase = boss->phase;
+    
+    // Main black hole body (grows larger in later phases)
+    double core_radius = 60.0;
+    if (phase >= 2) core_radius = 80.0;
+    
+    // Dark center
+    gl_set_color(0.1f, 0.05f, 0.15f);
+    gl_draw_circle(boss->x, boss->y, (float)core_radius, 32);
+    
+    // Outer event horizon glow (cyan, pulsing)
+    double glow_intensity = 0.2 + 0.3 * sin(boss->rotation * M_PI / 180.0 * 0.1);
+    gl_set_color_alpha(0.2f, 0.8f, 1.0f, (float)glow_intensity);
+    glLineWidth(3.0f);
+    
+    Vertex event_horizon[32];
+    for (int i = 0; i < 32; i++) {
+        double angle = 2.0 * M_PI * i / 32;
+        double x = cos(angle) * (core_radius + 15);
+        double y = sin(angle) * (core_radius + 15);
+        event_horizon[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.2f, 0.8f, 1.0f, (float)glow_intensity};
+    }
+    draw_vertices(event_horizon, 32, GL_LINE_LOOP);
+    glLineWidth(1.0f);
+    
+    // Inner event horizon rings (3 concentric rings)
+    for (int ring = 1; ring <= 3; ring++) {
+        double ring_radius = core_radius - (ring * 8);
+        double ring_intensity = 0.3 - ring * 0.08;
+        
+        gl_set_color_alpha(0.2f, 0.8f, 1.0f, (float)ring_intensity);
+        glLineWidth(1.5f);
+        
+        Vertex ring_verts[32];
+        for (int i = 0; i < 32; i++) {
+            double angle = 2.0 * M_PI * i / 32;
+            double x = cos(angle) * ring_radius;
+            double y = sin(angle) * ring_radius;
+            ring_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.2f, 0.8f, 1.0f, (float)ring_intensity};
+        }
+        draw_vertices(ring_verts, 32, GL_LINE_LOOP);
+    }
+    glLineWidth(1.0f);
+    
+    // Damage flash overlay
+    if (boss->damage_flash_timer > 0) {
+        gl_set_color_alpha(1.0f, 0.5f, 0.5f, (float)boss->damage_flash_timer);
+        gl_draw_circle(boss->x, boss->y, (float)(core_radius + 20), 32);
+    }
+    
+    // Draw orbiting satellites
+    // NOTE: These are visual elements only - they do NOT cause collision damage
+    // They orbit the Singularity boss and are purely for visual feedback of the boss's status
+    for (int i = 0; i < boss->fragment_count; i++) {
+        double angle = (i * 360.0 / boss->fragment_count + boss->rotation) * M_PI / 180.0;
+        double orbit_radius = 120.0;
+        double sat_x = cos(angle) * orbit_radius;
+        double sat_y = sin(angle) * orbit_radius;
+        
+        // Satellite glow
+        gl_set_color_alpha(0.0f, 1.0f, 1.0f, 0.5f);
+        gl_draw_circle(boss->x + sat_x, boss->y + sat_y, 12.0f, 16);
+        
+        // Satellite core
+        gl_set_color(0.3f, 1.0f, 1.0f);
+        gl_draw_circle(boss->x + sat_x, boss->y + sat_y, 8.0f, 16);
+    }
+    
+    // Draw health bar
+    double bar_width = 140.0;
+    double bar_height = 12.0;
+    double bar_x = boss->x - bar_width / 2.0;
+    double bar_y = boss->y - 80.0;
+    
+    // Background
+    gl_set_color(0.1f, 0.05f, 0.1f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+    
+    // Health fill (cyan gradient effect)
+    double health_percent = (double)boss->health / boss->max_health;
+    if (health_percent < 0) health_percent = 0;
+    
+    gl_set_color(0.0f, 1.0f, 1.0f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)(bar_width * health_percent), (float)bar_height);
+    
+    // Border
+    gl_set_color(0.5f, 0.5f, 1.0f);
+    gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
 }
 
 void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int height) {
@@ -2341,7 +2598,7 @@ void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int wid
         double pulse = 0.5 + 0.5 * sin(game->finale_splash_timer * 2.5);
         gl_set_color_alpha(1.0f, 1.0f, 0.0f, (float)pulse);
         
-        const char *continue_text = "RIGHT-CLICK TO CONTINUE TO WAVE 31";
+        const char *continue_text = "RIGHT-CLICK TO CONTINUE";
         float continue_width = gl_calculate_text_width(continue_text, 16);
         float continue_x = (width - continue_width) / 2.0f;
         gl_draw_text_simple(continue_text, (int)continue_x, height - 50, 16);
