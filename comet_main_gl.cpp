@@ -40,6 +40,24 @@ typedef struct {
     int cursor_pos;             // Current cursor position
 } HighScoreEntryUI;
 
+// ============================================================
+// LOCAL CHEAT MENU STATE
+// ============================================================
+
+typedef enum {
+    CHEAT_MENU_CLOSED = 0,
+    CHEAT_MENU_OPEN = 1
+} CheatMenuState;
+
+typedef struct {
+    int state;              // CHEAT_MENU_OPEN or CHEAT_MENU_CLOSED
+    int selection;          // 0=Wave, 1=Lives, 2=Missiles, 3=Bombs, 4=Apply, 5=Cancel
+    int wave;               // Selected wave (1-30)
+    int lives;              // Selected lives (1-20)
+    int missiles;           // Selected missiles
+    int bombs;              // Selected bombs
+} CheatMenuUI;
+
 // Forward declare functions from visualization.h and other headers
 extern void update_comet_buster(Visualizer *vis_ptr, double dt);
 extern void draw_comet_buster_gl(Visualizer *visualizer, void *cr);
@@ -333,7 +351,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
 // GAME LOOP
 // ============================================================
 
-static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry) {
+static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -396,9 +414,94 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry) {
                     }
                     break;
                 }
-                
-                // Handle menu navigation
+                // Handle cheat menu and menu input
                 if (gui->show_menu) {
+                    // Handle cheat menu input first (takes priority)
+                    if (cheat_menu && cheat_menu->state == CHEAT_MENU_OPEN) {
+                        if (event.key.keysym.sym == SDLK_UP) {
+                            cheat_menu->selection = (cheat_menu->selection - 1 + 6) % 6;
+                        } else if (event.key.keysym.sym == SDLK_DOWN) {
+                            cheat_menu->selection = (cheat_menu->selection + 1) % 6;
+                        } else if (event.key.keysym.sym == SDLK_LEFT) {
+                            switch (cheat_menu->selection) {
+                                case 0: cheat_menu->wave = (cheat_menu->wave - 1 < 1) ? 30 : cheat_menu->wave - 1; break;
+                                case 1: cheat_menu->lives = (cheat_menu->lives - 1 < 1) ? 20 : cheat_menu->lives - 1; break;
+                                case 2: cheat_menu->missiles = (cheat_menu->missiles - 1 < 0) ? 99 : cheat_menu->missiles - 1; break;
+                                case 3: cheat_menu->bombs = (cheat_menu->bombs - 1 < 0) ? 99 : cheat_menu->bombs - 1; break;
+                            }
+                        } else if (event.key.keysym.sym == SDLK_RIGHT) {
+                            switch (cheat_menu->selection) {
+                                case 0: cheat_menu->wave = (cheat_menu->wave + 1 > 30) ? 1 : cheat_menu->wave + 1; break;
+                                case 1: cheat_menu->lives = (cheat_menu->lives + 1 > 20) ? 1 : cheat_menu->lives + 1; break;
+                                case 2: cheat_menu->missiles = (cheat_menu->missiles + 1 > 99) ? 0 : cheat_menu->missiles + 1; break;
+                                case 3: cheat_menu->bombs = (cheat_menu->bombs + 1 > 99) ? 0 : cheat_menu->bombs + 1; break;
+                            }
+                        } else if (event.key.keysym.sym == SDLK_RETURN) {
+                            if (cheat_menu->selection == 4) {  // Apply
+                                int old_wave = gui->visualizer.comet_buster.current_wave;
+                                int new_wave = cheat_menu->wave;
+                                bool wave_changed = (old_wave != new_wave);
+                                
+                                // Apply all cheats
+                                gui->visualizer.comet_buster.current_wave = new_wave;
+                                gui->visualizer.comet_buster.ship_lives = cheat_menu->lives;
+                                gui->visualizer.comet_buster.missile_ammo = cheat_menu->missiles;
+                                gui->visualizer.comet_buster.bomb_count = cheat_menu->bombs;
+                                
+                                // If wave changed, reset and spawn new wave
+                                if (wave_changed) {
+                                    printf("[CHEAT] Wave changed from %d to %d - spawning new wave\n", old_wave, new_wave);
+                                    
+                                    // Clear all entities
+                                    gui->visualizer.comet_buster.comet_count = 0;
+                                    gui->visualizer.comet_buster.enemy_ship_count = 0;
+                                    gui->visualizer.comet_buster.enemy_bullet_count = 0;
+                                    gui->visualizer.comet_buster.bullet_count = 0;
+                                    gui->visualizer.comet_buster.particle_count = 0;
+                                    gui->visualizer.comet_buster.missile_count = 0;
+                                    
+                                    // Spawn the new wave
+                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                                    printf("[CHEAT] Spawned Wave %d\n", new_wave);
+                                } else {
+                                    printf("[CHEAT] Wave unchanged (still Wave %d) - just updated Lives/Missiles/Bombs\n", new_wave);
+                                }
+                                
+                                printf("[CHEAT] Applied: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d%s\n",
+                                       new_wave, cheat_menu->lives, cheat_menu->missiles, cheat_menu->bombs,
+                                       wave_changed ? " (NEW WAVE SPAWNED)" : " (SAME WAVE)");
+                                
+                                cheat_menu->state = CHEAT_MENU_CLOSED;
+                            } else if (cheat_menu->selection == 5) {  // Cancel
+                                cheat_menu->state = CHEAT_MENU_CLOSED;
+                            }
+                        } else if (event.key.keysym.sym == SDLK_ESCAPE) {
+                            cheat_menu->state = CHEAT_MENU_CLOSED;
+                        }
+                        break;  // Don't process other menu input while cheat menu is open
+                    }
+                    
+                    // Regular menu input (only if cheat menu is not open)
+                    if (event.key.keysym.sym == SDLK_c && !cheat_menu) {
+                        // Can't open cheat without cheat_menu struct
+                        printf("[CHEAT] Error: cheat_menu is NULL\n");
+                    } else if (event.key.keysym.sym == SDLK_c && cheat_menu) {
+                        // Open cheat menu from main menu
+                        if (gui->menu_state == 0) {
+                            // Initialize cheat menu with current game values
+                            cheat_menu->state = CHEAT_MENU_OPEN;
+                            cheat_menu->selection = 0;
+                            cheat_menu->wave = gui->visualizer.comet_buster.current_wave;
+                            cheat_menu->lives = gui->visualizer.comet_buster.ship_lives;
+                            cheat_menu->missiles = gui->visualizer.comet_buster.missile_ammo;
+                            cheat_menu->bombs = gui->visualizer.comet_buster.bomb_count;
+                            printf("[CHEAT] Opening cheat menu (Current: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d)\n",
+                                   cheat_menu->wave, cheat_menu->lives, cheat_menu->missiles, cheat_menu->bombs);
+                        }
+                        break;
+                    }
+                    
+                    // Handle regular menu navigation
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
                             gui->menu_selection = (gui->menu_selection - 1 + 5) % 5;
@@ -441,7 +544,15 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry) {
                                 audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
                             }
                         }
-                    } else if (event.key.keysym.sym == SDLK_RETURN) {
+                    } else if (event.key.keysym.sym == SDLK_c) {
+                        // Open cheat menu from main menu
+                        if (gui->show_menu && gui->menu_state == 0) {
+                            cheat_menu->state = CHEAT_MENU_OPEN;
+                            cheat_menu->selection = 0;
+                            printf("[CHEAT] Opening cheat menu\n");
+                        }
+                    }
+                    else if (event.key.keysym.sym == SDLK_RETURN) {
                         if (gui->menu_state == 0) {
                             switch (gui->menu_selection) {
                                 case 0:  // Continue
@@ -792,7 +903,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     }
 }
 
-static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry) {
+static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
     glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -1045,6 +1156,105 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry) {
                            580, 568, 11);
     }
     
+    // Render cheat menu if open
+    if (cheat_menu && cheat_menu->state == CHEAT_MENU_OPEN) {
+        extern void gl_set_color_alpha(float r, float g, float b, float a);
+        extern void gl_draw_rect_filled(float x, float y, float width, float height);
+        extern void gl_set_color(float r, float g, float b);
+        extern void gl_draw_text_simple(const char *text, int x, int y, int font_size);
+        
+        // Semi-transparent overlay
+        gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+        gl_draw_rect_filled(0, 0, 1920, 1080);
+        
+        // Dialog box background - Warm parchment
+        int dialog_x = 460;
+        int dialog_y = 200;
+        int dialog_width = 1000;
+        int dialog_height = 680;
+        
+        // Dark gray background
+        gl_set_color(0.15f, 0.15f, 0.2f);
+        gl_draw_rect_filled(dialog_x, dialog_y, dialog_width, dialog_height);
+        
+        // Border - Gold
+        gl_set_color(0.8f, 0.6f, 0.2f);
+        for (int i = 0; i < 3; i++) {
+            gl_draw_rect_filled(dialog_x - i, dialog_y - i, dialog_width + 2*i, dialog_height + 2*i);
+            if (i < 2) gl_set_color(0.8f, 0.6f, 0.2f);
+        }
+        
+        // Title
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_text_simple("CHEAT MENU", 800, 230, 26);
+        
+        // Cheat options
+        int option_y = 300;
+        int line_height = 80;
+        
+        // Option 0: Wave
+        gl_set_color(cheat_menu->selection == 0 ? 1.0f : 0.7f, 
+                     cheat_menu->selection == 0 ? 1.0f : 0.7f, 
+                     cheat_menu->selection == 0 ? 1.0f : 0.7f);
+        char wave_text[128];
+        sprintf(wave_text, "Wave: %d/30 (LEFT/RIGHT to adjust)", cheat_menu->wave);
+        gl_draw_text_simple(wave_text, 550, option_y, 16);
+        
+        // Option 1: Lives
+        option_y += line_height;
+        gl_set_color(cheat_menu->selection == 1 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 1 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 1 ? 1.0f : 0.7f);
+        char lives_text[128];
+        sprintf(lives_text, "Lives: %d/20 (LEFT/RIGHT to adjust)", cheat_menu->lives);
+        gl_draw_text_simple(lives_text, 550, option_y, 16);
+        
+        // Option 2: Missiles
+        option_y += line_height;
+        gl_set_color(cheat_menu->selection == 2 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 2 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 2 ? 1.0f : 0.7f);
+        char missiles_text[128];
+        sprintf(missiles_text, "Missiles: %d/99 (LEFT/RIGHT to adjust)", cheat_menu->missiles);
+        gl_draw_text_simple(missiles_text, 550, option_y, 16);
+        
+        // Option 3: Bombs
+        option_y += line_height;
+        gl_set_color(cheat_menu->selection == 3 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 3 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 3 ? 1.0f : 0.7f);
+        char bombs_text[128];
+        sprintf(bombs_text, "Bombs: %d/99 (LEFT/RIGHT to adjust)", cheat_menu->bombs);
+        gl_draw_text_simple(bombs_text, 550, option_y, 16);
+        
+        // Option 4: Apply
+        option_y += line_height;
+        gl_set_color(cheat_menu->selection == 4 ? 0.2f : 0.1f,
+                     cheat_menu->selection == 4 ? 1.0f : 0.5f,
+                     cheat_menu->selection == 4 ? 0.2f : 0.1f);
+        gl_draw_rect_filled(550, option_y - 10, 200, 35);
+        gl_set_color(cheat_menu->selection == 4 ? 1.0f : 0.8f,
+                     cheat_menu->selection == 4 ? 1.0f : 0.8f,
+                     cheat_menu->selection == 4 ? 1.0f : 0.8f);
+        gl_draw_text_simple("APPLY", 600, option_y, 14);
+        
+        // Option 5: Cancel
+        option_y += 60;
+        gl_set_color(cheat_menu->selection == 5 ? 1.0f : 0.5f,
+                     cheat_menu->selection == 5 ? 0.2f : 0.1f,
+                     cheat_menu->selection == 5 ? 0.2f : 0.1f);
+        gl_draw_rect_filled(550, option_y - 10, 200, 35);
+        gl_set_color(cheat_menu->selection == 5 ? 1.0f : 0.8f,
+                     cheat_menu->selection == 5 ? 1.0f : 0.8f,
+                     cheat_menu->selection == 5 ? 1.0f : 0.8f);
+        gl_draw_text_simple("CANCEL", 590, option_y, 14);
+        
+        // Instructions
+        gl_set_color(0.7f, 0.7f, 0.7f);
+        gl_draw_text_simple("UP/DOWN to select | LEFT/RIGHT to adjust | ENTER to confirm | ESC to close", 
+                           500, 750, 12);
+    }
+    
     SDL_GL_SwapWindow(gui->window);
 }
 
@@ -1153,6 +1363,16 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     memset(&hs_entry, 0, sizeof(HighScoreEntryUI));
     hs_entry.state = HIGH_SCORE_ENTRY_NONE;
     
+    // Initialize cheat menu UI
+    CheatMenuUI cheat_menu;
+    memset(&cheat_menu, 0, sizeof(CheatMenuUI));
+    cheat_menu.state = CHEAT_MENU_CLOSED;
+    cheat_menu.selection = 0;
+    cheat_menu.wave = 1;
+    cheat_menu.lives = 3;
+    cheat_menu.missiles = 0;
+    cheat_menu.bombs = 0;
+    
     // Main loop
     gui.last_frame_ticks = SDL_GetTicks();
     
@@ -1166,7 +1386,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         gui.total_time += gui.delta_time;
         gui.frame_count++;
         
-        handle_events(&gui, &hs_entry);
+        handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
         
         // Reset scroll wheel input after processing (for weapon changing)
@@ -1175,7 +1395,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         // Reset mouse_just_moved flag for next frame
         gui.visualizer.mouse_just_moved = false;
         
-        render_frame(&gui, &hs_entry);
+        render_frame(&gui, &hs_entry, &cheat_menu);
         
         uint32_t elapsed = SDL_GetTicks() - current_ticks;
         if (elapsed < 16) SDL_Delay(16 - elapsed);
