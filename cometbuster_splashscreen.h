@@ -146,10 +146,10 @@ static const char *VICTORY_SCROLL_LINES[] = {
     "",
     "They are preparing.",
     "",
+    "They will be ready.",
     "",
-    "Press any key to return to the stars...",
     "",
-    ""
+    "",
 };
 
 #define NUM_VICTORY_LINES (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES[0]))

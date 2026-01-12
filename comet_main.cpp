@@ -1199,9 +1199,10 @@ void on_toggle_pause(GtkWidget *widget, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return;
     
-    // Only allow pause if game is not over AND splash screen is not active
+    // Only allow pause if game is not over AND splash screen is not active AND finale is not active
     if (!gui->visualizer.comet_buster.game_over && 
-        !gui->visualizer.comet_buster.splash_screen_active) {
+        !gui->visualizer.comet_buster.splash_screen_active &&
+        !gui->visualizer.comet_buster.finale_splash_active) {
         gui->game_paused = !gui->game_paused;
         
         // Stop music immediately when pausing
@@ -2062,7 +2063,8 @@ gboolean on_focus_out(GtkWidget *widget, GdkEvent *event, gpointer data) {
     if (!gui) return FALSE;
     
     // Don't pause if splash screen is active (intro, victory scroll, finale)
-    if (gui->visualizer.comet_buster.splash_screen_active) {
+    if (gui->visualizer.comet_buster.splash_screen_active ||
+        gui->visualizer.comet_buster.finale_splash_active) {
         return FALSE;
     }
     

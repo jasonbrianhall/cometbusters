@@ -1602,13 +1602,55 @@ void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int he
     }
     draw_vertices(pattern_verts, segments, GL_POLYGON);
     
-    // Draw cyan outline ring
+    // Draw cyan outline ring (elliptical, matching body rotation)
     gl_set_color_alpha(0.0f, 1.0f, 1.0f, 0.7f);
-    gl_draw_circle_outline(queen->x, queen->y, (float)major_axis, 2.5f, segments);
+    Vertex outline_verts[32];
+    for (int i = 0; i < segments; i++) {
+        double angle = 2.0 * M_PI * i / segments;
+        float cos_a = (float)cos(angle);
+        float sin_a = (float)sin(angle);
+        
+        // Rotate the outline point
+        float cos_rot = (float)cos(queen->rotation * M_PI / 180.0);
+        float sin_rot = (float)sin(queen->rotation * M_PI / 180.0);
+        
+        float x = cos_a * (float)major_axis;
+        float y = sin_a * (float)minor_axis;
+        
+        // Apply rotation
+        float rx = x * cos_rot - y * sin_rot;
+        float ry = x * sin_rot + y * cos_rot;
+        
+        outline_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.0f, 1.0f, 1.0f, 0.7f};
+    }
+    glLineWidth(2.5f);
+    draw_vertices(outline_verts, segments, GL_LINE_LOOP);
+    glLineWidth(1.0f);
     
-    // Draw light cyan glow background
+    // Draw light cyan glow background (elliptical, matching body rotation)
     gl_set_color_alpha(0.0f, 0.8f, 1.0f, 0.2f);
-    gl_draw_circle(queen->x, queen->y, (float)(major_axis + 10.0), segments);
+    double glow_major = major_axis + 10.0;
+    double glow_minor = minor_axis + 10.0;
+    Vertex glow_verts[32];
+    for (int i = 0; i < segments; i++) {
+        double angle = 2.0 * M_PI * i / segments;
+        float cos_a = (float)cos(angle);
+        float sin_a = (float)sin(angle);
+        
+        // Rotate the glow point
+        float cos_rot = (float)cos(queen->rotation * M_PI / 180.0);
+        float sin_rot = (float)sin(queen->rotation * M_PI / 180.0);
+        
+        float x = cos_a * (float)glow_major;
+        float y = sin_a * (float)glow_minor;
+        
+        // Apply rotation
+        float rx = x * cos_rot - y * sin_rot;
+        float ry = x * sin_rot + y * cos_rot;
+        
+        glow_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.0f, 0.8f, 1.0f, 0.2f};
+    }
+    draw_vertices(glow_verts, segments, GL_POLYGON);
     
     // Spawn ports - 6 around equator with pulsing glow
     double port_radius = 6.0;
@@ -1641,10 +1683,29 @@ void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int he
         gl_draw_circle(queen->x + px, queen->y + py, (float)port_radius, 16);
     }
     
-    // Damage flash overlay
+    // Damage flash overlay (elliptical, matching body rotation)
     if (queen->damage_flash_timer > 0) {
         gl_set_color_alpha(1.0f, 0.5f, 0.5f, 0.4f);
-        gl_draw_circle(queen->x, queen->y, (float)major_axis, 32);
+        Vertex damage_verts[32];
+        for (int i = 0; i < segments; i++) {
+            double angle = 2.0 * M_PI * i / segments;
+            float cos_a = (float)cos(angle);
+            float sin_a = (float)sin(angle);
+            
+            // Rotate the damage overlay point
+            float cos_rot = (float)cos(queen->rotation * M_PI / 180.0);
+            float sin_rot = (float)sin(queen->rotation * M_PI / 180.0);
+            
+            float x = cos_a * (float)major_axis;
+            float y = sin_a * (float)minor_axis;
+            
+            // Apply rotation
+            float rx = x * cos_rot - y * sin_rot;
+            float ry = x * sin_rot + y * cos_rot;
+            
+            damage_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 1.0f, 0.5f, 0.5f, 0.4f};
+        }
+        draw_vertices(damage_verts, segments, GL_POLYGON);
     }
     
     // Red pulsing core
@@ -1708,10 +1769,112 @@ void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int he
 
 void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
-    gl_set_color(0.2f, 0.2f, 0.8f);
-    gl_draw_circle(boss->x, boss->y, 55.0f, 20);
-    gl_set_color(0.5f, 0.5f, 1.0f);
-    gl_draw_circle_outline(boss->x, boss->y, 55.0f, 2.0f, 20);
+    (void)cr; (void)width; (void)height;
+    
+    if (boss->fragment_count == 0) {
+        // Draw main body - crystalline octagon with rotating rings
+        
+        // Outer energy ring (pulsing circle)
+        double pulse = 0.5 + 0.3 * sin(boss->rotation * M_PI / 180.0 * 0.1);
+        gl_set_color_alpha(0.2f, 0.8f, 1.0f, (float)pulse);
+        gl_draw_circle(boss->x, boss->y, (float)(40.0 + pulse * 5.0), 32);
+        
+        // Main crystalline body - octagon (8 sides)
+        gl_set_color(0.3f, 0.7f, 1.0f);  // Bright cyan
+        const int oct_sides = 8;
+        Vertex oct_verts[8];
+        double oct_radius = 30.0;
+        
+        for (int i = 0; i < oct_sides; i++) {
+            double angle = (i * 2.0 * M_PI / oct_sides) + (boss->rotation * M_PI / 180.0);
+            double x = cos(angle) * oct_radius;
+            double y = sin(angle) * oct_radius;
+            oct_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.3f, 0.7f, 1.0f, 1.0f};
+        }
+        draw_vertices(oct_verts, oct_sides, GL_POLYGON);
+        
+        // Draw octagon outline
+        gl_set_color(0.3f, 0.7f, 1.0f);
+        glLineWidth(2.0f);
+        draw_vertices(oct_verts, oct_sides, GL_LINE_LOOP);
+        glLineWidth(1.0f);
+        
+        // Core nucleus (bright white)
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_circle(boss->x, boss->y, 6.0f, 16);
+        
+        // Damage flash overlay
+        if (boss->damage_flash_timer > 0) {
+            gl_set_color_alpha(1.0f, 0.5f, 0.5f, 0.6f);
+            gl_draw_circle(boss->x, boss->y, 35.0f, 32);
+        }
+        
+    } else {
+        // Draw fragments - smaller crystals (hexagons)
+        for (int i = 0; i < boss->fragment_count; i++) {
+            double frag_x = boss->fragment_positions[i][0];
+            double frag_y = boss->fragment_positions[i][1];
+            
+            double frag_pulse = 0.3 + 0.2 * sin((boss->rotation + i * 45) * M_PI / 180.0 * 0.1);
+            
+            // Fragment glow (pulsing circle)
+            gl_set_color_alpha(0.0f, 1.0f, 1.0f, (float)frag_pulse);
+            gl_draw_circle(frag_x, frag_y, (float)(25.0 + frag_pulse * 3.0), 16);
+            
+            // Fragment body - hexagon (6 sides)
+            gl_set_color(0.2f, 0.9f, 1.0f);
+            const int hex_sides = 6;
+            Vertex hex_verts[6];
+            double hex_radius = 20.0;
+            
+            for (int j = 0; j < hex_sides; j++) {
+                double angle = j * 2.0 * M_PI / hex_sides;
+                double x = cos(angle) * hex_radius;
+                double y = sin(angle) * hex_radius;
+                hex_verts[j] = {(float)(frag_x + x), (float)(frag_y + y), 0.2f, 0.9f, 1.0f, 1.0f};
+            }
+            draw_vertices(hex_verts, hex_sides, GL_POLYGON);
+            
+            // Draw hexagon outline
+            gl_set_color(0.2f, 0.9f, 1.0f);
+            glLineWidth(1.5f);
+            draw_vertices(hex_verts, hex_sides, GL_LINE_LOOP);
+            glLineWidth(1.0f);
+            
+            // Fragment core (white circle)
+            gl_set_color(1.0f, 1.0f, 1.0f);
+            gl_draw_circle(frag_x, frag_y, 4.0f, 16);
+            
+            // Fragment health indicator (red text)
+            if (boss->fragment_health[i] > 0) {
+                gl_set_color(1.0f, 0.0f, 0.0f);
+                char health_text[8];
+                snprintf(health_text, sizeof(health_text), "%d", boss->fragment_health[i]);
+                gl_draw_text_simple(health_text, (int)frag_x - 5, (int)frag_y + 3, 8);
+            }
+        }
+    }
+    
+    // Draw health bar
+    double bar_width = 100.0;
+    double bar_height = 8.0;
+    double bar_x = boss->x - bar_width / 2.0;
+    double bar_y = boss->y - 55.0;
+    
+    // Background
+    gl_set_color(0.2f, 0.2f, 0.2f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height);
+    
+    // Health fill (cyan)
+    double health_percent = (double)boss->health / boss->max_health;
+    if (health_percent < 0) health_percent = 0;
+    
+    gl_set_color(0.0f, 1.0f, 1.0f);
+    gl_draw_rect_filled((float)bar_x, (float)bar_y, (float)(bar_width * health_percent), (float)bar_height);
+    
+    // Border
+    gl_set_color(1.0f, 1.0f, 1.0f);
+    gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
 }
 
 void draw_harbinger_boss_gl(BossShip *boss, void *cr, int width, int height) {
