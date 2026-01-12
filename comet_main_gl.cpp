@@ -286,6 +286,14 @@ static void handle_events(CometGUI *gui) {
                 gui->running = false;
                 break;
             
+            case SDL_WINDOWEVENT:
+                if (event.window.event == SDL_WINDOWEVENT_RESIZED || 
+                    event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                    SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
+                    printf("[WINDOW] Resized to %dx%d\n", gui->window_width, gui->window_height);
+                }
+                break;
+            
             case SDL_KEYDOWN: {
                 // Check for splash screen exit on any key
                 if (gui->visualizer.comet_buster.splash_screen_active) {
@@ -455,11 +463,38 @@ static void handle_events(CometGUI *gui) {
                 }
                 
                 if (gui->show_menu) {
-                    // Scale mouse coordinates from window space to game space (1920x1080)
-                    float scale_x = 1920.0f / gui->window_width;
-                    float scale_y = 1080.0f / gui->window_height;
-                    int mouse_x = (int)(event.button.x * scale_x);
-                    int mouse_y = (int)(event.button.y * scale_y);
+                    // Calculate viewport same as render_frame does for consistent scaling
+                    const float GAME_WIDTH = 1920.0f;
+                    const float GAME_HEIGHT = 1080.0f;
+                    float window_aspect = (float)gui->window_width / gui->window_height;
+                    float game_aspect = GAME_WIDTH / GAME_HEIGHT;
+                    
+                    int viewport_x = 0;
+                    int viewport_y = 0;
+                    int viewport_width = gui->window_width;
+                    int viewport_height = gui->window_height;
+                    
+                    if (window_aspect > game_aspect) {
+                        viewport_height = gui->window_height;
+                        viewport_width = (int)(GAME_WIDTH * gui->window_height / GAME_HEIGHT);
+                        viewport_x = 0;
+                        viewport_y = 0;
+                    } else {
+                        viewport_width = gui->window_width;
+                        viewport_height = (int)(GAME_HEIGHT * gui->window_width / GAME_WIDTH);
+                        viewport_x = 0;
+                        viewport_y = 0;
+                    }
+                    
+                    // Convert from window coordinates to game space
+                    float mouse_in_viewport_x = event.button.x - viewport_x;
+                    float mouse_in_viewport_y = event.button.y - viewport_y;
+                    
+                    float scale_x = GAME_WIDTH / viewport_width;
+                    float scale_y = GAME_HEIGHT / viewport_height;
+                    
+                    int mouse_x = (int)(mouse_in_viewport_x * scale_x);
+                    int mouse_y = (int)(mouse_in_viewport_y * scale_y);
                     
                     if (event.button.button == SDL_BUTTON_LEFT) {
                         // Main menu buttons
@@ -578,11 +613,10 @@ static void handle_events(CometGUI *gui) {
                 break;
             
             case SDL_MOUSEMOTION: {
-                // Scale mouse coordinates from window space to game space (1920x1080)
-                float scale_x = 1920.0f / gui->window_width;
-                float scale_y = 1080.0f / gui->window_height;
-                gui->visualizer.mouse_x = (int)(event.motion.x * scale_x);
-                gui->visualizer.mouse_y = (int)(event.motion.y * scale_y);
+                // Convert window pixel coordinates to game logical coordinates
+                // Window fills entire screen, so scaling is direct
+                gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
+                gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
                 gui->visualizer.mouse_just_moved = true;
                 break;
             }
@@ -647,44 +681,27 @@ static void update_game(CometGUI *gui) {
 }
 
 static void render_frame(CometGUI *gui) {
-    glClearColor(0.05f, 0.075f, 0.15f, 1.0f);  // Dark blue for all screens
+    glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
-    // Calculate scaling to fit window while maintaining 1920x1080 aspect ratio
     const float GAME_WIDTH = 1920.0f;
     const float GAME_HEIGHT = 1080.0f;
     
-    float window_aspect = (float)gui->window_width / gui->window_height;
-    float game_aspect = GAME_WIDTH / GAME_HEIGHT;
+    // Fill entire window
+    glViewport(0, 0, gui->window_width, gui->window_height);
     
-    int viewport_x = 0;
-    int viewport_y = 0;
-    int viewport_width = gui->window_width;
-    int viewport_height = gui->window_height;
+    // Set projection matrix to scale game space to fill viewport
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, GAME_WIDTH, GAME_HEIGHT, 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
     
-    // Scale to fit, aligned to top-left
-    if (window_aspect > game_aspect) {
-        // Window is wider than game aspect - fit to height, align left
-        viewport_height = gui->window_height;
-        viewport_width = (int)(GAME_WIDTH * gui->window_height / GAME_HEIGHT);
-        viewport_x = 0;
-        viewport_y = 0;
-    } else {
-        // Window is narrower - fit to width
-        viewport_width = gui->window_width;
-        viewport_height = (int)(GAME_HEIGHT * gui->window_width / GAME_WIDTH);
-        viewport_x = 0;
-        viewport_y = 0;
-    }
-    
-    // Set viewport to scaled region
-    glViewport(viewport_x, viewport_y, viewport_width, viewport_height);
-    
-    // Update visualizer dimensions for display
+    // Game always in logical space
     gui->visualizer.width = 1920;
     gui->visualizer.height = 1080;
     
-    // Call the master render function
+    // Draw game
     draw_comet_buster_gl(&gui->visualizer, NULL);
     
     // Render menu overlay if open
