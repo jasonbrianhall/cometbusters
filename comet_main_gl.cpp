@@ -856,6 +856,7 @@ static void render_frame(CometGUI *gui) {
 }
 
 static void cleanup(CometGUI *gui) {
+    joystick_manager_cleanup(&gui->visualizer.joystick_manager);
     if (gui->joystick) SDL_JoystickClose(gui->joystick);
     if (gui->gl_context) SDL_GL_DeleteContext(gui->gl_context);
     if (gui->window) SDL_DestroyWindow(gui->window);
@@ -894,6 +895,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.visualizer.mouse_x = 960;
     gui.visualizer.mouse_y = 540;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
+    
+    // Initialize joystick manager
+    joystick_manager_init(&gui.visualizer.joystick_manager);
+    joystick_manager_detect(&gui.visualizer.joystick_manager);
     
     // Initialize game
     comet_buster_reset_game(&gui.visualizer.comet_buster);
@@ -970,6 +975,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         handle_events(&gui);
         update_game(&gui);
+        
+        // Update joystick state
+        joystick_manager_update(&gui.visualizer.joystick_manager);
+        update_visualizer_joystick(&gui.visualizer);
         
         // Reset scroll wheel input after processing (for weapon changing)
         gui.visualizer.scroll_direction = 0;
