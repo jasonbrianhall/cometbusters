@@ -1862,10 +1862,6 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     game->mouse_middle_pressed = visualizer->mouse_middle_pressed;
     game->scroll_direction = visualizer->scroll_direction;  // Transfer scroll wheel input
     
-    if (game->scroll_direction != 0) {
-        fprintf(stdout, "[GAME] Scroll transferred: direction=%d\n", game->scroll_direction);
-    }
-    
 #ifdef ExternalSound
     // Copy arcade-style keyboard input state from visualizer
     game->keyboard.key_a_pressed = visualizer->key_a_pressed;
