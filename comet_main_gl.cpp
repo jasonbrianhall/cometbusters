@@ -238,12 +238,25 @@ static void handle_keyboard_input_special(SDL_Event *event, CometGUI *gui) {
                 !gui->visualizer.comet_buster.finale_splash_active) {
                 gui->game_paused = !gui->game_paused;
                 
-                // Stop music immediately when pausing
+                // Handle music when pausing/resuming
                 if (gui->game_paused) {
                     audio_stop_music(&gui->audio);
-                    printf("[*] Game Paused\n");
+                    printf("[PAUSE] ========== GAME PAUSED ==========\n");
+                    printf("[PAUSE] Wave: %d | Score: %d | Lives: %d\n",
+                           gui->visualizer.comet_buster.current_wave,
+                           gui->visualizer.comet_buster.score,
+                           gui->visualizer.comet_buster.ship_lives);
+                    printf("[PAUSE] Press P to resume or ESC for menu\n");
+                    printf("[PAUSE] ====================================\n");
                 } else {
-                    printf("[*] Game Resumed\n");
+                    printf("[RESUME] ========== GAME RESUMED ==========\n");
+                    // Restart music if still in game (not in menu)
+#ifdef ExternalSound
+                    if (!gui->show_menu) {
+                        audio_play_random_music(&gui->audio);
+                    }
+#endif
+                    printf("[RESUME] ====================================\n");
                 }
             }
             break;
@@ -817,19 +830,8 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     // Don't update if menu is open or game is paused
     if (gui->show_menu || gui->game_paused) return;
     
-    // Call the master update function from visualization.h
-    // This handles ALL game updates including collisions, audio, wave progression, etc.
-    update_comet_buster(&gui->visualizer, gui->delta_time);
-    
-    // Check if current music track has finished and queue the next one
-#ifdef ExternalSound
-    if (!gui->game_paused && !audio_is_music_playing(&gui->audio)) {
-        fprintf(stdout, "[AUDIO] Current track finished, queuing next track...\n");
-        audio_play_random_music(&gui->audio);
-    }
-#endif
-    
     // Handle finale splash if active (Wave 30 victory)
+    // UPDATE THIS FIRST before skipping normal game update
     if (gui->visualizer.comet_buster.finale_splash_active) {
         // Start finale music on first frame of finale splash
         if (!gui->finale_music_started) {
@@ -876,7 +878,23 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
             audio_play_random_music(&gui->audio);
 #endif
         }
+        
+        // Skip normal game update during finale - freeze the background
+        return;
     }
+    
+    // Call the master update function from visualization.h
+    // This handles ALL game updates including collisions, audio, wave progression, etc.
+    // (This is skipped during finale when we return above)
+    update_comet_buster(&gui->visualizer, gui->delta_time);
+    
+    // Check if current music track has finished and queue the next one
+#ifdef ExternalSound
+    if (!gui->game_paused && !audio_is_music_playing(&gui->audio)) {
+        fprintf(stdout, "[AUDIO] Current track finished, queuing next track...\n");
+        audio_play_random_music(&gui->audio);
+    }
+#endif
     
     // Stop music if game ends and trigger high score entry
     if (gui->visualizer.comet_buster.game_over) {
@@ -1178,6 +1196,63 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                            580, 550, 11);
         gl_draw_text_simple("Max 32 characters", 
                            580, 568, 11);
+    }
+    
+    // Render pause overlay if game is paused
+    if (gui->game_paused && !gui->show_menu && !gui->visualizer.comet_buster.splash_screen_active) {
+        extern void gl_set_color_alpha(float r, float g, float b, float a);
+        extern void gl_draw_rect_filled(float x, float y, float width, float height);
+        extern void gl_set_color(float r, float g, float b);
+        extern void gl_draw_text_simple(const char *text, int x, int y, int font_size);
+        
+        // Semi-transparent dark overlay (darker than menu to emphasize game pause)
+        gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.5f);
+        gl_draw_rect_filled(0, 0, 1920, 1080);
+        
+        // Pause dialog box
+        int pause_x = 640;
+        int pause_y = 300;
+        int pause_width = 640;
+        int pause_height = 480;
+        
+        // Dialog background - Dark with transparency
+        gl_set_color(0.1f, 0.1f, 0.15f);
+        gl_draw_rect_filled(pause_x, pause_y, pause_width, pause_height);
+        
+        // Glowing border - Gold/cyan gradient effect with multiple lines
+        gl_set_color(1.0f, 0.8f, 0.0f);
+        gl_draw_rect_filled(pause_x - 4, pause_y - 4, pause_width + 8, pause_height + 8);
+        
+        gl_set_color(0.0f, 1.0f, 1.0f);
+        gl_draw_rect_filled(pause_x - 2, pause_y - 2, pause_width + 4, pause_height + 4);
+        
+        gl_set_color(0.1f, 0.1f, 0.15f);
+        gl_draw_rect_filled(pause_x, pause_y, pause_width, pause_height);
+        
+        // PAUSED title - Large, glowing
+        gl_set_color(1.0f, 1.0f, 0.0f);
+        gl_draw_text_simple("PAUSED", 800, 380, 56);
+        
+        // Game continues in background info - Cyan
+        gl_set_color(0.0f, 1.0f, 1.0f);
+        gl_draw_text_simple("The game is paused", 810, 480, 18);
+        
+        // Stats while paused - White
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        char pause_stats[256];
+        sprintf(pause_stats, "Wave %d | Score %d | Lives %d",
+                gui->visualizer.comet_buster.current_wave,
+                gui->visualizer.comet_buster.score,
+                gui->visualizer.comet_buster.ship_lives);
+        gl_draw_text_simple(pause_stats, 750, 530, 16);
+        
+        // Resume instruction - Bright cyan, larger
+        gl_set_color(0.2f, 1.0f, 0.8f);
+        gl_draw_text_simple("Press P to Resume", 795, 600, 24);
+        
+        // Additional hints - Dimmer cyan
+        gl_set_color(0.0f, 0.8f, 0.9f);
+        gl_draw_text_simple("ESC for Menu", 835, 650, 16);
     }
     
     // Render cheat menu if open
