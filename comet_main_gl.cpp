@@ -90,54 +90,41 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui) {
     if (!gui) return;
     bool pressed = (event->type == SDL_KEYDOWN);
     
-    // Disable mouse aim when keyboard is used
-    if (pressed) {
-        gui->visualizer.mouse_just_moved = false;
-    }
-    
     switch (event->key.keysym.sym) {
         // Movement keys - A/D/W/S and Arrow keys
         case SDLK_a:
         case SDLK_LEFT:
-            gui->visualizer.comet_buster.keyboard.key_a_pressed = pressed;
+            gui->visualizer.key_a_pressed = pressed;
             break;
         case SDLK_d:
         case SDLK_RIGHT:
-            gui->visualizer.comet_buster.keyboard.key_d_pressed = pressed;
+            gui->visualizer.key_d_pressed = pressed;
             break;
         case SDLK_w:
         case SDLK_UP:
-            gui->visualizer.comet_buster.keyboard.key_w_pressed = pressed;
+            gui->visualizer.key_w_pressed = pressed;
             break;
         case SDLK_s:
         case SDLK_DOWN:
-            gui->visualizer.comet_buster.keyboard.key_s_pressed = pressed;
+            gui->visualizer.key_s_pressed = pressed;
             break;
         
         // Fire keys
         case SDLK_z:
-            gui->visualizer.comet_buster.keyboard.key_z_pressed = pressed;
-            break;
-        case SDLK_x:
-            gui->visualizer.comet_buster.keyboard.key_x_pressed = pressed;
+            gui->visualizer.key_z_pressed = pressed;
             break;
         case SDLK_SPACE:
-            gui->visualizer.comet_buster.keyboard.key_space_pressed = pressed;
+        case SDLK_x:
+            gui->visualizer.key_x_pressed = pressed;
             break;
         case SDLK_LCTRL:
         case SDLK_RCTRL:
-            gui->visualizer.comet_buster.keyboard.key_ctrl_pressed = pressed;
+            gui->visualizer.key_ctrl_pressed = pressed;
             break;
         
         // Special keys
         case SDLK_q:
-            gui->visualizer.comet_buster.keyboard.key_q_pressed = pressed;
-            break;
-        case SDLK_v:
-            // V opens volume dialog (would need implementation)
-            if (pressed) {
-                printf("[INPUT] V key pressed - volume dialog not yet implemented in OpenGL version\n");
-            }
+            gui->visualizer.key_q_pressed = pressed;
             break;
         case SDLK_F11:
             if (pressed) {
@@ -435,6 +422,7 @@ static void handle_events(CometGUI *gui) {
             
             case SDL_MOUSEBUTTONDOWN: {
                 // Check for splash screen exit on mouse click
+                gui->visualizer.mouse_just_moved = true;
                 if (gui->visualizer.comet_buster.splash_screen_active) {
                     fprintf(stdout, "[SPLASH] User clicked - exiting splash screen\n");
                     
@@ -613,22 +601,24 @@ static void handle_events(CometGUI *gui) {
                 break;
             
             case SDL_MOUSEMOTION: {
+                gui->visualizer.mouse_just_moved = true;
                 // Convert window pixel coordinates to game logical coordinates
                 // Window fills entire screen, so scaling is direct
                 gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
                 gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
-                gui->visualizer.mouse_just_moved = true;
+
                 break;
             }
             
             case SDL_MOUSEWHEEL:
+                gui->visualizer.mouse_just_moved = true;
                 gui->visualizer.scroll_direction = event.wheel.y;
                 break;
             
-            case SDL_JOYDEVICEADDED:
+/*            case SDL_JOYDEVICEADDED:
             case SDL_JOYDEVICEREMOVED:
                 init_joystick(gui);
-                break;
+                break;*/
         }
     }
 }
@@ -749,11 +739,11 @@ static void render_frame(CometGUI *gui) {
                     gl_set_color(0.7f, 0.7f, 1.0f);
                 }
                 
-                gl_draw_text_simple(menu_items[i], menu_x + 110, menu_y + 15, 14);
+                gl_draw_text_simple(menu_items[i], menu_x + 110, menu_y + 25, 24);
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
-            gl_draw_text_simple("UP/DOWN to select | ENTER to start | ESC to close", 550, 950, 10);
+            gl_draw_text_simple("Up/Down/Enter to select; ESC to close", 550, 950, 24);
             
         } else if (gui->menu_state == 1) {
             // Difficulty selection menu
@@ -983,6 +973,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         // Reset scroll wheel input after processing (for weapon changing)
         gui.visualizer.scroll_direction = 0;
+        
+        // Reset mouse_just_moved flag for next frame
+        gui.visualizer.mouse_just_moved = false;
         
         render_frame(&gui);
         
