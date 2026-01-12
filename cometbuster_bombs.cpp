@@ -99,7 +99,7 @@ bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p, V
         
         // Play wave complete sound on pickup
 #ifdef ExternalSound
-        if (visualizer && visualizer->audio.sfx_wave_complete) {
+        if (visualizer && visualizer->audio.sfx_wave_complete && !game->splash_screen_active) {
             audio_play_sound(&visualizer->audio, visualizer->audio.sfx_wave_complete);
         }
 #endif
@@ -165,7 +165,7 @@ void comet_buster_drop_bomb(CometBusterGame *game, int width, int height, void *
     // Play sound
 #ifdef ExternalSound
     Visualizer *visualizer = (Visualizer *)vis;
-    if (visualizer && visualizer->audio.sfx_explosion) {
+    if (visualizer && visualizer->audio.sfx_explosion && !game->splash_screen_active) {
         // Could use a beep or different sound for bomb placement
     }
 #endif
@@ -210,7 +210,7 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
                 // Play explosion sound
 #ifdef ExternalSound
                 Visualizer *visualizer = (Visualizer *)vis;
-                if (visualizer && visualizer->audio.sfx_explosion) {
+                if (visualizer && visualizer->audio.sfx_explosion && !game->splash_screen_active) {
                     audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
                 }
 #endif
@@ -252,7 +252,7 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
                     
                     // Play explosion sound when bomb destroys asteroid
 #ifdef ExternalSound
-                    if (vis && !game->splash_screen_active) {
+                    if (vis && !game->splash_screen_active && !game->splash_screen_active) {
                         Visualizer *visualizer = (Visualizer *)vis;
                         audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
                     }

@@ -1159,7 +1159,7 @@ void comet_buster_update_ufos(CometBusterGame *game, double dt, int width, int h
         ufo->sound_timer -= dt;
         if (ufo->sound_timer <= 0) {
 #ifdef ExternalSound
-            if (visualizer && visualizer->audio.sfx_ufo) {
+            if (visualizer && visualizer->audio.sfx_ufo && !game->splash_screen_active) {
                 audio_play_sound(&visualizer->audio, visualizer->audio.sfx_ufo);
             }
 #endif
@@ -1259,7 +1259,10 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
     
     // Weapon/Pickup drop chances for UFOs
     int drop_roll = rand() % 100;
-    
+    if (game->splash_screen_active)
+    {
+        drop_roll=100000;
+    }
     if (drop_roll < 10) {
         // 10% chance to spawn bomb pickup from UFO
         comet_buster_spawn_bomb_pickup(game, ufo->x, ufo->y);
