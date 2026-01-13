@@ -22,7 +22,6 @@
 #include "cometbuster.h"
 #include "visualization.h"
 #include "audio_wad.h"
-#include "comet_help.h"
 
 // ============================================================
 // LOCAL HIGH SCORE ENTRY STATE (Not in header - local only)

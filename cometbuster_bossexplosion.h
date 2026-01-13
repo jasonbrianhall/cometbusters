@@ -2,7 +2,9 @@
 #define BOSS_EXPLOSION_H
 
 #include <stdbool.h>
+#ifdef CAIROBUILD
 #include <cairo.h>
+#endif
 
 // Radial burst particle for explosion effects
 typedef struct {
@@ -34,13 +36,14 @@ void boss_explosion_create(BossExplosion *explosion, double x, double y, const c
 // Update explosion (shrink/fade particles)
 void boss_explosion_update(BossExplosion *explosion, double dt);
 
+#ifdef CAIROBUILD
 // Render explosion particles
 void boss_explosion_draw(BossExplosion *explosion, cairo_t *cr);
+#endif
 
 // Check if explosion is still active
 bool boss_explosion_is_active(BossExplosion *explosion);
 
 // Clean up
 void boss_explosion_reset(BossExplosion *explosion);
-
-#endif // BOSS_EXPLOSION_H
+#endif

@@ -2,7 +2,9 @@
 #define VISUALIZATION_H
 
 #include <stdbool.h>
+#ifdef CAIROBUILD
 #include <cairo.h>
+#endif
 #include <math.h>
 #include <string.h>
 #include "cometbuster.h"
@@ -219,7 +221,9 @@ GameOptions game_options_default(void);
 
 void init_comet_buster_system(Visualizer *vis_ptr);
 void update_comet_buster(Visualizer *vis_ptr, double dt);
+#ifdef CAIROBUILD
 void draw_comet_buster(Visualizer *vis_ptr, cairo_t *cr);
+#endif
 void comet_buster_cleanup(CometBusterGame *game);
 void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer);
 void joystick_manager_update(JoystickManager *manager);

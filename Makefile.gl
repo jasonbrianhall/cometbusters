@@ -1,6 +1,7 @@
 # CometBuster Makefile with WAD Audio System
 # Based on zenamp project structure
 # Supports Linux and Windows builds with Miniz ZIP library
+# Optimized for static linking on Linux
 
 # Package information
 PACKAGE_NAME = cometbuster
@@ -28,33 +29,43 @@ PKG_CONFIG_WIN = mingw64-pkg-config
 SDL2_CONFIG_LINUX = sdl2-config
 SDL2_CONFIG_WIN = mingw64-sdl2-config
 
-# Linux-specific flags
+# Linux-specific flags (SDL2 and OpenGL only - no GTK)
 SDL2_CFLAGS_LINUX := $(shell $(SDL2_CONFIG_LINUX) --cflags 2>/dev/null || echo "")
 SDL2_LIBS_LINUX := $(shell $(SDL2_CONFIG_LINUX) --libs 2>/dev/null || echo "-lSDL2")
-GTK_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags gtk+-3.0 2>/dev/null || echo "")
-GTK_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs gtk+-3.0 2>/dev/null || echo "")
 SDL2_MIXER_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
-CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
-CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX
-LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
+# Normal dynamic build
+CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
+CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX
+LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
 
-# Optimization flags
+# Static build flags for Linux deployment
+# Using -static-libstdc++ and -static-libgcc for C++ and C runtime libraries
+# Note: glibc (libc.so.6) will remain dynamic as per glibc license requirements
+STATIC_FLAGS_LINUX = -static-libstdc++ -static-libgcc
+
+CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
+CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
+LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW $(STATIC_FLAGS_LINUX)
+
+# Optimization flags for normal build
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
 LDFLAGS_LINUX += -s -Wl,--gc-sections -flto
 
-# Windows-specific flags
+# Optimization flags for static build
+CXXFLAGS_LINUX_STATIC += -O2 -ffunction-sections -fdata-sections -flto
+LDFLAGS_LINUX_STATIC += -s -Wl,--gc-sections -flto
+
+# Windows-specific flags (SDL2 only - no GTK)
 SDL2_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags sdl2 2>/dev/null || echo "")
 SDL2_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs sdl2 2>/dev/null || echo "-lSDL2")
-GTK_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags gtk+-3.0 2>/dev/null || echo "")
-GTK_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs gtk+-3.0 2>/dev/null || echo "")
 SDL2_MIXER_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
-CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
-CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
-LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
+CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
+CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
+LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
 
 CXXFLAGS_WIN += -O2 -ffunction-sections -fdata-sections
 LDFLAGS_WIN += -s -Wl,--gc-sections
@@ -82,6 +93,10 @@ OBJECTS_CPP_LINUX = $(SOURCES_CPP_COMMON:.cpp=.o)
 OBJECTS_C_LINUX = $(SOURCES_C:.c=.o)
 OBJECTS_LINUX = $(OBJECTS_CPP_LINUX) $(OBJECTS_C_LINUX)
 
+OBJECTS_CPP_LINUX_STATIC = $(SOURCES_CPP_COMMON:.cpp=.static.o)
+OBJECTS_C_LINUX_STATIC = $(SOURCES_C:.c=.static.o)
+OBJECTS_LINUX_STATIC = $(OBJECTS_CPP_LINUX_STATIC) $(OBJECTS_C_LINUX_STATIC)
+
 OBJECTS_CPP_WIN = $(SOURCES_CPP_COMMON:.cpp=.win.o)
 OBJECTS_C_WIN = $(SOURCES_C:.c=.win.o)
 OBJECTS_WIN = $(OBJECTS_CPP_WIN) $(OBJECTS_C_WIN)
@@ -96,6 +111,7 @@ OBJECTS_WIN_DEBUG = $(OBJECTS_CPP_WIN_DEBUG) $(OBJECTS_C_WIN_DEBUG)
 
 # Target executables
 EXECUTABLE_LINUX = cometbuster
+EXECUTABLE_LINUX_STATIC = cometbuster-static
 EXECUTABLE_WIN = cometbuster.exe
 EXECUTABLE_LINUX_DEBUG = cometbuster_debug
 EXECUTABLE_WIN_DEBUG = cometbuster_debug.exe
@@ -103,6 +119,7 @@ EXECUTABLE_WIN_DEBUG = cometbuster_debug.exe
 # Build directories
 BUILD_DIR = build
 BUILD_DIR_LINUX = $(BUILD_DIR)/linux
+BUILD_DIR_LINUX_STATIC = $(BUILD_DIR)/linux-static
 BUILD_DIR_WIN = $(BUILD_DIR)/windows
 BUILD_DIR_LINUX_DEBUG = $(BUILD_DIR)/linux_debug
 BUILD_DIR_WIN_DEBUG = $(BUILD_DIR)/windows_debug
@@ -114,7 +131,7 @@ DLL_SOURCE_DIR = /usr/x86_64-w64-mingw32/sys-root/mingw/bin
 EXTRA_OBJS ?=
 
 # Create necessary directories
-$(shell mkdir -p $(BUILD_DIR_LINUX) $(BUILD_DIR_WIN) $(BUILD_DIR_LINUX_DEBUG) $(BUILD_DIR_WIN_DEBUG))
+$(shell mkdir -p $(BUILD_DIR_LINUX) $(BUILD_DIR_LINUX_STATIC) $(BUILD_DIR_WIN) $(BUILD_DIR_LINUX_DEBUG) $(BUILD_DIR_WIN_DEBUG))
 
 # Default target - build for Linux
 .PHONY: all
@@ -127,6 +144,9 @@ windows: cometbuster-create-wad cometbuster-windows cometbuster-collect-dlls
 .PHONY: linux
 linux: cometbuster-create-wad cometbuster-linux
 
+.PHONY: linux-static
+linux-static: cometbuster-create-wad cometbuster-linux-static
+
 # Debug targets
 .PHONY: debug
 debug: cometbuster-create-wad cometbuster-linux-debug cometbuster-windows-debug cometbuster-collect-debug-dlls
@@ -138,9 +158,10 @@ debug: cometbuster-create-wad cometbuster-linux-debug cometbuster-windows-debug 
 cometbuster-linux: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 
 $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX): $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS)
-	@echo "Linking Linux executable: $@"
+	@echo "Linking Linux executable (static): $@"
 	$(CXX_LINUX) $(CXXFLAGS_LINUX) $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Build complete: $@"
+	@echo "  (Static C++ runtime, ready)"
 
 # Linux compilation rules - C++ files
 $(BUILD_DIR_LINUX)/%.o: %.cpp
@@ -153,13 +174,34 @@ $(BUILD_DIR_LINUX)/%.o: %.c
 	$(CC_LINUX) $(CFLAGS_LINUX) -c $< -o $@
 
 #
+# Linux static build targets
+#
+.PHONY: cometbuster-linux-static
+cometbuster-linux-static: $(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC)
+
+$(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC): $(addprefix $(BUILD_DIR_LINUX_STATIC)/,$(OBJECTS_LINUX_STATIC)) $(EXTRA_OBJS)
+	@echo "Linking Linux static executable: $@"
+	$(CXX_LINUX) $(CXXFLAGS_LINUX_STATIC) $(addprefix $(BUILD_DIR_LINUX_STATIC)/,$(OBJECTS_LINUX_STATIC)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX_STATIC)
+	@echo "✓ Static build complete: $@"
+
+# Linux static compilation rules - C++ files
+$(BUILD_DIR_LINUX_STATIC)/%.static.o: %.cpp
+	@echo "Compiling (Linux Static): $<"
+	$(CXX_LINUX) $(CXXFLAGS_LINUX_STATIC) -c $< -o $@
+
+# Linux static compilation rules - C files
+$(BUILD_DIR_LINUX_STATIC)/%.static.o: %.c
+	@echo "Compiling (Linux Static): $<"
+	$(CC_LINUX) $(CFLAGS_LINUX_STATIC) -c $< -o $@
+
+#
 # Linux debug targets
 #
 .PHONY: cometbuster-linux-debug
 cometbuster-linux-debug: $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)
 
 $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG): $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS)
-	@echo "Linking Linux debug executable: $@"
+	@echo "Linking Linux debug executable (static): $@"
 	$(CXX_LINUX) $(CXXFLAGS_LINUX_DEBUG) $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Debug build complete: $@"
 
@@ -225,14 +267,14 @@ cometbuster-collect-dlls: $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)
 		$(BUILD_DIR_WIN)/collect_dlls.sh $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN) $(DLL_SOURCE_DIR) $(BUILD_DIR_WIN); \
 	else \
 		echo "Warning: collect_dlls.sh not found. You may need to manually copy required DLLs."; \
-		echo "Required DLLs typically include: SDL2.dll, libgtk-3-0.dll, libglib-2.0-0.dll, etc."; \
+		echo "Required DLLs typically include: SDL2.dll, SDL2_mixer.dll, etc."; \
 	fi
 
 .PHONY: cometbuster-create-wad
 cometbuster-create-wad:
 	@echo "Building WAD"
 	python createwad.py
-	for mydir in build/linux build/windows build/linux_debug build/windows_debug; do cp cometbuster.wad $$mydir/; done
+	for mydir in build/linux build/linux-static build/windows build/linux_debug build/windows_debug; do cp cometbuster.wad $$mydir/; done
 
 .PHONY: cometbuster-collect-debug-dlls
 cometbuster-collect-debug-dlls: $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)
@@ -273,6 +315,7 @@ clean:
 	find $(BUILD_DIR) -type f -name "*.o" -delete 2>/dev/null || true
 	find $(BUILD_DIR) -type f -name "*.exe" -delete 2>/dev/null || true
 	rm -f $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
+	rm -f $(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC)
 	rm -f $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)
 	rm -f $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)
 	rm -f $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)
@@ -305,7 +348,8 @@ help:
 	@echo ""
 	@echo "Build targets:"
 	@echo "  make               - Build for Linux (default)"
-	@echo "  make linux         - Build for Linux"
+	@echo "  make linux         - Build for Linux (dynamic linking)"
+	@echo "  make linux-static  - Build for Linux (static C++ runtime)"
 	@echo "  make windows       - Build for Windows"
 	@echo "  make debug         - Build debug versions for both platforms"
 	@echo "  make cometbuster-linux-debug   - Build debug for Linux"
@@ -326,22 +370,31 @@ help:
 	@echo "  make help          - Show this help message"
 	@echo ""
 	@echo "Build outputs:"
-	@echo "  Linux:       $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)"
+	@echo "  Linux:       $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX) [Dynamic linking]"
+	@echo "  Linux:       $(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC)"
 	@echo "  Windows:     $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)"
 	@echo "  Debug Linux: $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)"
 	@echo "  Debug Win:   $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)"
 	@echo ""
-	@echo "Audio System:"
-	@echo "  - Uses Miniz library for ZIP reading"
-	@echo "  - SDL2_mixer for audio playback"
-	@echo "  - Create sounds/ directory with MP3 files"
-	@echo "  - Run: python3 create_wad.py"
-	@echo "  - Distributes: binary + cometbuster.wad"
+	@echo "Dependencies (Linux):"
+	@echo "  - SDL2, SDL2_mixer (audio, input, windowing)"
+	@echo "  - OpenGL & GLEW (3D rendering)"
+	@echo "  - Miniz (ZIP/WAD support)"
+	@echo ""
+	@echo "Dependencies (Windows):"
+	@echo "  - SDL2 & SDL2_mixer DLLs"
+	@echo "  - OpenGL & GLEW DLLs"
+	@echo ""
+	@echo "Static vs Dynamic:"
+	@echo "  - make linux: Dynamic linking (normal development)"
+	@echo "  - make linux-static: Static C++ runtime"
 	@echo ""
 	@echo "Example workflow:"
-	@echo "  1. make linux                 # Build for Linux"
-	@echo "  2. make wad                   # Create WAD from sounds"
-	@echo "  3. ./build/linux/cometbuster  # Run the game"
+	@echo "  1. make linux                 # Build for testing"
+	@echo "  2. ./build/linux/cometbuster  # Run and test"
+	@echo "  3. make linux-static          # Build statis"
+	@echo "  4. ./build/linux-static/cometbuster-static"
+	@echo "  5. Upload cometbuster-static"
 	@echo ""
 
-.PHONY: all clean install uninstall help linux windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad
+.PHONY: all clean install uninstall help linux linux-static windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad
