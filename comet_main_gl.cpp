@@ -180,38 +180,47 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntr
         case SDLK_a:
         case SDLK_LEFT:
             gui->visualizer.key_a_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         case SDLK_d:
         case SDLK_RIGHT:
             gui->visualizer.key_d_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         case SDLK_w:
         case SDLK_UP:
             gui->visualizer.key_w_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         case SDLK_s:
         case SDLK_DOWN:
             gui->visualizer.key_s_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         
         // Fire keys
         case SDLK_z:
             gui->visualizer.key_z_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         case SDLK_SPACE:
         case SDLK_x:
             gui->visualizer.key_x_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         case SDLK_LCTRL:
         case SDLK_RCTRL:
             gui->visualizer.key_ctrl_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         
         // Special keys
         case SDLK_q:
             gui->visualizer.key_q_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
             break;
         case SDLK_F11:
+            gui->visualizer.mouse_just_moved = false;
             if (pressed) {
                 gui->fullscreen = !gui->fullscreen;
                 if (gui->fullscreen) {
@@ -1473,7 +1482,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         gui.visualizer.scroll_direction = 0;
         
         // Reset mouse_just_moved flag for next frame
-        gui.visualizer.mouse_just_moved = false;
+        //gui.visualizer.mouse_just_moved = false;
         
         render_frame(&gui, &hs_entry, &cheat_menu);
         

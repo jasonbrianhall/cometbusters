@@ -17,18 +17,11 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
         game->invulnerability_time -= dt;
     }
     
-    // Check if any keyboard movement keys are pressed
-    bool keyboard_active = game->keyboard.key_a_pressed || 
-                          game->keyboard.key_d_pressed || 
-                          game->keyboard.key_w_pressed || 
-                          game->keyboard.key_s_pressed;
-    
     // Use keyboard if any movement keys pressed, otherwise use mouse
-    if (keyboard_active) {
+    if (!mouse_active) {
         // KEYBOARD-BASED ARCADE CONTROLS
         // Rotation: A=left, D=right
         double rotation_speed = 6.0;  // Radians per second
-        mouse_active=false;
         if (game->keyboard.key_a_pressed) {
             game->ship_angle -= rotation_speed * dt;
         }
