@@ -58,8 +58,9 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
             game->ship_vx -= thrust_vx * dt;
             game->ship_vy -= thrust_vy * dt;
         }
-    } else if (mouse_active) {
+    } else if (!keyboard_active) {
         // MOUSE-BASED CONTROLS (Original system - use mouse to aim)
+        // Ship moves toward cursor position regardless of mouse movement
         // Rotate ship to face mouse
         double dx = mouse_x - game->ship_x;
         double dy = mouse_y - game->ship_y;
@@ -80,7 +81,8 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
             game->ship_angle = target_angle;
         }
         
-        // Normal mouse-based movement: based on mouse distance
+        // FIXED: Ship movement is now independent of mouse_just_moved flag
+        // Always move toward cursor position when no keyboard input is active
         double dx_move = mouse_x - game->ship_x;
         double dy_move = mouse_y - game->ship_y;
         double mouse_dist = sqrt(dx_move*dx_move + dy_move*dy_move);
@@ -1941,10 +1943,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     bool keyboard_active = visualizer->key_a_pressed || visualizer->key_d_pressed || 
                           visualizer->key_w_pressed || visualizer->key_s_pressed;
     
-    // Disable mouse if ANY joystick input is active
-    bool mouse_active = visualizer->mouse_just_moved && !keyboard_active && !joy_active;
-    // Update game state
-    comet_buster_update_ship(game, dt, mouse_x, mouse_y, width, height, mouse_active);
+    // Update game state - ship now moves toward cursor continuously when no keyboard is active
+    comet_buster_update_ship(game, dt, mouse_x, mouse_y, width, height, true);
 #else
     comet_buster_update_ship(game, dt, mouse_x, mouse_y, width, height, true);
 #endif
