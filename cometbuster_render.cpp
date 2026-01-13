@@ -6,7 +6,9 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#ifdef ExternalSound
 #include "cometbuster_splashscreen.h"
+#endif
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -2355,6 +2357,8 @@ void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     }
 }
 
+// Not part of zenamp
+#ifdef ExternalSound
 // Draw splash screen with proper line-by-line scrolling crawl
 void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int width, int height) {
     if (!game || !game->splash_screen_active) return;
@@ -2620,3 +2624,4 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
         cairo_show_text(cr, continue_text);
     }
 }
+#endif
