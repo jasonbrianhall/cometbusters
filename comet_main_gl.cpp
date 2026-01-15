@@ -602,7 +602,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         } else if (gui->menu_state == 1) {
                             // Start game with selected difficulty
                           
-                            comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, EASY);
+                            comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, gui->gui_difficulty_level-1);
                             
                             if (hs_entry) {
                                 hs_entry->state = HIGH_SCORE_ENTRY_NONE;
@@ -729,7 +729,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     mouse_y >= diff_y && mouse_y <= diff_y + diff_height) {
                                     gui->gui_difficulty_level = i + 1;
                                     // Start game with selected difficulty
-                                    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, EASY);
+                                    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, gui->gui_difficulty_level-1);
 #ifdef ExternalSound
                                     audio_play_intro_music(&gui->audio, "music/intro.mp3");
 #endif
@@ -761,7 +761,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         
                         // Right-click to restart if game over
                         if (gui->visualizer.comet_buster.game_over) {
-                            comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, EASY);
+                            comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, gui->gui_difficulty_level-1);
                             gui->game_paused = false;
                             gui->finale_music_started = false;
 #ifdef ExternalSound
@@ -1386,8 +1386,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.visualizer.mouse_y = 540;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
     
-    // Initialize game
-    comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, EASY);
     printf("[INIT] Game initialized\n");
     
     // Load high scores
@@ -1436,12 +1434,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     audio_play_intro_music(&gui.audio, "music/intro.mp3");
 #endif
     
-    printf("[INIT] Ready to play - press W/A/D/S to move, Z to fire, ESC to open menu, P to pause\n");
+    printf("[INIT] Ready to play - press WASD to move, Z to fire, ESC to open menu, P to pause\n");
     printf("[INIT] Starting with splash screen and intro music...\n");
     
     // Start with splash screen active
     gui.visualizer.comet_buster.splash_screen_active = true;
-    comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, EASY);
+    comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, MEDIUM);
 
     gui.show_menu = false;
     gui.menu_state = 0;
