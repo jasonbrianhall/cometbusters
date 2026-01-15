@@ -697,10 +697,10 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
             ship->vx = ship->vx * (1.0 - turn_rate) + target_vx * turn_rate;
             ship->vy = ship->vy * (1.0 - turn_rate) + target_vy * turn_rate;
             ship->angle = atan2(ship->vy, ship->vx);
-        } else if (ship->ship_type == 4) {
+        } else if (ship->ship_type == 4 && !game->splash_screen_active) {
             // BROWN COAT ELITE BLUE SHIP
             comet_buster_update_brown_coat_ship(game, i, dt, visualizer);
-        } else if (ship->ship_type == 5) {
+        } else if (ship->ship_type == 5 && !game->splash_screen_active) {
             // JUGGERNAUT: Always chases player, fires rapidly
             // EXCEPTION: During splash screen, behave like slow patrol ships
             
