@@ -1533,6 +1533,13 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                 energy_cost = 1.25;  // Spread fire costs 5x (0.25 * 5)
             }
             
+            // Difficulty-based energy cost adjustments
+            if (game->difficulty == EASY) {
+                energy_cost *= 0.5;
+            } else if (game->difficulty == MEDIUM) {
+                energy_cost *= 0.75;
+            }
+            
             // Check if we have enough energy
             if (game->energy_amount >= energy_cost) {
                 bool was_using_missiles = game->using_missiles;
@@ -1566,6 +1573,13 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                 energy_cost = 1.25;  // Spread fire costs 5x (0.25 * 5)
             }
             
+            // Difficulty-based energy cost adjustments
+            if (game->difficulty == EASY) {
+                energy_cost *= 0.5;
+            } else if (game->difficulty == MEDIUM) {
+                energy_cost *= 0.75;
+            }
+            
             // Check if we have enough energy
             if (game->energy_amount >= energy_cost) {
                 bool was_using_missiles = game->using_missiles;
@@ -1591,8 +1605,17 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
     // Z key omnidirectional fire (32 directions)
     if (game->keyboard.key_z_pressed) {
         if (game->omni_fire_cooldown <= 0) {
-            if (game->energy_amount >= 30) {
-                comet_buster_spawn_omnidirectional_fire(game);  // This function handles energy drain
+            // Difficulty-based energy cost for omnidirectional fire
+            double omni_energy_cost = 30.0;
+            if (game->difficulty == EASY) {
+                omni_energy_cost *= 0.5;  // 15 energy on Easy
+            } else if (game->difficulty == MEDIUM) {
+                omni_energy_cost *= 0.75;  // 22.5 energy on Medium
+            }
+            
+            if (game->energy_amount >= omni_energy_cost) {
+                comet_buster_spawn_omnidirectional_fire(game);
+                //game->energy_amount -= omni_energy_cost;  // Deduct difficulty-adjusted energy
                 game->omni_fire_cooldown = 0.3;  // Slower than normal fire
                 
                 // Play fire sound
@@ -1719,8 +1742,15 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
     // Update weapon toggle cooldown
     if (game->mouse_middle_pressed) {
         if (game->omni_fire_cooldown <= 0) {
-            if (game->energy_amount >= 30) {
-                comet_buster_spawn_omnidirectional_fire(game);  // This function handles energy drain
+            // Difficulty-based energy cost for omnidirectional fire
+            double omni_energy_cost = 30.0;
+            if (game->difficulty == EASY) {
+                omni_energy_cost *= 0.5;  // 15 energy on Easy
+            } else if (game->difficulty == MEDIUM) {
+                omni_energy_cost *= 0.75;  // 22.5 energy on Medium
+            }
+            if (game->energy_amount >= omni_energy_cost) {
+                comet_buster_spawn_omnidirectional_fire(game);
                 game->omni_fire_cooldown = 0.3;  // Slower than normal fire
                 
                 // Play fire sound

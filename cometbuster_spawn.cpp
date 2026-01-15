@@ -297,7 +297,15 @@ void comet_buster_spawn_omnidirectional_fire(CometBusterGame *game) {
     if (!game) return;
     
     // Check if we have enough fuel (costs 30 fuel per omnidirectional burst)
-    if (game->energy_amount < 30) {
+    double omni_energy_cost = 30.0;
+    if (game->difficulty == EASY) {
+        omni_energy_cost *= 0.5;  // 15 energy on Easy
+    } else if (game->difficulty == MEDIUM) {
+        omni_energy_cost *= 0.75;  // 22.5 energy on Medium
+    }
+
+
+    if (game->energy_amount < omni_energy_cost) {
         return;  // Not enough fuel
     }
     
@@ -330,7 +338,7 @@ void comet_buster_spawn_omnidirectional_fire(CometBusterGame *game) {
     }
     
     // Consume fuel for omnidirectional fire
-    game->energy_amount -= 30.0;
+    game->energy_amount -= omni_energy_cost;
     if (game->energy_amount < 0) game->energy_amount = 0;
     
     // Muzzle flash
