@@ -58,19 +58,6 @@ typedef struct {
     int cheat_difficulty;   // Cheat Difficulty
 } CheatMenuUI;
 
-// Forward declare functions from visualization.h and other headers
-extern void update_comet_buster(Visualizer *vis_ptr, double dt);
-extern void draw_comet_buster_gl(Visualizer *visualizer, void *cr);
-extern void high_scores_load(CometBusterGame *game);
-extern void audio_set_music_volume(AudioManager *audio, int volume);
-extern void audio_set_sfx_volume(AudioManager *audio, int volume);
-extern void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen_height);
-extern void audio_play_random_music(AudioManager *audio);
-extern void audio_stop_music(AudioManager *audio);
-extern void audio_play_music(AudioManager *audio, const char *internal_path, bool loop);
-extern void audio_play_intro_music(AudioManager *audio, const char *internal_path);
-extern bool audio_is_music_playing(AudioManager *audio);
-
 #ifdef _WIN32
 std::string getExecutableDir() { 
     char buffer[MAX_PATH];
