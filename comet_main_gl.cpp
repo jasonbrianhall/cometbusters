@@ -55,6 +55,7 @@ typedef struct {
     int lives;              // Selected lives (1-20)
     int missiles;           // Selected missiles
     int bombs;              // Selected bombs
+    int cheat_difficulty;   // Cheat Difficulty
 } CheatMenuUI;
 
 // Forward declare functions from visualization.h and other headers
@@ -454,6 +455,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 case 1: cheat_menu->lives = (cheat_menu->lives - 1 < 1) ? 20 : cheat_menu->lives - 1; break;
                                 case 2: cheat_menu->missiles = (cheat_menu->missiles - 1 < 0) ? 99 : cheat_menu->missiles - 1; break;
                                 case 3: cheat_menu->bombs = (cheat_menu->bombs - 1 < 0) ? 99 : cheat_menu->bombs - 1; break;
+                                case 4: cheat_menu->cheat_difficulty = (cheat_menu->cheat_difficulty - 1 < 0) ? 2 : cheat_menu->cheat_difficulty - 1; break;
                             }
                         } else if (event.key.keysym.sym == SDLK_RIGHT) {
                             switch (cheat_menu->selection) {
@@ -461,6 +463,8 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 case 1: cheat_menu->lives = (cheat_menu->lives + 1 > 20) ? 1 : cheat_menu->lives + 1; break;
                                 case 2: cheat_menu->missiles = (cheat_menu->missiles + 1 > 99) ? 0 : cheat_menu->missiles + 1; break;
                                 case 3: cheat_menu->bombs = (cheat_menu->bombs + 1 > 99) ? 0 : cheat_menu->bombs + 1; break;
+                                case 4: cheat_menu->cheat_difficulty = (cheat_menu->cheat_difficulty + 1 > 2) ? 0 : cheat_menu->cheat_difficulty + 1; break;
+
                             }
                         } else if (event.key.keysym.sym == SDLK_RETURN) {
                             if (cheat_menu->selection == 5) {  // Apply
@@ -1320,10 +1324,10 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 4 ? 1.0f : 0.7f,
                      cheat_menu->selection == 4 ? 1.0f : 0.7f);
         char difficulty_text[128];
-        sprintf(difficulty_text, "Difficutly: %d (LEFT/RIGHT to adjust)", cheat_menu->bombs);
+        sprintf(difficulty_text, "Difficulty: %i (LEFT/RIGHT to adjust)", cheat_menu->cheat_difficulty);
         gl_draw_text_simple(difficulty_text, 550, option_y, 16);
         
-        // Option 4: Apply
+        // Option 5: Apply
         option_y += line_height;
         gl_set_color(cheat_menu->selection == 5 ? 0.2f : 0.1f,
                      cheat_menu->selection == 5 ? 1.0f : 0.5f,
@@ -1334,7 +1338,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 5 ? 1.0f : 0.8f);
         gl_draw_text_simple("APPLY", 600, option_y+5, 14);
         
-        // Option 5: Cancel
+        // Option 6: Cancel
         option_y += 60;
         gl_set_color(cheat_menu->selection == 6 ? 1.0f : 0.5f,
                      cheat_menu->selection == 6 ? 0.2f : 0.1f,
@@ -1345,10 +1349,6 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 6 ? 1.0f : 0.8f);
         gl_draw_text_simple("CANCEL", 600, option_y+5, 14);
         
-        // Instructions
-        gl_set_color(0.7f, 0.7f, 0.7f);
-        gl_draw_text_simple("UP/DOWN to select | LEFT/RIGHT to adjust | ENTER to confirm | ESC to close", 
-                           500, 750, 12);
     }
     
     SDL_GL_SwapWindow(gui->window);
