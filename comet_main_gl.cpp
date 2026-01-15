@@ -477,6 +477,8 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 gui->visualizer.comet_buster.ship_lives = cheat_menu->lives;
                                 gui->visualizer.comet_buster.missile_ammo = cheat_menu->missiles;
                                 gui->visualizer.comet_buster.bomb_ammo = cheat_menu->bombs;
+                                gui->visualizer.comet_buster.difficulty = cheat_menu->cheat_difficulty;
+
                                 // If wave changed, reset and spawn new wave
                                 if (wave_changed) {
                                     printf("[CHEAT] Wave changed from %d to %d - spawning new wave\n", old_wave, new_wave);
@@ -1324,7 +1326,19 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 4 ? 1.0f : 0.7f,
                      cheat_menu->selection == 4 ? 1.0f : 0.7f);
         char difficulty_text[128];
-        sprintf(difficulty_text, "Difficulty: %i (LEFT/RIGHT to adjust)", cheat_menu->cheat_difficulty);
+        switch (cheat_menu->cheat_difficulty) {
+           case 0:
+               sprintf(difficulty_text, "Difficulty: Easy (LEFT/RIGHT to adjust)");
+               break;
+           case 1:
+               sprintf(difficulty_text, "Difficulty: Medium (LEFT/RIGHT to adjust)");
+               break;
+           case 2:
+               sprintf(difficulty_text, "Difficulty: Hard (LEFT/RIGHT to adjust)");
+               break;
+            default:
+               sprintf(difficulty_text, "Difficulty: Out of Range (LEFT/RIGHT to adjust)");
+        }
         gl_draw_text_simple(difficulty_text, 550, option_y, 16);
         
         // Option 5: Apply
