@@ -413,7 +413,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     gui->visualizer.comet_buster.bullet_count = 0;
                     gui->visualizer.comet_buster.particle_count = 0;
                     gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_count = 0;
                     gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_count = 0;
                     gui->visualizer.comet_buster.bomb_pickup_count = 0;
                     gui->visualizer.comet_buster.score = 0;
                     gui->visualizer.comet_buster.score_multiplier = 1.0;
@@ -661,7 +663,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     gui->visualizer.comet_buster.bullet_count = 0;
                     gui->visualizer.comet_buster.particle_count = 0;
                     gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_count = 0;
                     gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_count = 0;
                     gui->visualizer.comet_buster.bomb_pickup_count = 0;
                     gui->visualizer.comet_buster.score = 0;
                     gui->visualizer.comet_buster.score_multiplier = 1.0;
