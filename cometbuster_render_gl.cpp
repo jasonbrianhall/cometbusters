@@ -794,15 +794,6 @@ void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width
         gl_set_color(ship_r, ship_g, ship_b);
         draw_vertices(ship_verts, 4, GL_LINE_STRIP);
         
-        // Draw health indicator (green line at top of ship)
-        double health_x = ship->x + ship_size - 5.0;
-        double health_y_top = ship->y - ship_size - 3.0;
-        double health_y_bottom = ship->y - ship_size;
-        
-        gl_set_color(0.2f, 1.0f, 0.2f);
-        glLineWidth(1.0f);
-        gl_draw_line((float)health_x, (float)health_y_top, (float)health_x, (float)health_y_bottom, 1.0f);
-        
         // Draw Juggernaut health bar (for type 5 only)
         if (ship->ship_type == 5) {
             double bar_width = 60.0;
