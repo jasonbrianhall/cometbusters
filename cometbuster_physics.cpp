@@ -406,7 +406,7 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
             ship->shield_impact_timer -= dt;
         }
         
-        if (ship->ship_type == 1) {
+        if (ship->ship_type == 1 && !game->splash_screen_active) {
             // AGGRESSIVE RED SHIP: Chase player with smooth turning
             double dx = game->ship_x - ship->x;
             double dy = game->ship_y - ship->y;
@@ -428,7 +428,7 @@ void comet_buster_update_enemy_ships(CometBusterGame *game, double dt, int width
                 // Update angle to face player
                 ship->angle = atan2(ship->vy, ship->vx);
             }
-        } else if (ship->ship_type == 2) {
+        } else if (ship->ship_type == 2 && !game->splash_screen_active) {
             // HUNTER GREEN SHIP: Follow sine wave, but chase player if close
             // EXCEPTION: During splash screen, behave like blue patrol ships (just go straight)
             
@@ -2124,15 +2124,20 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check ship-comet collisions
     for (int i = 0; i < game->comet_count; i++) {
         if (comet_buster_check_ship_comet(game, &game->comets[i])) {
-            // Destroy the comet when ship hits it
-            comet_buster_destroy_comet(game, i, width, height, visualizer);
-            
             // Play collision impact sound
 #ifdef ExternalSound
             if (visualizer && visualizer->audio.sfx_explosion && !game->splash_screen_active) {
                 audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
             }
 #endif
+            
+            // Check if ship has shields or energy before destroying the comet
+            bool has_shield_or_energy = (game->shield_health > 0) || (game->energy_amount >= 80.0);
+            
+            // Only destroy the comet if ship doesn't have shield/energy protection
+            if (!has_shield_or_energy) {
+                comet_buster_destroy_comet(game, i, width, height, visualizer);
+            }
             
             // Damage the ship
             comet_buster_on_ship_hit(game, visualizer);
@@ -2540,7 +2545,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                     }
                 }
                 
-                // Comet is destroyed either way
+                // Asteroid is always destroyed
                 comet_buster_destroy_comet(game, j, width, height, visualizer);
                 break;
             }

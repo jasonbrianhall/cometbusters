@@ -189,9 +189,18 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
             double collision_dist = ship_radius + comet->radius;  // Use actual ship size
             
             if (dist < collision_dist) {
-                // Use the REAL destroy functions from collision.cpp
-                // This handles everything: explosions, damage, removal
-                comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                // Check if ship has shield protection
+                if (ship->shield_health > 0) {
+                    // Shield absorbs the comet impact
+                    ship->shield_health--;
+                    ship->shield_impact_angle = atan2(ship->y - comet->y, ship->x - comet->x);
+                    ship->shield_impact_timer = 0.2;
+                } else {
+                    // Shields are down - destroy the ship
+                    comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
+                }
+                
+                // Asteroid is always destroyed
                 comet_buster_destroy_comet(game, j, width, height, visualizer);
                 break;  // Exit since we modified array indices
             }
