@@ -586,7 +586,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     break;
                                 case 1:  // New Game - go to difficulty selection
                                     gui->menu_state = 1;
-                                    gui->difficulty_level = 1;
+                                    gui->difficulty_level = MEDIUM;
                                     break;
                                 case 2:  // High Scores
                                     gui->menu_state = 2;
@@ -601,6 +601,10 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             }
                         } else if (gui->menu_state == 1) {
                             // Start game with selected difficulty
+                            printf("Menu Selection %i\n", gui->menu_selection);
+                            gui->difficulty_level = gui->menu_selection-1;
+                            printf("Difficulty is %i\n", gui->difficulty_level);
+
                             comet_buster_reset_game(&gui->visualizer.comet_buster);
                             gui->visualizer.comet_buster.splash_screen_active = true;
                             if (hs_entry) {
@@ -698,7 +702,6 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                             break;
                                         case 1:  // New Game
                                             gui->menu_state = 1;
-                                            gui->difficulty_level = 1;
                                             break;
                                         case 2:  // High Scores
                                             gui->menu_state = 2;
@@ -726,7 +729,8 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 int diff_y = diff_y_start + (i * diff_spacing);
                                 if (mouse_x >= diff_x && mouse_x <= diff_x + diff_width &&
                                     mouse_y >= diff_y && mouse_y <= diff_y + diff_height) {
-                                    gui->difficulty_level = i + 1;
+                                    printf("Here %i\n", i);
+                                    gui->difficulty_level = i;
                                     // Start game with selected difficulty
                                     comet_buster_reset_game(&gui->visualizer.comet_buster);
                                     gui->visualizer.comet_buster.splash_screen_active = true;
@@ -1029,7 +1033,6 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             for (int i = 0; i < 3; i++) {
                 int diff_y = diff_y_start + (i * diff_spacing);
                 int diff_x = (1920 - diff_width) / 2;
-                
                 if ((i + 1) == gui->difficulty_level) {
                     gl_set_color(1.0f, 1.0f, 0.0f);
                     gl_draw_rect_filled(diff_x - 3, diff_y - 3, diff_width + 6, diff_height + 6);
@@ -1445,7 +1448,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     comet_buster_reset_game(&gui.visualizer.comet_buster);
     gui.show_menu = false;
     gui.menu_state = 0;
-    gui.difficulty_level = 2;  // Medium
+    gui.difficulty_level = MEDIUM;  // Medium
     
     // Initialize local high score entry UI
     HighScoreEntryUI hs_entry;
