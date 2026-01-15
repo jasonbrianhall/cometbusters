@@ -1313,6 +1313,16 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         char bombs_text[128];
         sprintf(bombs_text, "Bombs: %d/99 (LEFT/RIGHT to adjust)", cheat_menu->bombs);
         gl_draw_text_simple(bombs_text, 550, option_y, 16);
+
+        /*// Option 4: Difficulty
+        option_y += line_height;
+        gl_set_color(cheat_menu->selection == 3 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 3 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 3 ? 1.0f : 0.7f);
+        char difficulty_text[128];
+        sprintf(bombs_text, "Difficutly: %d (LEFT/RIGHT to adjust)", cheat_menu->bombs);
+        gl_draw_text_simple(difficulty_text, 550, option_y, 16);
+        */
         
         // Option 4: Apply
         option_y += line_height;
@@ -1323,7 +1333,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color(cheat_menu->selection == 4 ? 1.0f : 0.8f,
                      cheat_menu->selection == 4 ? 1.0f : 0.8f,
                      cheat_menu->selection == 4 ? 1.0f : 0.8f);
-        gl_draw_text_simple("APPLY", 600, option_y, 14);
+        gl_draw_text_simple("APPLY", 600, option_y+5, 14);
         
         // Option 5: Cancel
         option_y += 60;
@@ -1334,7 +1344,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color(cheat_menu->selection == 5 ? 1.0f : 0.8f,
                      cheat_menu->selection == 5 ? 1.0f : 0.8f,
                      cheat_menu->selection == 5 ? 1.0f : 0.8f);
-        gl_draw_text_simple("CANCEL", 590, option_y, 14);
+        gl_draw_text_simple("CANCEL", 600, option_y+5, 14);
         
         // Instructions
         gl_set_color(0.7f, 0.7f, 0.7f);
