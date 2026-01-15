@@ -445,9 +445,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Handle cheat menu input first (takes priority)
                     if (cheat_menu && cheat_menu->state == CHEAT_MENU_OPEN) {
                         if (event.key.keysym.sym == SDLK_UP) {
-                            cheat_menu->selection = (cheat_menu->selection - 1 + 6) % 6;
+                            cheat_menu->selection = (cheat_menu->selection - 1 + 7) % 7;
                         } else if (event.key.keysym.sym == SDLK_DOWN) {
-                            cheat_menu->selection = (cheat_menu->selection + 1) % 6;
+                            cheat_menu->selection = (cheat_menu->selection + 1) % 7;
                         } else if (event.key.keysym.sym == SDLK_LEFT) {
                             switch (cheat_menu->selection) {
                                 case 0: cheat_menu->wave = (cheat_menu->wave - 1 < 1) ? 30 : cheat_menu->wave - 1; break;
@@ -463,7 +463,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 case 3: cheat_menu->bombs = (cheat_menu->bombs + 1 > 99) ? 0 : cheat_menu->bombs + 1; break;
                             }
                         } else if (event.key.keysym.sym == SDLK_RETURN) {
-                            if (cheat_menu->selection == 4) {  // Apply
+                            if (cheat_menu->selection == 5) {  // Apply
                                 int old_wave = gui->visualizer.comet_buster.current_wave;
                                 int new_wave = cheat_menu->wave;
                                 bool wave_changed = (old_wave != new_wave);
@@ -497,7 +497,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                        wave_changed ? " (NEW WAVE SPAWNED)" : " (SAME WAVE)");
                                 
                                 cheat_menu->state = CHEAT_MENU_CLOSED;
-                            } else if (cheat_menu->selection == 5) {  // Cancel
+                            } else if (cheat_menu->selection == 6) {  // Cancel
                                 cheat_menu->state = CHEAT_MENU_CLOSED;
                             }
                         } else if (event.key.keysym.sym == SDLK_ESCAPE) {
@@ -1314,36 +1314,35 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         sprintf(bombs_text, "Bombs: %d/99 (LEFT/RIGHT to adjust)", cheat_menu->bombs);
         gl_draw_text_simple(bombs_text, 550, option_y, 16);
 
-        /*// Option 4: Difficulty
+        // Option 4: Difficulty
         option_y += line_height;
-        gl_set_color(cheat_menu->selection == 3 ? 1.0f : 0.7f,
-                     cheat_menu->selection == 3 ? 1.0f : 0.7f,
-                     cheat_menu->selection == 3 ? 1.0f : 0.7f);
+        gl_set_color(cheat_menu->selection == 4 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 4 ? 1.0f : 0.7f,
+                     cheat_menu->selection == 4 ? 1.0f : 0.7f);
         char difficulty_text[128];
-        sprintf(bombs_text, "Difficutly: %d (LEFT/RIGHT to adjust)", cheat_menu->bombs);
+        sprintf(difficulty_text, "Difficutly: %d (LEFT/RIGHT to adjust)", cheat_menu->bombs);
         gl_draw_text_simple(difficulty_text, 550, option_y, 16);
-        */
         
         // Option 4: Apply
         option_y += line_height;
-        gl_set_color(cheat_menu->selection == 4 ? 0.2f : 0.1f,
-                     cheat_menu->selection == 4 ? 1.0f : 0.5f,
-                     cheat_menu->selection == 4 ? 0.2f : 0.1f);
-        gl_draw_rect_filled(550, option_y - 10, 200, 35);
-        gl_set_color(cheat_menu->selection == 4 ? 1.0f : 0.8f,
-                     cheat_menu->selection == 4 ? 1.0f : 0.8f,
-                     cheat_menu->selection == 4 ? 1.0f : 0.8f);
-        gl_draw_text_simple("APPLY", 600, option_y+5, 14);
-        
-        // Option 5: Cancel
-        option_y += 60;
-        gl_set_color(cheat_menu->selection == 5 ? 1.0f : 0.5f,
-                     cheat_menu->selection == 5 ? 0.2f : 0.1f,
+        gl_set_color(cheat_menu->selection == 5 ? 0.2f : 0.1f,
+                     cheat_menu->selection == 5 ? 1.0f : 0.5f,
                      cheat_menu->selection == 5 ? 0.2f : 0.1f);
         gl_draw_rect_filled(550, option_y - 10, 200, 35);
         gl_set_color(cheat_menu->selection == 5 ? 1.0f : 0.8f,
                      cheat_menu->selection == 5 ? 1.0f : 0.8f,
                      cheat_menu->selection == 5 ? 1.0f : 0.8f);
+        gl_draw_text_simple("APPLY", 600, option_y+5, 14);
+        
+        // Option 5: Cancel
+        option_y += 60;
+        gl_set_color(cheat_menu->selection == 6 ? 1.0f : 0.5f,
+                     cheat_menu->selection == 6 ? 0.2f : 0.1f,
+                     cheat_menu->selection == 6 ? 0.2f : 0.1f);
+        gl_draw_rect_filled(550, option_y - 10, 200, 35);
+        gl_set_color(cheat_menu->selection == 6 ? 1.0f : 0.8f,
+                     cheat_menu->selection == 6 ? 1.0f : 0.8f,
+                     cheat_menu->selection == 6 ? 1.0f : 0.8f);
         gl_draw_text_simple("CANCEL", 600, option_y+5, 14);
         
         // Instructions
