@@ -1167,21 +1167,60 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
                 break;
         }
         
-        // Missile diamond shape (kite):
-        // Points: (8,0), (-4,3), (-2,0), (-4,-3)
-        float points[8] = {
-            8.0f,  0.0f,    // Front point
-            -4.0f, 3.0f,    // Bottom right
-            -2.0f, 0.0f,    // Middle notch
-            -4.0f, -3.0f    // Top right
-        };
-        
-        // Rotate points around missile angle
         float cos_a = cosf((float)missile->angle);
         float sin_a = sinf((float)missile->angle);
         
-        Vertex verts[4];
-        for (int j = 0; j < 4; j++) {
+        // ===== DRAW EXHAUST FLAMES (behind the missile) =====
+        // All flames are red
+        float flame_r = 1.0f, flame_g = 0.2f, flame_b = 0.0f;  // Red flame
+        
+        // Draw exhaust flame (two triangles for width)
+        float flame_length = 8.0f;
+        float flame_width = 2.5f;
+        
+        // Left flame
+        float flame_points_left[6] = {
+            -6.0f,  -flame_width,    // Base left
+            -6.0f,  flame_width,     // Base right
+            -6.0f - flame_length, 0.0f  // Tip
+        };
+        
+        // Right flame
+        float flame_points_right[6] = {
+            -6.0f,  flame_width,     // Base left
+            -6.0f,  -flame_width,    // Base right
+            -6.0f - flame_length, 0.0f  // Tip
+        };
+        
+        Vertex flame_verts[3];
+        for (int j = 0; j < 3; j++) {
+            float x = flame_points_left[j*2];
+            float y = flame_points_left[j*2+1];
+            float rotated_x = x * cos_a - y * sin_a + (float)missile->x;
+            float rotated_y = x * sin_a + y * cos_a + (float)missile->y;
+            flame_verts[j] = (Vertex){rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha * 0.6f};
+        }
+        gl_set_color_alpha(flame_r, flame_g, flame_b, alpha * 0.6f);
+        draw_vertices(flame_verts, 3, GL_TRIANGLES);
+        
+        // ===== DRAW MISSILE BODY =====
+        // Missile shape (pointed nose with body and thruster fins):
+        // Nose cone, body, and two small thruster fins
+        float points[20] = {
+            10.0f,  0.0f,      // Pointed nose (0)
+            6.0f,   2.0f,      // Upper body (1)
+            4.0f,   3.0f,      // Upper thruster start (2)
+            0.0f,   3.5f,      // Upper thruster wing (3)
+            -4.0f,  1.5f,      // Upper back (4)
+            -6.0f,  0.0f,      // Back center (5)
+            -4.0f, -1.5f,      // Lower back (6)
+            0.0f,  -3.5f,      // Lower thruster wing (7)
+            4.0f,  -3.0f,      // Lower thruster start (8)
+            6.0f,  -2.0f       // Lower body (9)
+        };
+        
+        Vertex verts[10];
+        for (int j = 0; j < 10; j++) {
             float x = points[j*2];
             float y = points[j*2+1];
             
@@ -1196,22 +1235,61 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
             verts[j] = (Vertex){rotated_x, rotated_y, fill_r, fill_g, fill_b, alpha};
         }
         
-        // Draw filled missile
+        // Draw filled missile body
         gl_set_color_alpha(fill_r, fill_g, fill_b, alpha);
-        draw_vertices(verts, 4, GL_TRIANGLE_FAN);
+        draw_vertices(verts, 10, GL_TRIANGLE_FAN);
         
-        // Draw missile outline
+        // Draw missile outline for definition
         gl_set_color_alpha(stroke_r, stroke_g, stroke_b, alpha);
         glLineWidth(1.5f);
         
         // Create outline vertices (repeat first to close)
-        Vertex outline_verts[5];
-        for (int j = 0; j < 4; j++) {
+        Vertex outline_verts[11];
+        for (int j = 0; j < 10; j++) {
             outline_verts[j] = verts[j];
         }
-        outline_verts[4] = verts[0];  // Close the shape
+        outline_verts[10] = verts[0];  // Close the shape
         
-        draw_vertices(outline_verts, 5, GL_LINE_STRIP);
+        draw_vertices(outline_verts, 11, GL_LINE_STRIP);
+        
+        // ===== DRAW SMALL THRUSTER NOZZLES =====
+        // Two small thruster nozzles on the sides (red flame colored)
+        
+        gl_set_color_alpha(flame_r, flame_g, flame_b, alpha);
+        
+        // Upper thruster nozzle (small circle at wing position)
+        float thruster_size = 1.5f;
+        float nozzle_points[6] = {
+            0.0f,   3.5f,
+            thruster_size,   3.0f,
+            -thruster_size,  3.0f
+        };
+        
+        Vertex thruster_verts[3];
+        for (int j = 0; j < 3; j++) {
+            float x = nozzle_points[j*2];
+            float y = nozzle_points[j*2+1];
+            float rotated_x = x * cos_a - y * sin_a + (float)missile->x;
+            float rotated_y = x * sin_a + y * cos_a + (float)missile->y;
+            thruster_verts[j] = (Vertex){rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha};
+        }
+        draw_vertices(thruster_verts, 3, GL_TRIANGLES);
+        
+        // Lower thruster nozzle
+        float nozzle_points_lower[6] = {
+            0.0f,   -3.5f,
+            -thruster_size,  -3.0f,
+            thruster_size,   -3.0f
+        };
+        
+        for (int j = 0; j < 3; j++) {
+            float x = nozzle_points_lower[j*2];
+            float y = nozzle_points_lower[j*2+1];
+            float rotated_x = x * cos_a - y * sin_a + (float)missile->x;
+            float rotated_y = x * sin_a + y * cos_a + (float)missile->y;
+            thruster_verts[j] = (Vertex){rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha};
+        }
+        draw_vertices(thruster_verts, 3, GL_TRIANGLES);
     }
 }
 

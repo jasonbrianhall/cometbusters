@@ -3715,6 +3715,35 @@ void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, i
         missile->x += missile->vx * dt;
         missile->y += missile->vy * dt;
         
+        // Spawn smoke trail particles
+        if (game->particle_count < MAX_PARTICLES) {
+            Particle *smoke = &game->particles[game->particle_count];
+            
+            // Spawn behind the missile (opposite direction of travel)
+            double backward_dist = 4.0;
+            smoke->x = missile->x - cos(missile->angle) * backward_dist;
+            smoke->y = missile->y - sin(missile->angle) * backward_dist;
+            
+            // Smoke color (gray, slightly darker)
+            smoke->color[0] = 0.5f;
+            smoke->color[1] = 0.5f;
+            smoke->color[2] = 0.5f;
+            
+            // Small particle size that grows slightly with age
+            smoke->size = 1.5f + (rand() % 10) / 20.0f;  // 1.5 to 2.0
+            
+            // Velocity - mostly upward (against gravity) with slight spread
+            smoke->vx = (rand() % 100 - 50) / 100.0 * 10.0;  // -5 to +5 horizontal spread
+            smoke->vy = -80.0 - (rand() % 40);  // -80 to -120 upward velocity
+            
+            // Short lifetime - evaporates quickly
+            smoke->lifetime = 0.3 + (rand() % 100) / 1000.0;  // 0.3 to 0.4 seconds
+            smoke->max_lifetime = smoke->lifetime;
+            
+            smoke->active = true;
+            game->particle_count++;
+        }
+        
         if (missile->x < 0) missile->x += width;
         if (missile->x > width) missile->x -= width;
         if (missile->y < 0) missile->y += height;
