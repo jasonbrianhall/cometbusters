@@ -472,8 +472,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 gui->visualizer.comet_buster.current_wave = new_wave;
                                 gui->visualizer.comet_buster.ship_lives = cheat_menu->lives;
                                 gui->visualizer.comet_buster.missile_ammo = cheat_menu->missiles;
-                                gui->visualizer.comet_buster.bomb_count = cheat_menu->bombs;
-                                
+                                gui->visualizer.comet_buster.bomb_ammo = cheat_menu->bombs;
                                 // If wave changed, reset and spawn new wave
                                 if (wave_changed) {
                                     printf("[CHEAT] Wave changed from %d to %d - spawning new wave\n", old_wave, new_wave);
