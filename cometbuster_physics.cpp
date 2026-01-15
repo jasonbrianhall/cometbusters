@@ -3724,13 +3724,13 @@ void comet_buster_update_missiles(CometBusterGame *game, double dt, int width, i
             smoke->x = missile->x - cos(missile->angle) * backward_dist;
             smoke->y = missile->y - sin(missile->angle) * backward_dist;
             
-            // Smoke color (gray, slightly darker)
-            smoke->color[0] = 0.5f;
-            smoke->color[1] = 0.5f;
-            smoke->color[2] = 0.5f;
+            // Smoke color (dark gray, looks like actual smoke)
+            smoke->color[0] = 0.25f;
+            smoke->color[1] = 0.25f;
+            smoke->color[2] = 0.25f;
             
-            // Small particle size that grows slightly with age
-            smoke->size = 1.5f + (rand() % 10) / 20.0f;  // 1.5 to 2.0
+            // Small particle size (looks more like smoke cloud)
+            smoke->size = 1.0f + (rand() % 8) / 20.0f;  // 1.0 to 1.4
             
             // Velocity - mostly upward (against gravity) with slight spread
             smoke->vx = (rand() % 100 - 50) / 100.0 * 10.0;  // -5 to +5 horizontal spread
