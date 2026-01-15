@@ -43,6 +43,17 @@ void comet_buster_spawn_comet(CometBusterGame *game, int frequency_band, int scr
             comet->y = rand() % screen_height;
             break;
     }
+    // Random initial rotation angle
+    double rotation = rand() % 360;
+    
+    // Random rotation speed - can be positive (clockwise) or negative (counter-clockwise)
+    double rotation_speed = rand() % 400;
+    if (rand() % 2 == 0) {
+        rotation_speed = -rotation_speed;  // 50% chance to rotate backwards
+    }
+    
+    comet->rotation = rotation;
+    comet->rotation_speed = rotation_speed;
     
     // Random velocity toward center-ish
     double target_x = screen_width / 2 + (rand() % 200 - 100);
@@ -77,8 +88,6 @@ void comet_buster_spawn_comet(CometBusterGame *game, int frequency_band, int scr
     
     // Set properties
     comet->frequency_band = frequency_band;
-    comet->rotation = 0;
-    comet->rotation_speed = 50 + (rand() % 200);
     comet->active = true;
     comet->health = 1;
     
@@ -89,7 +98,7 @@ void comet_buster_spawn_comet(CometBusterGame *game, int frequency_band, int scr
     // This ensures same-sized asteroids don't all have the same shape
     // Use modulo on the integer calculation, then convert to double
     int speed_variant = ((int)comet->rotation_speed + game->comet_count * 17) % 360;
-    comet->rotation_speed = speed_variant + (comet->rotation_speed - (int)comet->rotation_speed);
+    //comet->rotation_speed = speed_variant + (comet->rotation_speed - (int)comet->rotation_speed);
     
     // Set color based on frequency
     comet_buster_get_frequency_color(frequency_band, 
