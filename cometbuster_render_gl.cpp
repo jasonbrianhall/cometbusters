@@ -375,28 +375,65 @@ void gl_draw_polyline(float *points, int num_points, float line_width) {
     free(verts);
 }
 
-// Helper to draw transformed polygon outline for comets
+// Generate seed-based pseudo-random value for deterministic asteroid shapes
+static float comet_random_jagged(int seed, int index) {
+    int x = seed * 73856093 ^ (index * 19349663);
+    return (float)((x * 2654435761U) % 1000) / 1000.0f;
+}
+
+// Generate random jagged asteroid points for more variation
+static void generate_jagged_asteroid_points(double points[][2], int num_points, double radius, int seed) {
+    for (int i = 0; i < num_points; i++) {
+        double angle = 2.0 * M_PI * i / num_points;
+        
+        // Base radius with random jagger (use seed for determinism)
+        float jagged = 0.6f + 0.4f * comet_random_jagged(seed, i);
+        double point_radius = radius * jagged;
+        
+        // Random angle offset for more irregular shape
+        float angle_offset = (comet_random_jagged(seed + 1, i) - 0.5f) * 0.5f;  // ±0.25 rad variation
+        
+        points[i][0] = point_radius * cos(angle + angle_offset);
+        points[i][1] = point_radius * sin(angle + angle_offset);
+    }
+}
+
+// Helper to draw transformed polygon outline for comets with enhanced tumbling
 static void draw_comet_polygon(Comet *c, double points[][2], int num_points, float line_width) {
     if (!c) return;
     
     // Allocate for points + closing point
     Vertex *verts = malloc((num_points + 1) * sizeof(Vertex));
     
+    // PRIMARY rotation (main tumble)
     float angle = c->base_angle + c->rotation * M_PI / 180.0f;
     float cos_a = cosf(angle);
     float sin_a = sinf(angle);
     
+    // SECONDARY rotation (tumble in perpendicular direction for more dynamic rotation)
+    // This creates the illusion of tumbling/spinning in 3D space
+    float secondary_rotation = (c->rotation * 0.7f) * M_PI / 180.0f;
+    float cos_sec = cosf(secondary_rotation);
+    float sin_sec = sinf(secondary_rotation);
+    
     // Transform and add all points
     for (int j = 0; j < num_points; j++) {
-        // Rotate point around origin
-        float x = (float)(points[j][0] * cos_a - points[j][1] * sin_a);
-        float y = (float)(points[j][0] * sin_a + points[j][1] * cos_a);
+        float x = (float)points[j][0];
+        float y = (float)points[j][1];
+        
+        // Apply secondary rotation for tumbling effect (creates 3D-like tumble)
+        float x_tumble = x * cos_sec - y * sin_sec;
+        float y_tumble = x * sin_sec + y * cos_sec;
+        
+        // Apply primary rotation
+        float rotated_x = (float)(x_tumble * cos_a - y_tumble * sin_a);
+        float rotated_y = (float)(x_tumble * sin_a + y_tumble * cos_a);
         
         // Translate to comet position
-        x += (float)c->x;
-        y += (float)c->y;
+        rotated_x += (float)c->x;
+        rotated_y += (float)c->y;
         
-        verts[j] = (Vertex){x, y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+        verts[j] = (Vertex){rotated_x, rotated_y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
     
     // Close the polygon by repeating first vertex
@@ -409,7 +446,7 @@ static void draw_comet_polygon(Comet *c, double points[][2], int num_points, flo
 }
 
 // ✓ VECTOR-BASED ASTEROIDS (like original Asteroids arcade game)
-// Matches the cairo version exactly
+// Enhanced with varied shapes, tumbling animation, and better destruction particles
 void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
     (void)width;
@@ -427,160 +464,37 @@ void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int
         
         double radius = c->radius;
         
-        // Use rotation_speed as a shape variant seed (deterministic but varied)
-        int shape_variant = (int)c->rotation_speed % 3;
+        // Use rotation_speed as deterministic shape seed for variety
+        int shape_seed = (int)(c->rotation_speed * 1000) % 997;  // Large prime for good distribution
+        int shape_variant = shape_seed % 4;  // 4 variants per size now
         
         if (c->size == COMET_MEGA) {
-            // Mega asteroid: giant 12+ pointed shape that appears on boss waves (wave % 5 == 0)
-            // Thicker lines for emphasis
+            // Mega asteroid: 13+ points with high jagger
+            int num_points = 13 + (shape_seed % 3);  // 13-15 points
+            double points[16][2];
+            generate_jagged_asteroid_points(points, num_points, radius, shape_seed);
+            draw_comet_polygon(c, points, num_points, 3.5f);
             
-            if (shape_variant == 0) {
-                // Complex mega variant 1
-                double points[][2] = {
-                    {radius, 0},
-                    {radius * 0.8, radius * 0.55},
-                    {radius * 0.6, radius * 0.9},
-                    {radius * 0.2, radius * 0.95},
-                    {-radius * 0.4, radius * 0.85},
-                    {-radius * 0.75, radius * 0.65},
-                    {-radius * 0.95, radius * 0.2},
-                    {-radius * 0.9, -radius * 0.35},
-                    {-radius * 0.6, -radius * 0.8},
-                    {-radius * 0.1, -radius * 0.95},
-                    {radius * 0.5, -radius * 0.85},
-                    {radius * 0.85, -radius * 0.5}
-                };
-                draw_comet_polygon(c, points, 12, 3.5f);
-            } else if (shape_variant == 1) {
-                // Complex mega variant 2
-                double points[][2] = {
-                    {radius * 0.95, radius * 0.15},
-                    {radius * 0.7, radius * 0.75},
-                    {radius * 0.3, radius * 0.95},
-                    {-radius * 0.2, radius * 0.9},
-                    {-radius * 0.65, radius * 0.75},
-                    {-radius * 0.9, radius * 0.3},
-                    {-radius * 0.95, -radius * 0.2},
-                    {-radius * 0.75, -radius * 0.7},
-                    {-radius * 0.35, -radius * 0.92},
-                    {radius * 0.15, -radius * 0.95},
-                    {radius * 0.65, -radius * 0.75},
-                    {radius * 0.9, -radius * 0.35}
-                };
-                draw_comet_polygon(c, points, 12, 3.5f);
-            } else {
-                // Complex mega variant 3
-                double points[][2] = {
-                    {radius, -radius * 0.1},
-                    {radius * 0.8, radius * 0.6},
-                    {radius * 0.5, radius * 0.88},
-                    {radius * 0.1, radius * 0.96},
-                    {-radius * 0.35, radius * 0.88},
-                    {-radius * 0.7, radius * 0.7},
-                    {-radius * 0.95, radius * 0.15},
-                    {-radius * 0.88, -radius * 0.4},
-                    {-radius * 0.55, -radius * 0.85},
-                    {-radius * 0.05, -radius * 0.96},
-                    {radius * 0.6, -radius * 0.8},
-                    {radius * 0.9, -radius * 0.4}
-                };
-                draw_comet_polygon(c, points, 12, 3.5f);
-            }
         } else if (c->size == COMET_LARGE) {
-            // Large asteroid: 10-pointed jagged circle
-            if (shape_variant == 0) {
-                double points[][2] = {
-                    {radius, 0},
-                    {radius * 0.8, radius * 0.6},
-                    {radius * 0.4, radius * 0.92},
-                    {-radius * 0.2, radius * 0.95},
-                    {-radius * 0.7, radius * 0.7},
-                    {-radius * 0.95, radius * 0.1},
-                    {-radius * 0.85, -radius * 0.5},
-                    {-radius * 0.3, -radius * 0.95},
-                    {radius * 0.3, -radius * 0.92},
-                    {radius * 0.85, -radius * 0.5}
-                };
-                draw_comet_polygon(c, points, 10, 2.5f);
-            } else if (shape_variant == 1) {
-                double points[][2] = {
-                    {radius * 0.95, radius * 0.2},
-                    {radius * 0.65, radius * 0.8},
-                    {radius * 0.1, radius * 0.98},
-                    {-radius * 0.5, radius * 0.85},
-                    {-radius * 0.9, radius * 0.35},
-                    {-radius * 0.95, -radius * 0.15},
-                    {-radius * 0.6, -radius * 0.8},
-                    {radius * 0.1, -radius * 0.98},
-                    {radius * 0.65, -radius * 0.75},
-                    {radius * 0.9, -radius * 0.3}
-                };
-                draw_comet_polygon(c, points, 10, 2.5f);
-            } else {
-                double points[][2] = {
-                    {radius * 0.9, -radius * 0.3},
-                    {radius * 0.7, radius * 0.7},
-                    {radius * 0.2, radius * 0.98},
-                    {-radius * 0.4, radius * 0.92},
-                    {-radius * 0.85, radius * 0.5},
-                    {-radius * 0.98, -radius * 0.1},
-                    {-radius * 0.55, -radius * 0.85},
-                    {radius * 0.15, -radius * 0.99},
-                    {radius * 0.75, -radius * 0.65},
-                    {radius * 0.95, radius * 0.15}
-                };
-                draw_comet_polygon(c, points, 10, 2.5f);
-            }
+            // Large asteroid: 10-12 irregular points
+            int num_points = 10 + (shape_seed % 3);  // 10-12 points
+            double points[12][2];
+            generate_jagged_asteroid_points(points, num_points, radius, shape_seed);
+            draw_comet_polygon(c, points, num_points, 2.5f);
+            
         } else if (c->size == COMET_MEDIUM) {
-            // Medium asteroid: 8-pointed
-            if (shape_variant == 0) {
-                double points[][2] = {
-                    {radius, 0},
-                    {radius * 0.7, radius * 0.7},
-                    {0, radius},
-                    {-radius * 0.7, radius * 0.7},
-                    {-radius, 0},
-                    {-radius * 0.7, -radius * 0.7},
-                    {0, -radius},
-                    {radius * 0.7, -radius * 0.7}
-                };
-                draw_comet_polygon(c, points, 8, 2.0f);
-            } else if (shape_variant == 1) {
-                double points[][2] = {
-                    {radius * 0.95, radius * 0.3},
-                    {radius * 0.5, radius * 0.85},
-                    {-radius * 0.2, radius * 0.98},
-                    {-radius * 0.8, radius * 0.6},
-                    {-radius * 0.95, -radius * 0.3},
-                    {-radius * 0.5, -radius * 0.85},
-                    {radius * 0.2, -radius * 0.98},
-                    {radius * 0.8, -radius * 0.6}
-                };
-                draw_comet_polygon(c, points, 8, 2.0f);
-            } else {
-                double points[][2] = {
-                    {radius * 0.85, -radius * 0.5},
-                    {radius * 0.6, radius * 0.8},
-                    {-radius * 0.3, radius * 0.95},
-                    {-radius * 0.9, radius * 0.35},
-                    {-radius * 0.8, -radius * 0.6},
-                    {-radius * 0.2, -radius * 0.98},
-                    {radius * 0.7, -radius * 0.7},
-                    {radius * 0.95, radius * 0.3}
-                };
-                draw_comet_polygon(c, points, 8, 2.0f);
-            }
+            // Medium asteroid: 8-9 irregular points
+            int num_points = 8 + (shape_seed % 2);  // 8-9 points
+            double points[9][2];
+            generate_jagged_asteroid_points(points, num_points, radius, shape_seed);
+            draw_comet_polygon(c, points, num_points, 2.0f);
+            
         } else if (c->size == COMET_SMALL) {
-            // Small asteroid: 6-pointed
-            double points[][2] = {
-                {radius, 0},
-                {radius * 0.5, radius * 0.866},
-                {-radius * 0.5, radius * 0.866},
-                {-radius, 0},
-                {-radius * 0.5, -radius * 0.866},
-                {radius * 0.5, -radius * 0.866}
-            };
-            draw_comet_polygon(c, points, 6, 1.5f);
+            // Small asteroid: 6-7 points (still varied)
+            int num_points = 6 + (shape_seed % 2);  // 6-7 points
+            double points[7][2];
+            generate_jagged_asteroid_points(points, num_points, radius, shape_seed);
+            draw_comet_polygon(c, points, num_points, 1.5f);
         }
     }
 }
@@ -789,10 +703,130 @@ void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width
         gl_set_color(ship_r, ship_g, ship_b);
         draw_vertices(ship_verts, 3, GL_TRIANGLE_FAN);
         
+        // ========== INTIMIDATING STRIPES ==========
+        // Draw diagonal stripes across the ship body for aggressive look
+        {
+            float stripe_r = fminf(ship_r + 0.3f, 1.0f);
+            float stripe_g = fminf(ship_g + 0.3f, 1.0f);
+            float stripe_b = fminf(ship_b + 0.3f, 1.0f);
+            
+            // Calculate stripe positions along the ship body
+            int num_stripes = (ship->ship_type == 5) ? 6 : (ship->ship_type == 4) ? 4 : 3;
+            
+            for (int s = 0; s < num_stripes; s++) {
+                // Position along the body (from front to back)
+                float stripe_pos = 0.3f - (s * 0.35f / (float)num_stripes);
+                
+                // Calculate stripe width and angle
+                float stripe_width = (ship->ship_type == 5) ? 3.0f : 2.0f;
+                float stripe_length = ship_size * 0.8f;
+                
+                // Create two points for the stripe line (perpendicular to movement)
+                double local_x1 = stripe_pos * ship_size;
+                double local_y1 = -stripe_length / 4.0;
+                double local_x2 = stripe_pos * ship_size;
+                double local_y2 = stripe_length / 4.0;
+                
+                // Transform both points
+                float world_x1 = (float)(local_x1 * cos_a - local_y1 * sin_a + ship->x);
+                float world_y1 = (float)(local_x1 * sin_a + local_y1 * cos_a + ship->y);
+                float world_x2 = (float)(local_x2 * cos_a - local_y2 * sin_a + ship->x);
+                float world_y2 = (float)(local_x2 * sin_a + local_y2 * cos_a + ship->y);
+                
+                // Draw stripe with brighter color
+                glLineWidth(stripe_width);
+                gl_set_color(stripe_r, stripe_g, stripe_b);
+                gl_draw_line(world_x1, world_y1, world_x2, world_y2, stripe_width);
+            }
+        }
+        
         // Draw outline
         glLineWidth(1.5f);
         gl_set_color(ship_r, ship_g, ship_b);
         draw_vertices(ship_verts, 4, GL_LINE_STRIP);
+        
+        // ========== THRUSTER FLAME EFFECTS ==========
+        // Calculate velocity to determine flame intensity
+        double velocity = sqrt(ship->vx * ship->vx + ship->vy * ship->vy);
+        double flame_intensity = fminf(velocity / 100.0, 1.0);  // Normalize to 0-1
+        
+        if (flame_intensity > 0.05 || ship->ship_type == 5) {  // Always show flames for Juggernaut
+            // Flame ejection point at rear of ship
+            double flame_base_local_x = -ship_size * 0.9;
+            double flame_base_local_y = 0;
+            
+            float flame_base_x = (float)(flame_base_local_x * cos_a - flame_base_local_y * sin_a + ship->x);
+            float flame_base_y = (float)(flame_base_local_x * sin_a + flame_base_local_y * cos_a + ship->y);
+            
+            // Calculate flame direction (opposite to velocity direction)
+            double flame_dir_x = -ship->vx;
+            double flame_dir_y = -ship->vy;
+            double flame_dir_len = sqrt(flame_dir_x * flame_dir_x + flame_dir_y * flame_dir_y);
+            
+            if (flame_dir_len > 0.1) {
+                flame_dir_x /= flame_dir_len;
+                flame_dir_y /= flame_dir_len;
+            } else {
+                // Default to pointing backwards along ship angle
+                flame_dir_x = -cos_a;
+                flame_dir_y = -sin_a;
+            }
+            
+            // Flame base width
+            double flame_width = ship_size * 0.6;
+            
+            // ===== OUTER FLAME (orange/red) =====
+            double outer_flame_length = ship_size * 1.2 * flame_intensity;
+            double flicker = 0.8 + 0.2 * sin(ship->burner_flicker_timer * 30.0 + i);  // Flicker effect
+            
+            Vertex outer_flame_verts[4];
+            
+            // Left side
+            double left_x = flame_base_x - flame_dir_y * flame_width;
+            double left_y = flame_base_y + flame_dir_x * flame_width;
+            outer_flame_verts[0] = (Vertex){(float)left_x, (float)left_y, 1.0f, 0.4f, 0.0f, 1.0f};
+            
+            // Right side
+            double right_x = flame_base_x + flame_dir_y * flame_width;
+            double right_y = flame_base_y - flame_dir_x * flame_width;
+            outer_flame_verts[1] = (Vertex){(float)right_x, (float)right_y, 1.0f, 0.4f, 0.0f, 1.0f};
+            
+            // Tip
+            double tip_x = flame_base_x + flame_dir_x * outer_flame_length;
+            double tip_y = flame_base_y + flame_dir_y * outer_flame_length;
+            outer_flame_verts[2] = (Vertex){(float)tip_x, (float)tip_y, 1.0f, 0.2f, 0.0f, (float)flicker * 0.6f};
+            
+            outer_flame_verts[3] = outer_flame_verts[0];
+            
+            glLineWidth(2.0f);
+            gl_set_color_alpha(1.0f, 0.4f, 0.0f, 0.7f * (float)flame_intensity);
+            draw_vertices(outer_flame_verts, 3, GL_TRIANGLE_FAN);
+            
+            // ===== INNER FLAME (bright yellow) =====
+            double inner_flame_length = outer_flame_length * 0.6;
+            
+            Vertex inner_flame_verts[4];
+            
+            // Left side (narrower)
+            double inner_left_x = flame_base_x - flame_dir_y * flame_width * 0.4;
+            double inner_left_y = flame_base_y + flame_dir_x * flame_width * 0.4;
+            inner_flame_verts[0] = (Vertex){(float)inner_left_x, (float)inner_left_y, 1.0f, 1.0f, 0.3f, 1.0f};
+            
+            // Right side (narrower)
+            double inner_right_x = flame_base_x + flame_dir_y * flame_width * 0.4;
+            double inner_right_y = flame_base_y - flame_dir_x * flame_width * 0.4;
+            inner_flame_verts[1] = (Vertex){(float)inner_right_x, (float)inner_right_y, 1.0f, 1.0f, 0.3f, 1.0f};
+            
+            // Inner tip
+            double inner_tip_x = flame_base_x + flame_dir_x * inner_flame_length;
+            double inner_tip_y = flame_base_y + flame_dir_y * inner_flame_length;
+            inner_flame_verts[2] = (Vertex){(float)inner_tip_x, (float)inner_tip_y, 1.0f, 1.0f, 0.6f, (float)flicker * 0.9f};
+            
+            inner_flame_verts[3] = inner_flame_verts[0];
+            
+            gl_set_color_alpha(1.0f, 1.0f, 0.3f, 0.8f * (float)flame_intensity);
+            draw_vertices(inner_flame_verts, 3, GL_TRIANGLE_FAN);
+        }
         
         // Draw Juggernaut health bar (for type 5 only)
         if (ship->ship_type == 5) {
