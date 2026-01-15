@@ -3217,6 +3217,24 @@ MissileTarget comet_buster_find_best_anti_asteroid_target(CometBusterGame *game,
         }
     }
     
+    // Check UFOs (medium-high priority - treat like red ships)
+    for (int i = 0; i < game->ufo_count; i++) {
+        UFO *ufo = &game->ufos[i];
+        if (!ufo->active) continue;
+        
+        double dx = ufo->x - x;
+        double dy = ufo->y - y;
+        double dist = sqrt(dx*dx + dy*dy);
+        double angle_penalty = get_angle_penalty(ship_angle, dx, dy);
+        double weighted_dist = dist * 2.5 + (angle_penalty * 50.0);  // UFO weight = 2.5 (medium-high priority)
+        
+        if (weighted_dist < best.score) {
+            best.score = weighted_dist;
+            best.type = 4;
+            best.index = i;
+        }
+    }
+    
     // Check boss (lowest priority for anti-asteroid)
     if (game->boss_active && game->boss.active) {
         double dx = game->boss.x - x;
@@ -3263,6 +3281,28 @@ MissileTarget comet_buster_find_furthest_comet_in_range(CometBusterGame *game, d
         }
     }
     
+    // If no comet found, check for furthest UFO within range
+    if (best.index == -1) {
+        for (int i = 0; i < game->ufo_count; i++) {
+            UFO *ufo = &game->ufos[i];
+            if (!ufo->active) continue;
+            
+            double dx = ufo->x - x;
+            double dy = ufo->y - y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            // Only consider UFOs within max range
+            if (dist > max_range) continue;
+            
+            // Update if this is further than our current best (or it's the first one)
+            if (dist > best.score) {
+                best.score = dist;
+                best.type = 4;
+                best.index = i;
+            }
+        }
+    }
+    
     return best;
 }
 
@@ -3299,7 +3339,31 @@ MissileTarget comet_buster_find_comet_at_preferred_distance(CometBusterGame *gam
         }
     }
     
-    // If no comet in preferred range, find any comet
+    // If no comet in preferred range, check for UFOs in preferred distance
+    if (best.index == -1) {
+        for (int i = 0; i < game->ufo_count; i++) {
+            UFO *ufo = &game->ufos[i];
+            if (!ufo->active) continue;
+            
+            double dx = ufo->x - x;
+            double dy = ufo->y - y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            // Only consider UFOs in preferred range
+            if (dist < min_range || dist > max_range) continue;
+            
+            // Distance from preferred distance (lower is better)
+            double distance_error = fabs(dist - preferred_dist);
+            
+            if (distance_error < best.score) {
+                best.score = distance_error;
+                best.type = 4;
+                best.index = i;
+            }
+        }
+    }
+    
+    // If still no target in preferred range, find any comet
     if (best.index == -1) {
         for (int i = 0; i < game->comet_count; i++) {
             Comet *comet = &game->comets[i];
@@ -3313,6 +3377,25 @@ MissileTarget comet_buster_find_comet_at_preferred_distance(CometBusterGame *gam
             if (distance_error < best.score) {
                 best.score = distance_error;
                 best.type = 3;
+                best.index = i;
+            }
+        }
+    }
+    
+    // If still no target, find any UFO
+    if (best.index == -1) {
+        for (int i = 0; i < game->ufo_count; i++) {
+            UFO *ufo = &game->ufos[i];
+            if (!ufo->active) continue;
+            
+            double dx = ufo->x - x;
+            double dy = ufo->y - y;
+            double dist = sqrt(dx*dx + dy*dy);
+            double distance_error = fabs(dist - preferred_dist);
+            
+            if (distance_error < best.score) {
+                best.score = distance_error;
+                best.type = 4;
                 best.index = i;
             }
         }
@@ -3349,7 +3432,28 @@ MissileTarget comet_buster_find_comet_in_distance_range(CometBusterGame *game, d
         }
     }
     
-    // If no comet in preferred range, fall back to any comet
+    // If no comet in preferred range, check for UFOs in preferred range
+    if (best.index == -1) {
+        for (int i = 0; i < game->ufo_count; i++) {
+            UFO *ufo = &game->ufos[i];
+            if (!ufo->active) continue;
+            
+            double dx = ufo->x - x;
+            double dy = ufo->y - y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            // Only consider UFOs in range
+            if (dist < min_range || dist > max_range) continue;
+            
+            if (dist < best.score) {
+                best.score = dist;
+                best.type = 4;
+                best.index = i;
+            }
+        }
+    }
+    
+    // If still no target in preferred range, fall back to any comet
     if (best.index == -1) {
         for (int i = 0; i < game->comet_count; i++) {
             Comet *comet = &game->comets[i];
@@ -3362,6 +3466,24 @@ MissileTarget comet_buster_find_comet_in_distance_range(CometBusterGame *game, d
             if (dist < best.score) {
                 best.score = dist;
                 best.type = 3;
+                best.index = i;
+            }
+        }
+    }
+    
+    // If still no target, fall back to any UFO
+    if (best.index == -1) {
+        for (int i = 0; i < game->ufo_count; i++) {
+            UFO *ufo = &game->ufos[i];
+            if (!ufo->active) continue;
+            
+            double dx = ufo->x - x;
+            double dy = ufo->y - y;
+            double dist = sqrt(dx*dx + dy*dy);
+            
+            if (dist < best.score) {
+                best.score = dist;
+                best.type = 4;
                 best.index = i;
             }
         }
