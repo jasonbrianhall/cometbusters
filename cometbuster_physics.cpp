@@ -2131,13 +2131,8 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             }
 #endif
             
-            // Check if ship has shields or energy before destroying the comet
-            bool has_shield_or_energy = (game->shield_health > 0) || (game->energy_amount >= 80.0);
-            
-            // Only destroy the comet if ship doesn't have shield/energy protection
-            if (!has_shield_or_energy) {
-                comet_buster_destroy_comet(game, i, width, height, visualizer);
-            }
+            // Always destroy the comet on collision
+            comet_buster_destroy_comet(game, i, width, height, visualizer);
             
             // Damage the ship
             comet_buster_on_ship_hit(game, visualizer);
