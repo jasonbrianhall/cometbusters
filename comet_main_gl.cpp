@@ -142,17 +142,26 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntr
                 break;
             }
             default: {
-                // Add character (only letters A-Z a-z)
                 if (hs_entry->cursor_pos < 31) {
-                    char c = event->key.keysym.sym;
-                    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
-                        hs_entry->name_input[hs_entry->cursor_pos] = c;
-                        hs_entry->cursor_pos++;
+                    SDL_Keycode key = event->key.keysym.sym;
+                    SDL_Keymod mod  = event->key.keysym.mod;
+
+                    bool shift = (mod & KMOD_SHIFT) != 0;
+
+                    // Letters only
+                    if (key >= SDLK_a && key <= SDLK_z) {
+                        char c = (char)key;
+
+                        if (shift)
+                            c = c - 'a' + 'A';   // uppercase
+                        else
+                            c = c;               // lowercase
+
+                        hs_entry->name_input[hs_entry->cursor_pos++] = c;
                         hs_entry->name_input[hs_entry->cursor_pos] = '\0';
-                    } else if (c == SDLK_SPACE) {
-                        // Allow spaces too
-                        hs_entry->name_input[hs_entry->cursor_pos] = ' ';
-                        hs_entry->cursor_pos++;
+                    }
+                    else if (key == SDLK_SPACE) {
+                        hs_entry->name_input[hs_entry->cursor_pos++] = ' ';
                         hs_entry->name_input[hs_entry->cursor_pos] = '\0';
                     }
                 }
@@ -1205,7 +1214,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Instructions - Split into two lines
         gl_set_color(0.4f, 0.3f, 0.2f);  // Darker brown for readability
-        gl_draw_text_simple("Type your name (A-Z) | ENTER to save | BKSP to delete", 
+        gl_draw_text_simple("Type your name | ENTER to save | BKSP to delete", 
                            580, 550, 11);
         gl_draw_text_simple("Max 32 characters", 
                            580, 568, 11);
