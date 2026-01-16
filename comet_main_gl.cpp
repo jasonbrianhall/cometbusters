@@ -528,6 +528,10 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
                             gui->menu_selection = (gui->menu_selection - 1 + 5) % 5;
+                            if (gui->menu_selection == 0 && gui->visualizer.comet_buster.ship_lives<=0) {
+                                gui->menu_selection = 4;
+                            }
+
                         } else if (gui->menu_state == 1) {
                             gui->gui_difficulty_level = (gui->gui_difficulty_level - 1);
                             if (gui->gui_difficulty_level < 1) gui->gui_difficulty_level = 3;
@@ -537,6 +541,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
                             gui->menu_selection = (gui->menu_selection + 1) % 5;
+                            if (gui->menu_selection == 0 && gui->visualizer.comet_buster.ship_lives<=0) {
+                                gui->menu_selection = 1;
+                            }
                         } else if (gui->menu_state == 1) {
                             gui->gui_difficulty_level = (gui->gui_difficulty_level + 1);
                             if (gui->gui_difficulty_level > 3) gui->gui_difficulty_level = 1;
