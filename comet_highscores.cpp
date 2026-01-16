@@ -164,8 +164,6 @@ void high_scores_save(CometBusterGame *game) {
 bool comet_buster_is_high_score(CometBusterGame *game, int score) {
     if (!game) return false;
     
-    printf("IS HIGH SCORE CALLED\n");
-    
     // If we haven't filled the high score list yet, any score is a high score
     if (game->high_score_count < MAX_HIGH_SCORES) {
         printf("List not full yet (%d/%d), score %d qualifies\n", 
