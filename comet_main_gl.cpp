@@ -430,6 +430,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         gui->show_menu = !gui->show_menu;
                         gui->menu_state = 0;
                         gui->menu_selection = 0;
+                        if (gui->visualizer.comet_buster.ship_lives<=0) {
+                            comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, MEDIUM);
+                        }
                     }
                     break;
                 }
