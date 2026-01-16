@@ -2125,7 +2125,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     
     // Handle wave completion and progression (only if not already counting down)
     // BUT: Don't progress if boss is active (boss must be defeated first)
-    if (game->wave_complete_timer <= 0 && !game->boss_active) {
+    if (game->wave_complete_timer <= 0) {
         comet_buster_update_wave_progression(game);
         
         // NEW: Play wave complete sound when timer just started

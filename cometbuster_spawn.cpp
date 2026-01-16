@@ -202,8 +202,8 @@ void comet_buster_update_wave_progression(CometBusterGame *game) {
     // Check if all comets are destroyed to trigger next wave
     // Only trigger if we're not already in countdown (wave_complete_timer == 0)
     // AND if boss is not active (boss must be defeated before next wave)
-    if (game->comet_count == 0 && game->wave_complete_timer == 0 && !game->boss_active) {
-        // All comets destroyed and no boss active - start countdown to next wave
+    if ((game->current_wave%5 == 0 && game->comet_count <= 2 && game->wave_complete_timer == 0 && !game->boss_active) || (game->current_wave%5 > 0 && game->comet_count <= 2 && game->wave_complete_timer == 0)) {
+        // All comets destroyed (except 2) and no boss active - start countdown to next wave
         game->wave_complete_timer = 2.0;  // 2 second delay before next wave
     }
 }

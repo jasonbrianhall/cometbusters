@@ -2300,7 +2300,7 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
     gl_draw_text_simple(text, width - 280, 55, 18);
     
     // Wave progress info (only show if wave is incomplete)
-    if (game->wave_complete_timer > 0) {
+    if (game->wave_complete_timer > 0) {  // Comet count <= 0 should never happen but I had it happen to me once so I put it here.
         sprintf(text, "NEXT WAVE in %.1fs", game->wave_complete_timer);
         gl_set_color(1.0f, 1.0f, 0.0f);
         gl_draw_text_simple(text, width / 2 - 160, height / 2 - 50, 18);
