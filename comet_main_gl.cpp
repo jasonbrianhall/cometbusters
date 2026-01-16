@@ -142,11 +142,10 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntr
                 break;
             }
             default: {
-                // Add character (only letters A-Z)
+                // Add character (only letters A-Z a-z)
                 if (hs_entry->cursor_pos < 31) {
                     char c = event->key.keysym.sym;
                     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
-                        if (c >= 'a' && c <= 'z') c = c - 'a' + 'A'; // Convert to uppercase
                         hs_entry->name_input[hs_entry->cursor_pos] = c;
                         hs_entry->cursor_pos++;
                         hs_entry->name_input[hs_entry->cursor_pos] = '\0';
@@ -900,7 +899,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
 #endif
     
     // Stop music if game ends and trigger high score entry
-    if (gui->visualizer.comet_buster.game_over) {
+    if (gui->visualizer.comet_buster.game_over || gui->visualizer.comet_buster.ship_lives <=0) {
         printf("\n[HS_FLOW] >>> GAME OVER DETECTED\n");
         audio_stop_music(&gui->audio);
         
@@ -940,6 +939,9 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
                 // Reset state so dialog can show again if next score qualifies
                 hs_entry->state = HIGH_SCORE_ENTRY_NONE;
                 printf("[HIGHSCORE] Game over. Score: %d (not a high score)\n", score);
+                gui->visualizer.comet_buster.ship_lives = 0;
+                gui->visualizer.comet_buster.game_over = true;
+                
             }
         } else {
             printf("[HS_FLOW] Dialog already active, not triggering again\n");

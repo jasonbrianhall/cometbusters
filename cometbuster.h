@@ -24,7 +24,7 @@
 #define BOMB_WAVE_MAX_RADIUS 600.0
 #define BOMB_WAVE_DAMAGE 20
 #define BOMB_WAVE_SPEED 1200.0
-#define MAX_HIGH_SCORES 25
+#define MAX_HIGH_SCORES 10
 
 // PI
 #ifndef M_PI
