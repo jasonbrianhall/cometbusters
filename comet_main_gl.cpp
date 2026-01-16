@@ -579,7 +579,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         if (gui->menu_state == 0) {
                             switch (gui->menu_selection) {
                                 case 0:  // Continue
-                                    gui->show_menu = false;
+                                    if(gui->visualizer.comet_buster.ship_lives >0) {
+                                         gui->show_menu = false;
+                                    }                               
                                     break;
                                 case 1:  // New Game - go to difficulty selection
                                     gui->menu_state = 1;
