@@ -2863,9 +2863,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         game->game_over_timer -= dt;
         
         // Handle right-click restart
-        if (game->mouse_right_pressed) {
+        /*if (game->mouse_right_pressed) {
             comet_buster_reset_game(game);
-        }
+        }*/
     }
 }
 
