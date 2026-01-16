@@ -994,8 +994,16 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             for (int i = 0; i < 5; i++) {
                 int menu_y = menu_y_start + (i * menu_spacing);
                 int menu_x = (1920 - menu_width) / 2;
-                
-                if (i == gui->menu_selection) {
+                if (i == 0 && gui->visualizer.comet_buster.ship_lives <= 0) {
+                    // Disabled / grayed-out look
+                    gl_set_color(0.3f, 0.3f, 0.3f);   // dark gray border
+                    gl_draw_rect_filled(menu_x - 3, menu_y - 3, menu_width + 6, menu_height + 6);
+
+                    gl_set_color(0.15f, 0.15f, 0.15f); // inner gray
+                    gl_draw_rect_filled(menu_x, menu_y, menu_width, menu_height);
+
+                    gl_set_color(0.5f, 0.5f, 0.5f);   // lighter gray text color
+                } else if (i == gui->menu_selection) {
                     gl_set_color(1.0f, 1.0f, 0.0f);
                     gl_draw_rect_filled(menu_x - 3, menu_y - 3, menu_width + 6, menu_height + 6);
                     gl_set_color(0.0f, 0.5f, 1.0f);
