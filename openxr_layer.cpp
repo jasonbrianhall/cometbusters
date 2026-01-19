@@ -239,17 +239,17 @@ void openxr_get_eye_matrices(OpenXRContext *ctx, int eye,
     float width = tan_right - tan_left;
     float height = tan_up - tan_down;
     
-    float near = 0.1f;
-    float far = 1000.0f;
+    float near_plane = 0.1f;
+    float far_plane = 1000.0f;
     
     memset(projection_matrix, 0, 16 * sizeof(float));
     projection_matrix[0] = 2.0f / width;
     projection_matrix[5] = 2.0f / height;
     projection_matrix[8] = (tan_right + tan_left) / width;
     projection_matrix[9] = (tan_up + tan_down) / height;
-    projection_matrix[10] = -(far + near) / (far - near);
+    projection_matrix[10] = -(far_plane + near_plane) / (far_plane - near_plane);
     projection_matrix[11] = -1.0f;
-    projection_matrix[14] = -(2.0f * far * near) / (far - near);
+    projection_matrix[14] = -(2.0f * far_plane * near_plane) / (far_plane - near_plane);
     
     // Get view matrix from pose
     XrPosef pose = ctx->views[eye].pose;
