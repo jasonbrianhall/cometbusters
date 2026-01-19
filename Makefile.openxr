@@ -38,7 +38,7 @@ SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/nu
 # Normal dynamic build
 CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" -I/usr/include/openxr
 CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -I/usr/include/openxr
-LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW -lX11
+LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW -lX11 -lopenxr_loader
 
 # Static build flags for Linux deployment
 # Using -static-libstdc++ and -static-libgcc for C++ and C runtime libraries
@@ -47,7 +47,7 @@ STATIC_FLAGS_LINUX = -static-libstdc++ -static-libgcc
 
 CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX) -I/usr/include/openxr
 CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX) -I/usr/include/openxr
-LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW -lX11 $(STATIC_FLAGS_LINUX)
+LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW -lX11 -lopenxr_loader $(STATIC_FLAGS_LINUX)
 
 # Optimization flags for normal build
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
