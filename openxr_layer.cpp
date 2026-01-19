@@ -4,9 +4,13 @@
 #include <string.h>
 #include <math.h>
 
-// Enable OpenGL extension for OpenXR
-#define XR_USE_GRAPHICS_API_OPENGL
-#define XR_USE_PLATFORM_XLIB
+#ifdef _WIN32
+    #include <windows.h>
+    #include <GL/wglext.h>
+#else
+    #include <X11/Xlib.h>
+    #include <GL/glx.h>
+#endif
 
 #define CHECK_XR(x) do { \
     XrResult res = (x); \
@@ -58,6 +62,13 @@ int openxr_init(OpenXRContext *ctx) {
     fprintf(stderr, "[XR] System found\n");
     
     // Create session with graphics binding
+#ifdef _WIN32
+    XrGraphicsBindingOpenGLWin32KHR graphics_binding;
+    memset(&graphics_binding, 0, sizeof(XrGraphicsBindingOpenGLWin32KHR));
+    graphics_binding.type = XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR;
+    graphics_binding.hDC = wglGetCurrentDC();
+    graphics_binding.hGLRC = wglGetCurrentContext();
+#else
     XrGraphicsBindingOpenGLXlibKHR graphics_binding;
     memset(&graphics_binding, 0, sizeof(XrGraphicsBindingOpenGLXlibKHR));
     graphics_binding.type = XR_TYPE_GRAPHICS_BINDING_OPENGL_XLIB_KHR;
@@ -65,6 +76,7 @@ int openxr_init(OpenXRContext *ctx) {
     graphics_binding.glxFBConfig = 0;  // Let runtime choose
     graphics_binding.glxDrawable = glXGetCurrentDrawable();
     graphics_binding.glxContext = glXGetCurrentContext();
+#endif
     
     XrSessionCreateInfo session_info;
     memset(&session_info, 0, sizeof(XrSessionCreateInfo));

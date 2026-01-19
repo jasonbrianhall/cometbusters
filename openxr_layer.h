@@ -5,15 +5,20 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-// X11 headers next
-#include <X11/Xlib.h>
-#include <GL/glx.h>
+// Platform-specific includes
+#ifdef _WIN32
+    #define XR_USE_GRAPHICS_API_OPENGL
+    #define XR_USE_PLATFORM_WIN32
+    #include <windows.h>
+#else
+    // X11 headers for Linux
+    #include <X11/Xlib.h>
+    #include <GL/glx.h>
+    #define XR_USE_GRAPHICS_API_OPENGL
+    #define XR_USE_PLATFORM_XLIB
+#endif
 
-// Platform-specific defines MUST come before including openxr headers
-#define XR_USE_GRAPHICS_API_OPENGL
-#define XR_USE_PLATFORM_XLIB
-
-// OpenXR last
+// OpenXR headers (after platform defines)
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
