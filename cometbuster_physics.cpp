@@ -2194,6 +2194,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         if (comet_buster_check_ship_canister(game, &game->canisters[i])) {
             // Collect canister - gain extra shield
             game->shield_health++;
+            game->energy_amount += 100;
             if (game->shield_health > game->max_shield_health) {
                 game->shield_health = game->max_shield_health + 1;  // Can go one over max
             }
