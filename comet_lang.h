@@ -153,5 +153,25 @@ static const char* phase_enraged_text[] = {
     "ВБЕШЕНСТВЕ!"
 };
 
+static const char* queen_phase_recruiting_text[] = {
+    "RECRUITING",        // English
+    "RECLUTANDO",        // Spanish
+    "RECRUTEMENT",       // French
+    "ВЕРБОВКА"           // Russian
+};
+
+static const char* queen_phase_aggressive_text[] = {
+    "AGGRESSIVE",
+    "AGRESIVA",
+    "AGRESSIVE",
+    "АГРЕССИВНАЯ"
+};
+
+static const char* queen_phase_desperate_text[] = {
+    "DESPERATE!",
+    "¡DESESPERADA!",
+    "DÉSESPÉRÉE!",
+    "ОТЧАЯННАЯ!"
+};
 
 

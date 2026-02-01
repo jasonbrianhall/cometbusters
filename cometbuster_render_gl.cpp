@@ -550,12 +550,12 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     // Draw boss (either Spawn Queen or regular Death Star)
     if (game->boss_active) {
         if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
-            draw_spawn_queen_boss_gl(&game->spawn_queen, cr, width, height);
+            draw_spawn_queen_boss_gl(game, &game->spawn_queen, cr, width, height);
         } else if (game->boss.active) {
             if (game->current_wave % 30 == 5) {
                draw_comet_buster_boss_gl(game, &game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 10) {
-               draw_spawn_queen_boss_gl(&game->spawn_queen, cr, width, height);
+               draw_spawn_queen_boss_gl(game, &game->spawn_queen, cr, width, height);
            } else if (game->current_wave % 30 == 15) {
               draw_void_nexus_boss_gl(game, &game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 20) {
@@ -1653,7 +1653,7 @@ void draw_comet_buster_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, 
     gl_draw_text_simple(phase_text, (int)(boss->x - 25), (int)(boss->y - 25), 10);
 }
 
-void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int height) {
+void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void *cr, int width, int height) {
     if (!queen || !queen->active) return;
     (void)cr; (void)width; (void)height;
     
@@ -1859,17 +1859,18 @@ void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int he
     // Phase indicator text
     const char *phase_text = "";
     float text_r = 1.0f, text_g = 0.5f, text_b = 0.0f;
-    
+
     if (queen->phase == 0) {
-        phase_text = "RECRUITING";
+        phase_text = queen_phase_recruiting_text[game->current_language];
         text_r = 1.0f; text_g = 0.5f; text_b = 0.0f;  // Orange
     } else if (queen->phase == 1) {
-        phase_text = "AGGRESSIVE";
+        phase_text = queen_phase_aggressive_text[game->current_language];
         text_r = 1.0f; text_g = 1.0f; text_b = 0.0f;  // Yellow
     } else {
-        phase_text = "DESPERATE!";
+        phase_text = queen_phase_desperate_text[game->current_language];
         text_r = 1.0f; text_g = 0.0f; text_b = 0.0f;  // Red
     }
+
     
     gl_set_color(text_r, text_g, text_b);
     gl_draw_text_simple(phase_text, (int)(queen->x - 35), (int)(queen->y + 75), 11);
