@@ -231,4 +231,33 @@ static const char* score_label_text[] = {
     "СЧЁТ:"          // Russian
 };
 
+static const char* lives_label_text[] = {
+    "LIVES:",        // English
+    "VIDAS:",        // Spanish
+    "VIES :",        // French
+    "ЖИЗНИ:"         // Russian
+};
+
+static const char* shield_label_text[] = {
+    "SHIELD:",        // English
+    "ESCUDO:",        // Spanish
+    "BOUCLIER :",     // French
+    "ЩИТ:"            // Russian
+};
+
+static const char* HUD_WAVE_LABEL[LANG_COUNT] = {
+    "WAVE: %d",        // EN
+    "OLEADA: %d",      // ES
+    "VAGUE: %d",       // FR
+    "ВОЛНА: %d",       // RU
+};
+
+static const char* asteroids_label_text[] = {
+    "ASTEROIDS:",      // English
+    "ASTEROIDES:",     // Spanish
+    "ASTÉROÏDES :",    // French
+    "АСТЕРОИДЫ:"       // Russian
+};
+
+
 

@@ -811,17 +811,19 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
     char text[256];
     
     // Score (with multiplier indicator)
-    sprintf(text, "SCORE: %d (x%.1f)", game->score, game->score_multiplier);
+    sprintf(text, "%s %d (x%.1f)", score_label_text[game->current_language], game->score, game->score_multiplier);
+
     cairo_move_to(cr, 20, 30);
     cairo_show_text(cr, text);
     
     // Lives
-    sprintf(text, "LIVES: %d", game->ship_lives);
+    sprintf(text, "%s %d", lives_label_text[game->current_language], game->ship_lives);
     cairo_move_to(cr, 20, 55);
     cairo_show_text(cr, text);
     
     // Shield status
-    sprintf(text, "SHIELD: %d/%d", game->shield_health, game->max_shield_health);
+    sprintf(text, "%s %d/%d", shield_label_text[game->current_language], game->shield_health, game->max_shield_health);
+
     if (game->shield_health <= 0) {
         cairo_set_source_rgb(cr, 1.0, 0.3, 0.3);  // Red when no shield
     } else if (game->shield_health == 1) {
@@ -834,12 +836,13 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
     cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);  // Reset to white
     
     // Wave
-    sprintf(text, "WAVE: %d", game->current_wave);
+    snprintf(text, sizeof(text), HUD_WAVE_LABEL[game->current_language], game->current_wave);
     cairo_move_to(cr, width - 180, 30);
     cairo_show_text(cr, text);
     
     // Asteroids remaining
-    sprintf(text, "ASTEROIDS: %d", game->comet_count);
+
+    snprintf(text, sizeof(text), HUD_WAVE_LABEL[game->current_language], game->current_wave);
     cairo_move_to(cr, width - 280, 55);
     cairo_show_text(cr, text);
     

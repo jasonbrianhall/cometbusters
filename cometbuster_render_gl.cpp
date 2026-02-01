@@ -2276,15 +2276,15 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
     // --- TOP LEFT SECTION ---
     // Score (with multiplier indicator)
     gl_set_color(1.0f, 1.0f, 1.0f);
-    sprintf(text, "SCORE: %d (x%.1f)", game->score, game->score_multiplier);
+    sprintf(text, "%s %d (x%.1f)", score_label_text[game->current_language], game->score, game->score_multiplier);
     gl_draw_text_simple(text, 20, 30, 18);
     
     // Lives
-    sprintf(text, "LIVES: %d", game->ship_lives);
+    sprintf(text, "%s %d", lives_label_text[game->current_language], game->ship_lives);
     gl_draw_text_simple(text, 20, 55, 18);
     
     // Shield status
-    sprintf(text, "SHIELD: %d/%d", game->shield_health, game->max_shield_health);
+    sprintf(text, "%s %d/%d", shield_label_text[game->current_language], game->shield_health, game->max_shield_health);
     if (game->shield_health <= 0) {
         gl_set_color(1.0f, 0.3f, 0.3f);  // Red when no shield
     } else if (game->shield_health == 1) {
@@ -2298,7 +2298,7 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
     // --- TOP RIGHT SECTION ---
     // Wave
     gl_set_color(1.0f, 1.0f, 1.0f);
-    sprintf(text, "WAVE: %d", game->current_wave);
+    snprintf(text, sizeof(text), HUD_WAVE_LABEL[game->current_language], game->current_wave);
     gl_draw_text_simple(text, width - 180, 30, 18);
     
     // Asteroids remaining
