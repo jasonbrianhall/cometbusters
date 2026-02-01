@@ -67,7 +67,7 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
            } else if (game->current_wave % 30 == 10) {
                draw_spawn_queen_boss(&game->spawn_queen, cr, width, height); // Spawn Queen (wave 10, 40, 70, etc)
            } else if (game->current_wave % 30 == 15) {
-              draw_void_nexus_boss(&game->boss, cr, width, height);         // Void Nexus (wave 15, 45, 75, etc)
+              draw_void_nexus_boss(game, &game->boss, cr, width, height);         // Void Nexus (wave 15, 45, 75, etc)
            } else if (game->current_wave % 30 == 20) {
               draw_harbinger_boss(game, &game->boss, cr, width, height);          // Harbinger (wave 20, 50, 80, etc)
            } else if (game->current_wave % 30 == 25) {
@@ -1734,7 +1734,7 @@ void draw_harbinger_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int
 // VOID NEXUS RENDERING
 // ============================================================================
 
-void draw_void_nexus_boss(BossShip *boss, cairo_t *cr, int width, int height) {
+void draw_void_nexus_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int width, int height) {
     (void)width;
     (void)height;
     
@@ -1864,11 +1864,12 @@ void draw_void_nexus_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     
     const char *phase_text = "";
+
     switch (boss->phase) {
-        case 0: phase_text = "STABILIZING"; break;
-        case 1: phase_text = "FRAGMENTING"; break;
-        case 2: phase_text = "DISPERSING"; break;
-        default: phase_text = "UNKNOWN"; break;
+        case 0: phase_text = phase_stabilizing_text[game->current_language]; break;
+        case 1: phase_text = phase_fragmenting_text[game->current_language]; break;
+        case 2: phase_text = phase_dispersing_text[game->current_language]; break;
+        default: phase_text = phase_unknown_text[game->current_language]; break;
     }
     
     cairo_move_to(cr, boss->x - 40, boss->y + 50);

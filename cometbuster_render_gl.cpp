@@ -556,7 +556,7 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
            } else if (game->current_wave % 30 == 10) {
                draw_spawn_queen_boss_gl(&game->spawn_queen, cr, width, height);
            } else if (game->current_wave % 30 == 15) {
-              draw_void_nexus_boss_gl(&game->boss, cr, width, height);
+              draw_void_nexus_boss_gl(game, &game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 20) {
               draw_harbinger_boss_gl(game, &game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 25) {
@@ -1873,7 +1873,7 @@ void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int he
     gl_draw_text_simple(phase_text, (int)(queen->x - 35), (int)(queen->y + 75), 11);
 }
 
-void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height) {
+void draw_void_nexus_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)cr; (void)width; (void)height;
     

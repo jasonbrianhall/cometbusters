@@ -554,7 +554,7 @@ void draw_comet_buster_enemy_ships(CometBusterGame *game, cairo_t *cr, int width
 void draw_comet_buster_enemy_bullets(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_ship_burner(cairo_t *cr, double burner_intensity, double length_multiplier);
 void draw_enemy_ship_burner(cairo_t *cr, double burner_intensity, double ship_size);
-void draw_void_nexus_boss(BossShip *boss, cairo_t *cr, int width, int height);
+void draw_void_nexus_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int width, int height);
 void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int width, int height);                                 
 void draw_harbinger_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int width, int height);
 void draw_star_vortex_boss(BossShip *boss, cairo_t *cr, int width, int height);
@@ -703,7 +703,7 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
 // Boss drawing functions
 void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height);
 void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int height);
-void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height);
+void draw_void_nexus_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height);
 void draw_harbinger_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height);
 void draw_star_vortex_boss_gl(BossShip *boss, void *cr, int width, int height);
 void draw_singularity_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height);

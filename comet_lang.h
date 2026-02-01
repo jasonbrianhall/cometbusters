@@ -104,4 +104,26 @@ static const char* continue_texts[] = {
     "ПРАВЫЙ КЛИК, ЧТОБЫ ПРОДОЛЖИТЬ К ВОЛНЕ 31"    // Russian
 };
 
+static const char* phase_stabilizing_text[] = {
+    "STABILIZING",     // English
+    "ESTABILIZANDO",   // Spanish
+    "STABILISATION",   // French
+    "СТАБИЛИЗАЦИЯ"     // Russian
+};
+
+static const char* phase_fragmenting_text[] = {
+    "FRAGMENTING",
+    "FRAGMENTANDO",
+    "FRAGMENTATION",
+    "ФРАГМЕНТАЦИЯ"
+};
+
+static const char* phase_dispersing_text[] = {
+    "DISPERSING",
+    "DISPERSANDO",
+    "DISPERSION",
+    "РАССЕИВАНИЕ"
+};
+
+
 
