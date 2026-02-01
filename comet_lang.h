@@ -301,5 +301,32 @@ static const char* armed_label_text[] = {
     "Заряжено:"      // Russian
 };
 
+static const char* final_score_label_text[] = {
+    "FINAL SCORE:",        // English
+    "PUNTUACIÓN FINAL:",   // Spanish
+    "SCORE FINAL :",       // French
+    "ФИНАЛЬНЫЙ СЧЁТ:"      // Russian
+};
+
+static const char* wave_reached_label_text[] = {
+    "WAVE REACHED:",        // English
+    "OLEADA ALCANZADA:",    // Spanish
+    "VAGUE ATTEINTE :",     // French
+    "ДОСТИГНУТАЯ ВОЛНА:"    // Russian
+};
+
+static const char* shield_hit_text[] = {
+    "SHIELD HIT",          // English
+    "GOLPE AL ESCUDO",     // Spanish
+    "BOUCLIER TOUCHÉ",     // French
+    "ЩИТ ПОВРЕЖДЁН"        // Russian
+};
+
+static const char* energy_used_text[] = {
+    "ENERGY USED",        // English
+    "ENERGÍA USADA",      // Spanish
+    "ÉNERGIE UTILISÉE",   // French
+    "ИСПОЛЬЗОВАНА ЭНЕРГИЯ"// Russian
+};
 
 

@@ -516,8 +516,11 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
         game->energy_amount -= 80.0;
         
         // Floating text for energy absorption
-        comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, 
-                                         "ENERGY USED", 1.0, 1.0, 0.0);  // Yellow
+        comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, energy_used_text[game->current_language],
+    1.0, 1.0, 0.0   // Yellow
+);
+
+
         
         // Minor invulnerability for energy hit
         game->invulnerability_time = 0.5;
@@ -566,8 +569,8 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
         game->shield_impact_timer = 0.2;  // Flash for 0.2 seconds
         
         // Floating text for shield hit
-        comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, 
-                                         "SHIELD HIT", 0.0, 1.0, 1.0);  // Cyan
+        comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, shield_hit_text[game->current_language], 0.0, 1.0, 1.0);
+
         
         // Minor invulnerability for shield hit
         game->invulnerability_time = 0.5;

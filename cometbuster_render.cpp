@@ -977,7 +977,7 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
             cairo_set_font_size(cr, 12);
             cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);  // Yellow for active
             char active_text[32];
-            sprintf(active_text, "Armed: %d", game->bomb_count);
+            sprintf(active_text, "%s %d", armed_label_text[game->current_language], game->bomb_count);
             cairo_move_to(cr, 20, height - 50);
             cairo_show_text(cr, active_text);
         }
@@ -1159,12 +1159,12 @@ void draw_comet_buster_game_over(CometBusterGame *game, cairo_t *cr, int width, 
     cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
     cairo_set_font_size(cr, 24);
     char text[256];
-    sprintf(text, "FINAL SCORE: %d", game->score);
+    sprintf(text, "%s %d", final_score_label_text[game->current_language], game->score); 
     cairo_move_to(cr, width / 2 - 120, height / 2);
     cairo_show_text(cr, text);
     
     // Wave
-    sprintf(text, "WAVE REACHED: %d", game->current_wave);
+    sprintf(text, "%s %d", wave_reached_label_text[game->current_language], game->current_wave);
     cairo_move_to(cr, width / 2 - 100, height / 2 + 40);
     cairo_show_text(cr, text);
     
