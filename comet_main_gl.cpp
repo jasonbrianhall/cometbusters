@@ -86,8 +86,8 @@ typedef struct {
     
     // Menu state
     bool show_menu;
-    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Quit
-    int menu_state;      // 0=Main Menu, 1=Difficulty Select, 2=High Scores Display, 3=Audio Menu
+    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Language, 5=Quit
+    int menu_state;      // 0=Main Menu, 1=Difficulty Select, 2=High Scores Display, 3=Audio Menu, 4=Language Menu
     int gui_difficulty_level; // 1-3
     
     // Music/Audio state tracking
@@ -538,9 +538,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Handle regular menu navigation
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
-                            gui->menu_selection = (gui->menu_selection - 1 + 5) % 5;
+                            gui->menu_selection = (gui->menu_selection - 1 + 6) % 6;
                             if (gui->menu_selection == 0 && gui->visualizer.comet_buster.ship_lives<=0) {
-                                gui->menu_selection = 4;
+                                gui->menu_selection = 5;
                             }
 
                         } else if (gui->menu_state == 1) {
@@ -548,10 +548,15 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             if (gui->gui_difficulty_level < 1) gui->gui_difficulty_level = 3;
                         } else if (gui->menu_state == 3) {
                             gui->menu_selection = (gui->menu_selection - 1 + 2) % 2;
+                        } else if (gui->menu_state == 4) {
+                            gui->visualizer.comet_buster.current_language--;
+                            if (gui->visualizer.comet_buster.current_language < 0) {
+                                gui->visualizer.comet_buster.current_language = 3;
+                            }
                         }
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
-                            gui->menu_selection = (gui->menu_selection + 1) % 5;
+                            gui->menu_selection = (gui->menu_selection + 1) % 6;
                             if (gui->menu_selection == 0 && gui->visualizer.comet_buster.ship_lives<=0) {
                                 gui->menu_selection = 1;
                             }
@@ -560,6 +565,11 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             if (gui->gui_difficulty_level > 3) gui->gui_difficulty_level = 1;
                         } else if (gui->menu_state == 3) {
                             gui->menu_selection = (gui->menu_selection + 1) % 2;
+                        } else if (gui->menu_state == 4) {
+                            gui->visualizer.comet_buster.current_language++;
+                            if (gui->visualizer.comet_buster.current_language > 3) {
+                                gui->visualizer.comet_buster.current_language = 0;
+                            }
                         }
                     } else if (event.key.keysym.sym == SDLK_LEFT) {
                         if (gui->menu_state == 3) {
@@ -612,7 +622,11 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     gui->menu_state = 3;
                                     gui->menu_selection = 0;
                                     break;
-                                case 4:  // Quit
+                                case 4:  // Language
+                                    gui->menu_state = 4;
+                                    gui->menu_selection = 0;
+                                    break;
+                                case 5:  // Quit
                                     gui->running = false;
                                     break;
                             }
@@ -638,6 +652,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         } else if (gui->menu_state == 3) {
                             gui->menu_state = 0;
                             gui->menu_selection = 3;
+                        } else if (gui->menu_state == 4) {
+                            gui->menu_state = 0;
+                            gui->menu_selection = 4;
                         }
                     }
                 } else {
@@ -708,7 +725,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             const int menu_width = 400;
                             const int menu_height = 60;
                             
-                            for (int i = 0; i < 5; i++) {
+                            for (int i = 0; i < 6; i++) {
                                 int menu_y = menu_y_start + (i * menu_spacing);
                                 int menu_x = (1920 - menu_width) / 2;
                                 
@@ -730,7 +747,11 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                             gui->menu_state = 3;
                                             gui->menu_selection = 0;
                                             break;
-                                        case 4:  // Quit
+                                        case 4:  // Language
+                                            gui->menu_state = 4;
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 5:  // Quit
                                             gui->running = false;
                                             break;
                                     }
@@ -775,6 +796,22 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 int option_y = audio_y_start + (i * audio_spacing);
                                 if (mouse_y >= option_y && mouse_y <= option_y + 50) {
                                     gui->menu_selection = i;
+                                }
+                            }
+                        }
+                        // Language menu buttons
+                        else if (gui->menu_state == 4) {
+                            const int lang_y_start = 350;
+                            const int lang_spacing = 120;
+                            const int lang_width = 400;
+                            const int lang_height = 60;
+                            const int lang_x = (1920 - lang_width) / 2;
+                            
+                            for (int i = 0; i < 4; i++) {
+                                int lang_y = lang_y_start + (i * lang_spacing);
+                                if (mouse_x >= lang_x && mouse_x <= lang_x + lang_width &&
+                                    mouse_y >= lang_y && mouse_y <= lang_y + lang_height) {
+                                    gui->visualizer.comet_buster.current_language = i;
                                 }
                             }
                         }
@@ -1004,6 +1041,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                 "NEW GAME",
                 "HIGH SCORES",
                 "AUDIO",
+                "LANGUAGE",
                 "QUIT"
             };
             
@@ -1012,7 +1050,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             int menu_width = 400;
             int menu_height = 60;
             
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 6; i++) {
                 int menu_y = menu_y_start + (i * menu_spacing);
                 int menu_x = (1920 - menu_width) / 2;
                 if (i == 0 && gui->visualizer.comet_buster.ship_lives <= 0) {
@@ -1146,6 +1184,44 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             
             gl_set_color(0.8f, 0.8f, 0.8f);
             gl_draw_text_simple("UP/DOWN to select | LEFT/RIGHT to adjust | ESC to go back", 550, 950, 10);
+        } else if (gui->menu_state == 4) {
+            // Language selection menu
+            gl_set_color(0.0f, 1.0f, 1.0f);
+            gl_draw_text_simple("SELECT LANGUAGE", 800, 150, 24);
+            
+            const char *languages[] = {
+                "ENGLISH",
+                "SPANISH",
+                "FRENCH",
+                "RUSSIAN"
+            };
+            
+            int lang_y_start = 350;
+            int lang_spacing = 120;
+            int lang_width = 400;
+            int lang_height = 60;
+            
+            for (int i = 0; i < 4; i++) {
+                int lang_y = lang_y_start + (i * lang_spacing);
+                int lang_x = (1920 - lang_width) / 2;
+                
+                if (i == gui->visualizer.comet_buster.current_language) {
+                    gl_set_color(1.0f, 1.0f, 0.0f);
+                    gl_draw_rect_filled(lang_x - 3, lang_y - 3, lang_width + 6, lang_height + 6);
+                    gl_set_color(0.0f, 0.5f, 1.0f);
+                    gl_draw_rect_filled(lang_x, lang_y, lang_width, lang_height);
+                    gl_set_color(1.0f, 1.0f, 0.0f);
+                } else {
+                    gl_set_color(0.2f, 0.2f, 0.4f);
+                    gl_draw_rect_filled(lang_x, lang_y, lang_width, lang_height);
+                    gl_set_color(0.7f, 0.7f, 1.0f);
+                }
+                
+                gl_draw_text_simple(languages[i], lang_x + 100, lang_y + 25, 24);
+            }
+            
+            gl_set_color(0.8f, 0.8f, 0.8f);
+            gl_draw_text_simple("UP/DOWN to select language | ENTER to confirm | ESC to go back", 480, 950, 10);
         }
     }
     

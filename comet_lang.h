@@ -224,4 +224,11 @@ static const char* star_vortex_destroyed_text[] = {
     "ЗВЁЗДНЫЙ ВИХРЬ УНИЧТОЖЕН!"      // Russian
 };
 
+static const char* score_label_text[] = {
+    "SCORE:",        // English
+    "PUNTOS:",       // Spanish
+    "SCORE :",       // French
+    "СЧЁТ:"          // Russian
+};
+
 
