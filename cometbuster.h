@@ -542,7 +542,7 @@ void draw_comet_buster_missile_pickups(CometBusterGame *game, cairo_t *cr, int w
 void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_bomb_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_bombs(CometBusterGame *game, cairo_t *cr, int width, int height);
-void draw_comet_buster_boss(BossShip *boss, cairo_t *cr, int width, int height);
+void draw_comet_buster_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int width, int height);
 void draw_spawn_queen_boss(CometBusterGame *game, SpawnQueenBoss *queen, cairo_t *cr, int width, int height);
 void draw_comet_buster_ship(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_comets(CometBusterGame *game, cairo_t *cr, int width, int height);

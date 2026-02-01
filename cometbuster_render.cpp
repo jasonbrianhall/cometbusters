@@ -63,7 +63,7 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
             draw_spawn_queen_boss(game, &game->spawn_queen, cr, width, height);
         } else if (game->boss.active) {
             if (game->current_wave % 30 == 5) {
-               draw_comet_buster_boss(&game->boss, cr, width, height);      // Death Star (wave 5, 35, 65, etc)
+               draw_comet_buster_boss(game, &game->boss, cr, width, height);      // Death Star (wave 5, 35, 65, etc)
            } else if (game->current_wave % 30 == 10) {
                draw_spawn_queen_boss(game, &game->spawn_queen, cr, width, height); // Spawn Queen (wave 10, 40, 70, etc)
            } else if (game->current_wave % 30 == 15) {
@@ -2030,7 +2030,7 @@ void draw_spawn_queen_boss(CometBusterGame *game, SpawnQueenBoss *queen, cairo_t
     cairo_show_text(cr, phase_text);
 }
 
-void draw_comet_buster_boss(BossShip *boss, cairo_t *cr, int width, int height) {
+void draw_comet_buster_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int width, int height) {
     (void)width;
     (void)height;
     
@@ -2396,7 +2396,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
     
     // Draw boss if active
     if (game->boss_active) {
-        draw_comet_buster_boss(&game->boss, cr, width, height);
+        draw_comet_buster_boss(game, &game->boss, cr, width, height);
     }
     
     // Dim the background with overlay for text visibility
@@ -2526,7 +2526,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
         cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, 28.0);
         
-        cairo_text_extents(cr, "%s", subtitle_texts[game->current_language], &extents);
+        cairo_text_extents(cr, subtitle_texts[game->current_language], &extents);
         double subtitle_x = (width - extents.width) / 2.0;
         double subtitle_y = title_y + 80;
         
@@ -2534,7 +2534,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
         double blink_alpha = 0.5 + 0.5 * sin(game->splash_timer * 3.0);
         cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, blink_alpha);
         cairo_move_to(cr, subtitle_x, subtitle_y);
-        cairo_show_text(cr, "%s", subtitle_texts[game->current_language]);
+        cairo_show_text(cr, subtitle_texts[game->current_language]);
     }
 }
 
