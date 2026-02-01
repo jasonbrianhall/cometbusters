@@ -2681,7 +2681,7 @@ void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int wid
     
     // Title "WAVE 30 COMPLETE"
     gl_set_color(1.0f, 1.0f, 0.0f);
-    const char *title = "WAVE 30 COMPLETE";
+    const char *title = wave_complete_text[game->current_language];
     float title_width = gl_calculate_text_width(title, 36);
     float title_x = (width - title_width) / 2.0f;
     gl_draw_text_simple(title, (int)title_x, 80, 36);
@@ -2707,13 +2707,15 @@ void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int wid
         double pulse = 0.5 + 0.5 * sin(game->finale_splash_timer * 2.5);
         gl_set_color_alpha(1.0f, 1.0f, 0.0f, (float)pulse);
         
-        const char *continue_text = "RIGHT-CLICK TO CONTINUE";
+        const char *continue_text = continue_texts[game->current_language];
         float continue_width = gl_calculate_text_width(continue_text, 16);
         float continue_x = (width - continue_width) / 2.0f;
         gl_draw_text_simple(continue_text, (int)continue_x, height - 50, 16);
     }
 }
+
 void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt) {}
+
 void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {
     if (!game || !game->finale_splash_active) return;
     
