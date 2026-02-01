@@ -5,6 +5,7 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#include "comet_lang.h"
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -168,7 +169,9 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->spawn_queen.is_spawn_queen = false;
     game->boss_spawn_timer = 0;
     game->last_boss_wave = 0;  // Track which wave had the boss
-    
+
+    game->current_language = LANG_ENGLISH;
+
     // Initialize boss explosion effect
     boss_explosion_reset(&game->boss_explosion_effect);
     

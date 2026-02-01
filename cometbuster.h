@@ -494,6 +494,8 @@ typedef struct {
     // Boss destruction explosion effect
     BossExplosion boss_explosion_effect;
     
+    int current_language;
+    
 } CometBusterGame;
 
 // Initialization and cleanup

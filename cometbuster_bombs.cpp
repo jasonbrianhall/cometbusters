@@ -5,6 +5,7 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#include "comet_lang.h"
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -105,7 +106,7 @@ bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p, V
         
         // Visual feedback
         char text[32];
-        snprintf(text, sizeof(text), "+%d Bomb", p->bomb_count);
+        snprintf(text, sizeof(text), "+%d %s", p->bomb_count, bomb_text[game->current_language]);
         comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, text, 
                                         1.0, 0.8, 0.0);  // Gold color
         
