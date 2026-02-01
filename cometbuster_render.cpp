@@ -60,12 +60,12 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
     // Draw boss (either Spawn Queen or regular Death Star)
     if (game->boss_active) {
         if (game->spawn_queen.active && game->spawn_queen.is_spawn_queen) {
-            draw_spawn_queen_boss(&game->spawn_queen, cr, width, height);
+            draw_spawn_queen_boss(game, &game->spawn_queen, cr, width, height);
         } else if (game->boss.active) {
             if (game->current_wave % 30 == 5) {
                draw_comet_buster_boss(&game->boss, cr, width, height);      // Death Star (wave 5, 35, 65, etc)
            } else if (game->current_wave % 30 == 10) {
-               draw_spawn_queen_boss(&game->spawn_queen, cr, width, height); // Spawn Queen (wave 10, 40, 70, etc)
+               draw_spawn_queen_boss(game, &game->spawn_queen, cr, width, height); // Spawn Queen (wave 10, 40, 70, etc)
            } else if (game->current_wave % 30 == 15) {
               draw_void_nexus_boss(game, &game->boss, cr, width, height);         // Void Nexus (wave 15, 45, 75, etc)
            } else if (game->current_wave % 30 == 20) {
@@ -1884,7 +1884,7 @@ void draw_void_nexus_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, in
 // RENDERING
 // ============================================================================
 
-void draw_spawn_queen_boss(SpawnQueenBoss *queen, cairo_t *cr, int width, int height) {
+void draw_spawn_queen_boss(CometBusterGame *game, SpawnQueenBoss *queen, cairo_t *cr, int width, int height) {
     (void)width;
     (void)height;
     
@@ -2013,13 +2013,13 @@ void draw_spawn_queen_boss(SpawnQueenBoss *queen, cairo_t *cr, int width, int he
     double text_r, text_g, text_b;
     
     if (queen->phase == 0) {
-        phase_text = "RECRUITING";
+        phase_text = queen_phase_recruiting_text[game->current_language];
         text_r = 1.0; text_g = 0.5; text_b = 0.0;
     } else if (queen->phase == 1) {
-        phase_text = "AGGRESSIVE";
+        phase_text = queen_phase_aggressive_text[game->current_language];
         text_r = 1.0; text_g = 1.0; text_b = 0.0;
     } else {
-        phase_text = "DESPERATE!";
+        phase_text = queen_phase_desperate_text[game->current_language];
         text_r = 1.0; text_g = 0.0; text_b = 0.0;
     }
     
