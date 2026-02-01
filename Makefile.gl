@@ -1,7 +1,8 @@
-# CometBuster Makefile with WAD Audio System
+# CometBuster Makefile with WAD Audio System and FreeType Font Support
 # Based on zenamp project structure
 # Supports Linux and Windows builds with Miniz ZIP library
 # Optimized for static linking on Linux
+# FreeType added for dynamic TTF font rendering
 
 # Package information
 PACKAGE_NAME = cometbuster
@@ -29,6 +30,20 @@ PKG_CONFIG_WIN = mingw64-pkg-config
 SDL2_CONFIG_LINUX = sdl2-config
 SDL2_CONFIG_WIN = mingw64-sdl2-config
 
+# ============================================================================
+# FREETYPE 2 CONFIGURATION
+# ============================================================================
+# FreeType flags for Linux builds
+FREETYPE_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags freetype2 2>/dev/null || echo "-I/usr/include/freetype2")
+FREETYPE_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs freetype2 2>/dev/null || echo "-lfreetype")
+
+# FreeType flags for Windows builds (cross-compile)
+FREETYPE_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags freetype2 2>/dev/null || echo "")
+FREETYPE_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs freetype2 2>/dev/null || echo "-lfreetype")
+
+# ============================================================================
+# SDL2 CONFIGURATION
+# ============================================================================
 # Linux-specific flags (SDL2 and OpenGL only - no GTK)
 SDL2_CFLAGS_LINUX := $(shell $(SDL2_CONFIG_LINUX) --cflags 2>/dev/null || echo "")
 SDL2_LIBS_LINUX := $(shell $(SDL2_CONFIG_LINUX) --libs 2>/dev/null || echo "-lSDL2")
@@ -36,18 +51,18 @@ SDL2_MIXER_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags SDL2_mixer 2>/de
 SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
 # Normal dynamic build
-CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
-CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX
-LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
+CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
+CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX
+LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
 
 # Static build flags for Linux deployment
 # Using -static-libstdc++ and -static-libgcc for C++ and C runtime libraries
 # Note: glibc (libc.so.6) will remain dynamic as per glibc license requirements
 STATIC_FLAGS_LINUX = -static-libstdc++ -static-libgcc
 
-CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
-CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
-LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW $(STATIC_FLAGS_LINUX)
+CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
+CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
+LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW $(STATIC_FLAGS_LINUX)
 
 # Optimization flags for normal build
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
@@ -57,15 +72,15 @@ LDFLAGS_LINUX += -s -Wl,--gc-sections -flto
 CXXFLAGS_LINUX_STATIC += -O2 -ffunction-sections -fdata-sections -flto
 LDFLAGS_LINUX_STATIC += -s -Wl,--gc-sections -flto
 
-# Windows-specific flags (SDL2 only - no GTK)
+# Windows-specific flags (SDL2 and FreeType)
 SDL2_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags sdl2 2>/dev/null || echo "")
 SDL2_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs sdl2 2>/dev/null || echo "-lSDL2")
 SDL2_MIXER_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
-CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
-CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
-LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
+CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
+CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
+LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(FREETYPE_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
 
 CXXFLAGS_WIN += -O2 -ffunction-sections -fdata-sections
 LDFLAGS_WIN += -s -Wl,--gc-sections
@@ -135,21 +150,61 @@ $(shell mkdir -p $(BUILD_DIR_LINUX) $(BUILD_DIR_LINUX_STATIC) $(BUILD_DIR_WIN) $
 
 # Default target - build for Linux
 .PHONY: all
-all: cometbuster-create-wad linux
+all: check-monospace cometbuster-create-wad linux
 
 # OS-specific builds
 .PHONY: windows
-windows: cometbuster-create-wad cometbuster-windows cometbuster-collect-dlls
+windows: check-monospace cometbuster-create-wad cometbuster-windows cometbuster-collect-dlls
 
 .PHONY: linux
-linux: cometbuster-create-wad cometbuster-linux
+linux: check-monospace cometbuster-create-wad cometbuster-linux
 
 .PHONY: linux-static
-linux-static: cometbuster-create-wad cometbuster-linux-static
+linux-static: check-monospace cometbuster-create-wad cometbuster-linux-static
 
 # Debug targets
 .PHONY: debug
-debug: cometbuster-create-wad cometbuster-linux-debug cometbuster-windows-debug cometbuster-collect-debug-dlls
+debug: check-monospace cometbuster-create-wad cometbuster-linux-debug cometbuster-windows-debug cometbuster-collect-debug-dlls
+
+# ============================================================================
+# DEPENDENCY CHECKS
+# ============================================================================
+
+# Check that Monospace.h exists (required for font rendering)
+.PHONY: check-monospace
+check-monospace:
+	@if [ ! -f Monospace.h ]; then \
+		echo "❌ ERROR: Monospace.h not found!"; \
+		echo ""; \
+		echo "You need to generate it from a TTF font using:"; \
+		echo "  python3 ttf_to_base64_header.py yourfont.ttf Monospace.h"; \
+		echo ""; \
+		echo "Example with a system font:"; \
+		echo "  python3 ttf_to_base64_header.py /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf Monospace.h"; \
+		echo ""; \
+		exit 1; \
+	else \
+		echo "✓ Monospace.h found"; \
+	fi
+
+# Check FreeType installation
+.PHONY: check-freetype
+check-freetype:
+	@echo "Checking FreeType installation..."
+	@if $(PKG_CONFIG_LINUX) --exists freetype2; then \
+		echo "✓ FreeType found ($(shell $(PKG_CONFIG_LINUX) --modversion freetype2))"; \
+		echo "  CFLAGS: $(FREETYPE_CFLAGS_LINUX)"; \
+		echo "  LIBS: $(FREETYPE_LIBS_LINUX)"; \
+	else \
+		echo "❌ FreeType not found!"; \
+		echo ""; \
+		echo "Install FreeType development files:"; \
+		echo "  Ubuntu/Debian: sudo apt-get install libfreetype6-dev"; \
+		echo "  macOS:         brew install freetype"; \
+		echo "  Fedora:        sudo dnf install freetype-devel"; \
+		echo ""; \
+		exit 1; \
+	fi
 
 #
 # Linux build targets
@@ -158,10 +213,10 @@ debug: cometbuster-create-wad cometbuster-linux-debug cometbuster-windows-debug 
 cometbuster-linux: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 
 $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX): $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS)
-	@echo "Linking Linux executable (static): $@"
+	@echo "Linking Linux executable (dynamic): $@"
 	$(CXX_LINUX) $(CXXFLAGS_LINUX) $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Build complete: $@"
-	@echo "  (Static C++ runtime, ready)"
+	@echo "  (FreeType-enabled, dynamic linking)"
 
 # Linux compilation rules - C++ files
 $(BUILD_DIR_LINUX)/%.o: %.cpp
@@ -201,7 +256,7 @@ $(BUILD_DIR_LINUX_STATIC)/%.static.o: %.c
 cometbuster-linux-debug: $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)
 
 $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG): $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS)
-	@echo "Linking Linux debug executable (static): $@"
+	@echo "Linking Linux debug executable (dynamic): $@"
 	$(CXX_LINUX) $(CXXFLAGS_LINUX_DEBUG) $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Debug build complete: $@"
 
@@ -267,7 +322,7 @@ cometbuster-collect-dlls: $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)
 		$(BUILD_DIR_WIN)/collect_dlls.sh $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN) $(DLL_SOURCE_DIR) $(BUILD_DIR_WIN); \
 	else \
 		echo "Warning: collect_dlls.sh not found. You may need to manually copy required DLLs."; \
-		echo "Required DLLs typically include: SDL2.dll, SDL2_mixer.dll, etc."; \
+		echo "Required DLLs typically include: SDL2.dll, SDL2_mixer.dll, freetype.dll, etc."; \
 	fi
 
 .PHONY: cometbuster-create-wad
@@ -350,10 +405,14 @@ help:
 	@echo "  make               - Build for Linux (default)"
 	@echo "  make linux         - Build for Linux (dynamic linking)"
 	@echo "  make linux-static  - Build for Linux (static C++ runtime)"
-	@echo "  make windows       - Build for Windows"
+	@echo "  make windows       - Build for Windows (with FreeType support)"
 	@echo "  make debug         - Build debug versions for both platforms"
 	@echo "  make cometbuster-linux-debug   - Build debug for Linux"
 	@echo "  make cometbuster-windows-debug - Build debug for Windows"
+	@echo ""
+	@echo "Dependency checks:"
+	@echo "  make check-freetype - Verify FreeType is installed"
+	@echo "  make check-monospace - Verify Monospace.h exists"
 	@echo ""
 	@echo "WAD audio targets:"
 	@echo "  make wad           - Create cometbuster.wad from sound files"
@@ -379,22 +438,34 @@ help:
 	@echo "Dependencies (Linux):"
 	@echo "  - SDL2, SDL2_mixer (audio, input, windowing)"
 	@echo "  - OpenGL & GLEW (3D rendering)"
+	@echo "  - FreeType 2 (TTF font rendering)"
 	@echo "  - Miniz (ZIP/WAD support)"
 	@echo ""
 	@echo "Dependencies (Windows):"
 	@echo "  - SDL2 & SDL2_mixer DLLs"
 	@echo "  - OpenGL & GLEW DLLs"
+	@echo "  - FreeType DLL"
+	@echo ""
+	@echo "Font setup (IMPORTANT!):"
+	@echo "  Before building, generate Monospace.h from a TTF font:"
+	@echo "  python3 ttf_to_base64_header.py /path/to/font.ttf Monospace.h"
+	@echo ""
+	@echo "  Example with system fonts:"
+	@echo "  - Ubuntu: python3 ttf_to_base64_header.py /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf Monospace.h"
+	@echo "  - macOS:  python3 ttf_to_base64_header.py /Library/Fonts/Courier\ New.ttf Monospace.h"
 	@echo ""
 	@echo "Static vs Dynamic:"
 	@echo "  - make linux: Dynamic linking (normal development)"
 	@echo "  - make linux-static: Static C++ runtime"
 	@echo ""
 	@echo "Example workflow:"
-	@echo "  1. make linux                 # Build for testing"
-	@echo "  2. ./build/linux/cometbuster  # Run and test"
-	@echo "  3. make linux-static          # Build statis"
-	@echo "  4. ./build/linux-static/cometbuster-static"
-	@echo "  5. Upload cometbuster-static"
+	@echo "  1. make check-freetype           # Verify FreeType installed"
+	@echo "  2. python3 ttf_to_base64_header.py yourfont.ttf Monospace.h"
+	@echo "  3. make linux                    # Build for testing"
+	@echo "  4. ./build/linux/cometbuster     # Run and test"
+	@echo "  5. make linux-static             # Build static"
+	@echo "  6. ./build/linux-static/cometbuster-static"
+	@echo "  7. Upload cometbuster-static"
 	@echo ""
 
-.PHONY: all clean install uninstall help linux linux-static windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad
+.PHONY: all clean install uninstall help linux linux-static windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad check-freetype check-monospace
