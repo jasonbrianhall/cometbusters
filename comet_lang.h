@@ -259,5 +259,47 @@ static const char* asteroids_label_text[] = {
     "АСТЕРОИДЫ:"       // Russian
 };
 
+static const char* next_wave_in_text[] = {
+    "NEXT WAVE in",          // English
+    "PRÓXIMA OLEADA en",     // Spanish
+    "PROCHAINE VAGUE dans",  // French
+    "СЛЕДУЮЩАЯ ВОЛНА через"  // Russian
+};
+
+static const char* destroyed_label_text[] = {
+    "DESTROYED:",        // English
+    "DESTRUIDOS:",       // Spanish
+    "DÉTRUITS :",        // French
+    "УНИЧТОЖЕНО:"        // Russian
+};
+
+static const char* energy_label_text[] = {
+    "ENERGY:",        // English
+    "ENERGÍA:",       // Spanish
+    "ÉNERGIE :",      // French
+    "ЭНЕРГИЯ:"        // Russian
+};
+
+static const char* missiles_label_text[] = {
+    "MISSILES:",        // English
+    "MISILES:",         // Spanish
+    "MISSILES :",       // French
+    "РАКЕТЫ:"           // Russian
+};
+
+static const char* bombs_label_text[] = {
+    "BOMBS:",        // English
+    "BOMBAS:",       // Spanish
+    "BOMBES :",      // French
+    "БОМБЫ:"         // Russian
+};
+
+static const char* armed_label_text[] = {
+    "Armed:",        // English
+    "Armado:",       // Spanish
+    "Armé :",        // French
+    "Заряжено:"      // Russian
+};
+
 
 

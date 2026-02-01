@@ -848,7 +848,8 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
     
     // Wave progress info (only show if wave is incomplete)
     if (game->wave_complete_timer > 0) {
-        sprintf(text, "NEXT WAVE in %.1fs", game->wave_complete_timer);
+        sprintf(text, "%s %.1fs", next_wave_in_text[game->current_language], game->wave_complete_timer);
+
         cairo_set_font_size(cr, 18);
         cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);
         cairo_move_to(cr, width / 2 - 160, height / 2 - 50);
@@ -857,7 +858,8 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
         cairo_set_font_size(cr, 18);
     } else if (game->comet_count > 0) {
         int expected_count = comet_buster_get_wave_comet_count(game->current_wave);
-        sprintf(text, "DESTROYED: %d/%d", expected_count - game->comet_count, expected_count);
+        sprintf(text, "%s %d/%d", destroyed_label_text[game->current_language], expected_count - game->comet_count, expected_count);
+
         cairo_set_font_size(cr, 12);
         cairo_move_to(cr, width - 280, 75);
         cairo_show_text(cr, text);
@@ -884,7 +886,7 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
     
     // Fuel bar (bottom left)
     cairo_set_font_size(cr, 14);
-    sprintf(text, "ENERGY: %.0f%%", game->energy_amount);
+    sprintf(text, "%s %.0f%%", energy_label_text[game->current_language], game->energy_amount);    
     
     // Color based on fuel level
     if (game->energy_amount < 20) {
@@ -932,8 +934,7 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
         cairo_set_font_size(cr, 14);
         cairo_set_source_rgb(cr, 1.0, 0.8, 0.0);  // Yellow/orange
         char missile_text[32];
-        sprintf(missile_text, "MISSILES: %d", game->missile_ammo);
-        
+        sprintf(missile_text, "%s %d", missiles_label_text[game->current_language], game->missile_ammo);        
         cairo_move_to(cr, 20, height - 110);  // Moved higher (was -70)
         cairo_show_text(cr, missile_text);
         
@@ -966,7 +967,7 @@ void draw_comet_buster_hud(CometBusterGame *game, cairo_t *cr, int width, int he
         cairo_set_font_size(cr, 14);
         cairo_set_source_rgb(cr, 1.0, 0.6, 0.0);  // Orange for bombs
         char bomb_text[32];
-        sprintf(bomb_text, "BOMBS: %d", game->bomb_ammo);
+        sprintf(bomb_text, "%s %d", bombs_label_text[game->current_language], game->bomb_ammo);
         
         cairo_move_to(cr, 20, height - 65);  // Below missiles
         cairo_show_text(cr, bomb_text);

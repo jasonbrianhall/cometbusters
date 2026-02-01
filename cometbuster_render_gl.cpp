@@ -2302,18 +2302,19 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
     gl_draw_text_simple(text, width - 180, 30, 18);
     
     // Asteroids remaining
-    sprintf(text, "ASTEROIDS: %d", game->comet_count);
+    snprintf(text, sizeof(text), HUD_WAVE_LABEL[game->current_language], game->current_wave);
+
     gl_draw_text_simple(text, width - 280, 55, 18);
     
     // Wave progress info (only show if wave is incomplete)
     if (game->wave_complete_timer > 0) {  // Comet count <= 0 should never happen but I had it happen to me once so I put it here.
-        sprintf(text, "NEXT WAVE in %.1fs", game->wave_complete_timer);
+        sprintf(text, "%s %.1fs", next_wave_in_text[game->current_language], game->wave_complete_timer);
         gl_set_color(1.0f, 1.0f, 0.0f);
         gl_draw_text_simple(text, width / 2 - 160, height / 2 - 50, 18);
         gl_set_color(1.0f, 1.0f, 1.0f);
     } else if (game->comet_count > 0) {
         int expected_count = comet_buster_get_wave_comet_count(game->current_wave);
-        sprintf(text, "DESTROYED: %d/%d", expected_count - game->comet_count, expected_count);
+        sprintf(text, "%s %d/%d", destroyed_label_text[game->current_language], expected_count - game->comet_count, expected_count);
         gl_set_color(1.0f, 1.0f, 1.0f);
         gl_draw_text_simple(text, width - 280, 75, 12);
     }
@@ -2338,7 +2339,7 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
     // --- BOTTOM LEFT SECTION ---
     // Energy bar
     gl_set_color(1.0f, 1.0f, 1.0f);
-    sprintf(text, "ENERGY: %.0f%%", game->energy_amount);
+    sprintf(text, "%s %.0f%%", energy_label_text[game->current_language], game->energy_amount);    
     
     // Color based on fuel level
     if (game->energy_amount < 20) {
@@ -2381,7 +2382,7 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
     if (game->missile_ammo > 0 || game->using_missiles) {
         gl_set_color(1.0f, 0.8f, 0.0f);  // Yellow/orange
         char missile_text[32];
-        sprintf(missile_text, "MISSILES: %d", game->missile_ammo);
+        sprintf(missile_text, "%s %d", missiles_label_text[game->current_language], game->missile_ammo);        
         
         gl_draw_text_simple(missile_text, 20, height - 110, 14);
         
@@ -2410,7 +2411,7 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
     if (game->bomb_ammo > 0 || game->bomb_count > 0) {
         gl_set_color(1.0f, 0.6f, 0.0f);  // Orange for bombs
         char bomb_text[32];
-        sprintf(bomb_text, "BOMBS: %d", game->bomb_ammo);
+        sprintf(bomb_text, "%s %d", bombs_label_text[game->current_language], game->bomb_ammo);
         
         gl_draw_text_simple(bomb_text, 20, height - 65, 14);
         
@@ -2418,7 +2419,7 @@ void draw_comet_buster_hud_gl(CometBusterGame *game, void *cr, int width, int he
         if (game->bomb_count > 0) {
             gl_set_color(1.0f, 1.0f, 0.0f);  // Yellow for active
             char active_text[32];
-            sprintf(active_text, "Armed: %d", game->bomb_count);
+            sprintf(active_text, "%s %d", armed_label_text[game->current_language], game->bomb_count);
             gl_draw_text_simple(active_text, 20, height - 50, 12);
         }
         
