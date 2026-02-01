@@ -558,11 +558,11 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
            } else if (game->current_wave % 30 == 15) {
               draw_void_nexus_boss_gl(&game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 20) {
-              draw_harbinger_boss_gl(&game->boss, cr, width, height);
+              draw_harbinger_boss_gl(game, &game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 25) {
               draw_star_vortex_boss_gl(&game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 0) {
-              draw_singularity_boss_gl(&game->boss, cr, width, height);
+              draw_singularity_boss_gl(game, &game->boss, cr, width, height);
            }
        }
     }
@@ -1983,7 +1983,7 @@ void draw_void_nexus_boss_gl(BossShip *boss, void *cr, int width, int height) {
     gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
 }
 
-void draw_harbinger_boss_gl(BossShip *boss, void *cr, int width, int height) {
+void draw_harbinger_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)cr; (void)width; (void)height;
     
@@ -2169,7 +2169,7 @@ void draw_star_vortex_boss_gl(BossShip *boss, void *cr, int width, int height) {
     gl_draw_rect_outline((float)bar_x, (float)bar_y, (float)bar_width, (float)bar_height, 1.0f);
 }
 
-void draw_singularity_boss_gl(BossShip *boss, void *cr, int width, int height) {
+void draw_singularity_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)cr; (void)width; (void)height;
     

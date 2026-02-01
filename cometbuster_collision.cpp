@@ -449,8 +449,6 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     }
     boss_explosion_create(&game->boss_explosion_effect, boss->x, boss->y, boss_type);
 
-
-    
     // Play explosion sound - but NOT during splash screen
     if (vis && !game->splash_screen_active) {
         Visualizer *visualizer = (Visualizer *)vis;

@@ -69,11 +69,11 @@ void draw_comet_buster(Visualizer *visualizer, cairo_t *cr) {
            } else if (game->current_wave % 30 == 15) {
               draw_void_nexus_boss(&game->boss, cr, width, height);         // Void Nexus (wave 15, 45, 75, etc)
            } else if (game->current_wave % 30 == 20) {
-              draw_harbinger_boss(&game->boss, cr, width, height);          // Harbinger (wave 20, 50, 80, etc)
+              draw_harbinger_boss(game, &game->boss, cr, width, height);          // Harbinger (wave 20, 50, 80, etc)
            } else if (game->current_wave % 30 == 25) {
               draw_star_vortex_boss(&game->boss, cr, width, height);        // Star Vortex (wave 25, 55, 85, etc)
            } else if (game->current_wave % 30 == 0) {
-              draw_singularity_boss(&game->boss, cr, width, height);        // Singularity (wave 30, 60, 90, etc)
+              draw_singularity_boss(game, &game->boss, cr, width, height);        // Singularity (wave 30, 60, 90, etc)
            }
        }
     }
@@ -1491,7 +1491,7 @@ void draw_comet_buster_bomb_pickups(CometBusterGame *game, cairo_t *cr, int widt
     }
 }
 
-void draw_singularity_boss(BossShip *boss, cairo_t *cr, int width, int height) {
+void draw_singularity_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int width, int height) {
     (void)width;
     (void)height;
     
@@ -1587,19 +1587,20 @@ void draw_singularity_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
     
     const char *phase_text = "";
+
     switch (boss->phase) {
-        case 0: phase_text = "GRAVITATIONAL PULL"; break;
-        case 1: phase_text = "STELLAR COLLAPSE"; break;
-        case 2: phase_text = "VOID EXPANSION"; break;
-        case 3: phase_text = "SINGULARITY COLLAPSE"; break;
-        default: phase_text = "UNKNOWN"; break;
+        case 0: phase_text = phase0_text[game->current_language]; break;
+        case 1: phase_text = phase1_text[game->current_language]; break;
+        case 2: phase_text = phase2_text[game->current_language]; break;
+        case 3: phase_text = phase3_text[game->current_language]; break;
+        default: phase_text = phase_unknown_text[game->current_language]; break;
     }
     
     cairo_move_to(cr, boss->x - 70, boss->y + 70);
     cairo_show_text(cr, phase_text);
 }
 
-void draw_harbinger_boss(BossShip *boss, cairo_t *cr, int width, int height) {
+void draw_harbinger_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, int width, int height) {
     (void)width;
     (void)height;
     
@@ -1719,10 +1720,11 @@ void draw_harbinger_boss(BossShip *boss, cairo_t *cr, int width, int height) {
     cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
     cairo_set_font_size(cr, 12);
     const char *phase_text = "";
+
     switch (boss->phase) {
-        case 0: phase_text = "DORMANT"; break;
-        case 1: phase_text = "ACTIVE"; break;
-        case 2: phase_text = "FRENZY"; break;
+        case 0: phase_text = phase_dormant_text[game->current_language]; break;
+        case 1: phase_text = phase_active_text[game->current_language]; break;
+        case 2: phase_text = phase_frenzy_text[game->current_language]; break;
     }
     cairo_move_to(cr, boss->x - 25, boss->y + 65);
     cairo_show_text(cr, phase_text);
@@ -2619,7 +2621,7 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
         cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, pulse);
         
         cairo_set_font_size(cr, 16);
-        const char *continue_text = "RIGHT-CLICK TO CONTINUE TO WAVE 31";
+        const char *continue_text = continue_texts[game->current_language];
         cairo_text_extents(cr, continue_text, &extents);
         cairo_move_to(cr, width/2.0 - extents.width/2.0, height - 50);
         cairo_show_text(cr, continue_text);
