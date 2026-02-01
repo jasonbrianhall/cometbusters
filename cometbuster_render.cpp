@@ -6,6 +6,7 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#include "comet_lang.h"
 #ifdef ExternalSound
 #include "cometbuster_splashscreen.h"
 #endif
@@ -2591,7 +2592,7 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
     cairo_set_font_size(cr, 36);
     cairo_text_extents_t extents;
     
-    const char *title = "WAVE 30 COMPLETE";
+    const char *title = wave_complete_text[game->current_language];
     cairo_text_extents(cr, title, &extents);
     cairo_move_to(cr, width/2.0 - extents.width/2.0, 80);
     cairo_show_text(cr, title);

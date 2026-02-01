@@ -34,4 +34,10 @@ static const char* boss_destroyed_text[] = {
     "БОСС УНИЧТОЖЕН!"      // Russian
 };
 
+static const char* wave_complete_text[] = {
+    "WAVE 30 COMPLETE",      // English
+    "OLEADA 30 COMPLETADA",  // Spanish
+    "VAGUE 30 TERMINÉE",     // French
+    "ВОЛНА 30 ЗАВЕРШЕНА"     // Russian
+};
 
