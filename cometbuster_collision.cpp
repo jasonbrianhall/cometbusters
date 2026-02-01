@@ -5,6 +5,7 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#include "comet_lang.h"
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -182,7 +183,7 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
         
         // Spawn floating text popup
         char text[32];
-        snprintf(text, sizeof(text), "* +1 LIFE *");
+        snprintf(text, sizeof(text), "* %s *", life_text[game->current_language]);
         comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, text, 1.0, 1.0, 0.0);  // Yellow
     }
     
@@ -196,7 +197,7 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
         if ((int)(game->score_multiplier * 2) != (int)(old_multiplier * 2)) {
             // Visual feedback for multiplier increase
             char mult_text[32];
-            snprintf(mult_text, sizeof(mult_text), "Multiplier x%.1f", game->score_multiplier);
+            snprintf(mult_text, sizeof(mult_text), "%s x%.1f", multiplier_text[game->current_language], game->score_multiplier);
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y + 30, mult_text, 1.0, 1.0, 0.0);  // Yellow
             
             // Audio feedback for multiplier increase
@@ -366,7 +367,7 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
         if ((int)(game->score_multiplier * 2) != (int)(old_multiplier * 2)) {
             // Visual feedback for multiplier increase
             char mult_text[32];
-            snprintf(mult_text, sizeof(mult_text), "Multiplier x%.1f", game->score_multiplier);
+            snprintf(mult_text, sizeof(mult_text), "%s x%.1f", multiplier_text[game->current_language], game->score_multiplier);
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y + 30, mult_text, 1.0, 1.0, 0.0);  // Yellow
             
             // Audio feedback for multiplier increase
@@ -466,7 +467,8 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     
     // Floating text - BIG text
     char text[64];
-    snprintf(text, sizeof(text), "BOSS DESTROYED! +%d", score_add);
+    snprintf(text, sizeof(text), "%s +%d", boss_destroyed_text[game->current_language], score_add);
+
     comet_buster_spawn_floating_text(game, boss->x, boss->y, text, 1.0, 1.0, 0.0);  // Yellow
     
     // Increase multiplier significantly
@@ -475,7 +477,7 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     
     // MAJOR visual feedback for boss multiplier increase - always show for boss kills
     char mult_text[64];
-    snprintf(mult_text, sizeof(mult_text), "*** Multiplier x%.1f ***", game->score_multiplier);
+    snprintf(mult_text, sizeof(mult_text), "*** %s x%.1f ***", multiplier_text[game->current_language], game->score_multiplier);
     comet_buster_spawn_floating_text(game, boss->x, boss->y - 50, mult_text, 1.0, 0.8, 0.0);  // Gold/Orange
     
     // Audio feedback for boss multiplier increase (louder/more dramatic)

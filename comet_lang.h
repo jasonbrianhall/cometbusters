@@ -13,5 +13,25 @@ static const char* bomb_text[] = {
     "Бомба" // Russian 
 };
 
+static const char* life_text[] = {
+    "+1 LIFE",      // English
+    "+1 VIDA",      // Spanish
+    "+1 VIE",       // French
+    "+1 ЖИЗНЬ"      // Russian
+};
+
+static const char* multiplier_text[] = {
+    "Multiplier",   // English
+    "Multiplicador",// Spanish
+    "Multiplicateur",// French
+    "Множитель"     // Russian
+};
+
+static const char* boss_destroyed_text[] = {
+    "BOSS DESTROYED!",     // English
+    "¡JEFE DESTRUIDO!",    // Spanish
+    "BOSS DÉTRUIT!",       // French
+    "БОСС УНИЧТОЖЕН!"      // Russian
+};
 
 
