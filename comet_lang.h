@@ -174,4 +174,54 @@ static const char* queen_phase_desperate_text[] = {
     "ОТЧАЯННАЯ!"
 };
 
+static const char* boss_bonus_text[] = {
+    "BOSS BONUS",        // English
+    "BONO DE JEFE",      // Spanish
+    "BONUS DE BOSS",     // French
+    "БОНУС ЗА БОССА"      // Russian
+};
+
+static const char* phase1_offensive_text[] = {
+    "PHASE 1: OFFENSIVE!",          // English
+    "FASE 1: OFENSIVA!",            // Spanish
+    "PHASE 1 : OFFENSIVE !",        // French
+    "ФАЗА 1: НАСТУПЛЕНИЕ!"          // Russian
+};
+
+
+static const char* phase2_detonation_text[] = {
+    "PHASE 2: DETONATION!",          // English
+    "FASE 2: DETONACIÓN!",           // Spanish
+    "PHASE 2 : DÉTONATION !",        // French
+    "ФАЗА 2: ДЕТОНАЦИЯ!"             // Russian
+};
+
+static const char* spawning_escorts_text[] = {
+    "SPAWNING ESCORTS!",          // English
+    "GENERANDO ESCOLTAS!",        // Spanish
+    "APPARITION D'ESCORTES !",    // French
+    "ПРИЗЫВ ЭСКОРТОВ!"            // Russian
+};
+
+static const char* suppressing_threats_text[] = {
+    "SUPPRESSING THREATS!",          // English
+    "SUPRIMIENDO AMENAZAS!",         // Spanish
+    "SUPPRESSION DES MENACES !",     // French
+    "ПОДАВЛЕНИЕ УГРОЗ!"              // Russian
+};
+
+static const char* core_destabilizing_text[] = {
+    "CORE DESTABILIZING!",          // English
+    "¡NÚCLEO DESestabilizándose!",  // Spanish
+    "DÉSTABILISATION DU NŒUD !",    // French
+    "ЯДРО ДЕСТАБИЛИЗИРУЕТСЯ!"        // Russian
+};
+
+static const char* star_vortex_destroyed_text[] = {
+    "STAR VORTEX DESTROYED!",        // English
+    "¡VÓRTICE ESTELAR DESTRUIDO!",   // Spanish
+    "VORTEX STELLAIRE DÉTRUIT !",    // French
+    "ЗВЁЗДНЫЙ ВИХРЬ УНИЧТОЖЕН!"      // Russian
+};
+
 

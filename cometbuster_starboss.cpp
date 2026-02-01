@@ -5,6 +5,7 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#include "comet_lang.h"
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -130,7 +131,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
     // Check if boss health reached zero in ANY phase before Phase 2 - transition to Phase 2
     if (boss->health <= 0 && boss->phase < 2) {
         fprintf(stdout, "[STAR VORTEX] Boss health reached zero! Entering Phase 2 (10 Second Countdown)\n");
-        comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "PHASE 2: DETONATION!", 1.0, 0.5, 0.0);
+        comet_buster_spawn_floating_text( game, boss->x, boss->y - 80, phase2_detonation_text[game->current_language], 1.0, 0.5, 0.0 );
         boss->phase = 2;
         boss->phase_timer = 0;
         boss->burst_angle_offset = 0;
@@ -228,7 +229,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         // Auto-advance to Phase 1 after phase duration
         if (boss->phase_timer >= boss->phase_duration) {
             fprintf(stdout, "[STAR VORTEX] Phase 0 complete. Entering Phase 1 (Juggernaut spawn)\n");
-            comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "PHASE 1: OFFENSIVE!", 1.0, 1.0, 0.0);
+            comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, phase1_offensive_text[game->current_language], 1.0, 1.0, 0.0);
             boss->phase = 1;
             boss->phase_timer = 0;
             boss->burst_angle_offset = 0;
@@ -249,7 +250,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         // Spawn juggernauts periodically
         boss->fire_pattern_timer += dt;
         if (boss->fire_pattern_timer >= 3.0) {
-            comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "SPAWNING ESCORTS!", 1.0, 0.5, 1.0);
+            comet_buster_spawn_floating_text( game, boss->x, boss->y - 80, spawning_escorts_text[game->current_language], 1.0, 0.5, 1.0 ); 
             star_vortex_spawn_juggernauts(game, width, height);
             boss->fire_pattern_timer = 0;
         }
@@ -264,7 +265,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         // Shoot bullets at nearby asteroids
         boss->burst_angle_offset += dt;
         if (boss->burst_angle_offset >= 0.4) {  // Fire bullets every 0.4 seconds
-            comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, "SUPPRESSING THREATS!", 0.0, 1.0, 1.0);
+            comet_buster_spawn_floating_text( game, boss->x, boss->y - 80, suppressing_threats_text[game->current_language], 0.0, 1.0, 1.0 );
             star_vortex_shoot_asteroids(game);
             boss->burst_angle_offset = 0;
         }
@@ -279,7 +280,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         
         // Show initial phase 2 message when countdown is 10 (first second only)
         if (countdown == 10) {
-            comet_buster_spawn_floating_text(game, boss->x, boss->y + 80, "CORE DESTABILIZING!", 1.0, 0.0, 0.0);
+            comet_buster_spawn_floating_text( game, boss->x, boss->y + 80, core_destabilizing_text[game->current_language], 1.0, 0.0, 0.0 );
         }
         
         // Make boss immortal during countdown
@@ -307,8 +308,8 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
             game->boss_active = false;
             
             // Major victory display
-            comet_buster_spawn_floating_text(game, boss->x, boss->y, "STAR VORTEX DESTROYED!", 1.0, 1.0, 0.0);
-            
+            comet_buster_spawn_floating_text(game, boss->x, boss->y, star_vortex_destroyed_text[game->current_language], 1.0, 1.0, 0.0);
+
             // Massive explosion effect
             comet_buster_spawn_explosion(game, boss->x, boss->y, 1, 100);
             
@@ -316,7 +317,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
             int bonus = 50000;
             game->score += bonus;
             char bonus_text[64];
-            snprintf(bonus_text, sizeof(bonus_text), "+%d BOSS BONUS", bonus);
+            snprintf(bonus_text, sizeof(bonus_text), "+%d %s", bonus, boss_bonus_text[game->current_language]); 
             comet_buster_spawn_floating_text(game, boss->x, boss->y - 40, bonus_text, 1.0, 1.0, 0.2);
             
             return;
