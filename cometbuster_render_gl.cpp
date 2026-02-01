@@ -193,11 +193,73 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 }
 
 // ============================================================================
-// TEXT RENDERING - Monospace.h Font Support
+// TEXT RENDERING - Monospace.h Font Support with UTF-8
 // ============================================================================
+
+// UTF-8 Decoder: Convert UTF-8 byte sequence to Unicode codepoint
+// Returns the Unicode codepoint and updates bytes_read with number of bytes consumed
+// Handles:
+//   - ASCII (1 byte): 0x00-0x7F
+//   - Latin Extended (2 bytes): 0xC0-0xDF
+//   - Cyrillic, CJK, etc. (3 bytes): 0xE0-0xEF
+//   - Full Unicode (4 bytes): 0xF0-0xF7
+static unsigned int utf8_to_codepoint(const unsigned char *str, int *bytes_read) {
+    if (!str || !bytes_read) {
+        *bytes_read = 0;
+        return 0;
+    }
+    
+    unsigned char c0 = str[0];
+    
+    // Single byte (ASCII: 0x00-0x7F)
+    if (c0 < 0x80) {
+        *bytes_read = 1;
+        return c0;
+    }
+    
+    // Two bytes (Latin Extended: 0xC0-0xDF)
+    // Examples: á (0xE1), é (0xE9), ñ (0xF1)
+    if ((c0 & 0xE0) == 0xC0) {
+        *bytes_read = 2;
+        unsigned char c1 = str[1];
+        if ((c1 & 0xC0) != 0x80) {
+            return 0;  // Invalid UTF-8
+        }
+        return ((c0 & 0x1F) << 6) | (c1 & 0x3F);
+    }
+    
+    // Three bytes (Cyrillic, Greek, etc: 0xE0-0xEF)
+    // Examples: А (0x0410), Б (0x0411), etc.
+    if ((c0 & 0xF0) == 0xE0) {
+        *bytes_read = 3;
+        unsigned char c1 = str[1];
+        unsigned char c2 = str[2];
+        if ((c1 & 0xC0) != 0x80 || (c2 & 0xC0) != 0x80) {
+            return 0;  // Invalid UTF-8
+        }
+        return ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
+    }
+    
+    // Four bytes (CJK, Emoji: 0xF0-0xF7)
+    if ((c0 & 0xF8) == 0xF0) {
+        *bytes_read = 4;
+        unsigned char c1 = str[1];
+        unsigned char c2 = str[2];
+        unsigned char c3 = str[3];
+        if ((c1 & 0xC0) != 0x80 || (c2 & 0xC0) != 0x80 || (c3 & 0xC0) != 0x80) {
+            return 0;  // Invalid UTF-8
+        }
+        return ((c0 & 0x07) << 18) | ((c1 & 0x3F) << 12) | ((c2 & 0x3F) << 6) | (c3 & 0x3F);
+    }
+    
+    // Invalid UTF-8 sequence
+    *bytes_read = 1;
+    return 0;
+}
 
 // Calculate actual text width based on glyph metrics
 // Use advance field which includes proper character spacing
+// Now handles UTF-8 encoded text (English, Spanish, French, Russian)
 static float gl_calculate_text_width(const char *text, int font_size) {
     if (!text || !text[0]) return 0.0f;
     
@@ -205,13 +267,27 @@ static float gl_calculate_text_width(const char *text, int font_size) {
     float scale = (float)font_size / ref_height;
     float width = 0.0f;
     
-    for (int i = 0; text[i]; i++) {
-        unsigned char ch = (unsigned char)text[i];
-        const GlyphData *glyph = get_glyph(ch);
+    // Process UTF-8 text byte by byte
+    for (int i = 0; text[i]; ) {
+        int bytes_read = 0;
+        unsigned int codepoint = utf8_to_codepoint((const unsigned char*)&text[i], &bytes_read);
+        
+        if (bytes_read == 0) {
+            // Invalid UTF-8 sequence, skip this byte
+            i++;
+            continue;
+        }
+        
+        const GlyphData *glyph = get_glyph(codepoint);
         if (glyph) {
             // Use advance field (includes character width + proper spacing)
             width += (float)glyph->advance * scale;
+        } else {
+            // Character not in font, use fallback width
+            width += scale * 17.0f;  // Rough estimate
         }
+        
+        i += bytes_read;  // Move to next character
     }
     
     return width;
@@ -233,11 +309,19 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     int vert_count = 0;
     const int MAX_VERTS = 999994;  // Leave room for safety
     
-    for (int i = 0; text[i] && vert_count < MAX_VERTS - 6; i++) {
-        unsigned char ch = (unsigned char)text[i];
+    // Process UTF-8 text byte by byte
+    for (int i = 0; text[i] && vert_count < MAX_VERTS - 6; ) {
+        int bytes_read = 0;
+        unsigned int codepoint = utf8_to_codepoint((const unsigned char*)&text[i], &bytes_read);
         
-        // Get glyph from font
-        const GlyphData *glyph = get_glyph(ch);
+        if (bytes_read == 0) {
+            // Invalid UTF-8 sequence, skip this byte
+            i++;
+            continue;
+        }
+        
+        // Get glyph from font using Unicode codepoint
+        const GlyphData *glyph = get_glyph(codepoint);
         
         // Calculate advance (proper character spacing) BEFORE checking if it exists
         // Use the advance field which includes character width + proper spacing
@@ -247,6 +331,7 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         if (!glyph || !glyph->bitmap) {
             // Still advance position for missing glyphs (like spaces)
             current_x += glyph_advance;
+            i += bytes_read;
             continue;
         }
         
@@ -286,6 +371,7 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         
         // Move to next character position using advance width
         current_x += glyph_advance;
+        i += bytes_read;  // Move to next UTF-8 character
     }
     
     // Draw all glyphs at once

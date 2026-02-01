@@ -2168,13 +2168,13 @@ void draw_comet_buster_boss(BossShip *boss, cairo_t *cr, int width, int height) 
     double phase_r, phase_g, phase_b;
     
     if (boss->phase == 0) {
-        phase_text = "NORMAL";
+        phase_text = phase_normal_text[game->current_language];
         phase_r = 1.0; phase_g = 1.0; phase_b = 0.5;  // Yellow
     } else if (boss->phase == 1) {
-        phase_text = "SHIELDED";
+        phase_text = phase_shielded_text[game->current_language];
         phase_r = 0.0; phase_g = 1.0; phase_b = 1.0;  // Cyan
     } else {
-        phase_text = "ENRAGED!";
+        phase_text = phase_enraged_text[game->current_language];
         phase_r = 1.0; phase_g = 0.2; phase_b = 0.2;  // Red
     }
     
@@ -2526,7 +2526,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
         cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, 28.0);
         
-        cairo_text_extents(cr, "Press fire key to start", &extents);
+        cairo_text_extents(cr, "%s", subtitle_texts[game->current_language], &extents);
         double subtitle_x = (width - extents.width) / 2.0;
         double subtitle_y = title_y + 80;
         
@@ -2534,7 +2534,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
         double blink_alpha = 0.5 + 0.5 * sin(game->splash_timer * 3.0);
         cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, blink_alpha);
         cairo_move_to(cr, subtitle_x, subtitle_y);
-        cairo_show_text(cr, "Press fire key to start");
+        cairo_show_text(cr, "%s", subtitle_texts[game->current_language]);
     }
 }
 
