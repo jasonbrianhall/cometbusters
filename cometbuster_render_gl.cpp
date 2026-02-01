@@ -9,6 +9,7 @@
 #include "cometbuster.h"
 #include "visualization.h"
 #include "cometbuster_splashscreen.h"
+#include "comet_lang.h"
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -552,7 +553,7 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
             draw_spawn_queen_boss_gl(&game->spawn_queen, cr, width, height);
         } else if (game->boss.active) {
             if (game->current_wave % 30 == 5) {
-               draw_comet_buster_boss_gl(&game->boss, cr, width, height);
+               draw_comet_buster_boss_gl(game, &game->boss, cr, width, height);
            } else if (game->current_wave % 30 == 10) {
                draw_spawn_queen_boss_gl(&game->spawn_queen, cr, width, height);
            } else if (game->current_wave % 30 == 15) {
@@ -1540,7 +1541,7 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
     }
 }
 
-void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height) {
+void draw_comet_buster_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height) {
     if (!boss || !boss->active) return;
     (void)cr; (void)width; (void)height;
     
@@ -1637,15 +1638,16 @@ void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height) 
     float phase_r = 1.0f, phase_g = 1.0f, phase_b = 0.5f;
     
     if (boss->phase == 0) {
-        phase_text = "NORMAL";
+        phase_text = phase_normal_text[game->current_language];
         phase_r = 1.0f; phase_g = 1.0f; phase_b = 0.5f;  // Yellow
     } else if (boss->phase == 1) {
-        phase_text = "SHIELDED";
+        phase_text = phase_shielded_text[game->current_language];
         phase_r = 0.0f; phase_g = 1.0f; phase_b = 1.0f;  // Cyan
     } else {
-        phase_text = "ENRAGED!";
+        phase_text = phase_enraged_text[game->current_language];
         phase_r = 1.0f; phase_g = 0.2f; phase_b = 0.2f;  // Red
     }
+
     
     gl_set_color(phase_r, phase_g, phase_b);
     gl_draw_text_simple(phase_text, (int)(boss->x - 25), (int)(boss->y - 25), 10);
@@ -2484,7 +2486,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
     
     // Draw boss if active
     if (game->boss_active) {
-        draw_comet_buster_boss_gl(&game->boss, cr, width, height);
+        draw_comet_buster_boss_gl(game, &game->boss, cr, width, height);
     }
     
     // Dim the background with overlay for text visibility
@@ -2571,7 +2573,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         gl_draw_text_simple(title_text, title_x, title_y, 120);
         
         // Draw subtitle
-        const char *subtitle = "Press fire key to start";
+        const char *subtitle = subtitle_texts[game->current_language];
         float subtitle_width = gl_calculate_text_width(subtitle, 28);
         float ideal_subtitle_x = (viewport_width - subtitle_width) / 2.0f;
         int subtitle_x = (int)ideal_subtitle_x;
@@ -2604,7 +2606,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         gl_draw_text_simple(title_text, title_x, title_y, 120);
         
         // Draw subtitle
-        const char *subtitle = "Press fire key to start";
+        const char *subtitle = subtitle_texts[game->current_language];
         float subtitle_width = gl_calculate_text_width(subtitle, 28);
         float ideal_subtitle_x = (viewport_width - subtitle_width) / 2.0f;
         int subtitle_x = (int)ideal_subtitle_x;

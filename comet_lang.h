@@ -125,5 +125,33 @@ static const char* phase_dispersing_text[] = {
     "РАССЕИВАНИЕ"
 };
 
+static const char* subtitle_texts[] = {
+    "Press fire key to start",            // English
+    "Pulsa la tecla de disparo para iniciar", // Spanish
+    "Appuyez sur la touche tir pour démarrer", // French
+    "Нажмите клавишу огня, чтобы начать"      // Russian
+};
+
+static const char* phase_normal_text[] = {
+    "NORMAL",        // English
+    "NORMAL",        // Spanish
+    "NORMAL",        // French
+    "НОРМАЛЬНО"      // Russian
+};
+
+static const char* phase_shielded_text[] = {
+    "SHIELDED",
+    "BLINDADO",
+    "PROTÉGÉ",
+    "ЗАЩИЩЁН"
+};
+
+static const char* phase_enraged_text[] = {
+    "ENRAGED!",
+    "¡ENFURECIDO!",
+    "ENRAGÉ!",
+    "ВБЕШЕНСТВЕ!"
+};
+
 
 

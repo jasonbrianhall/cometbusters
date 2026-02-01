@@ -701,7 +701,7 @@ void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, 
 void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height);
 
 // Boss drawing functions
-void draw_comet_buster_boss_gl(BossShip *boss, void *cr, int width, int height);
+void draw_comet_buster_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height);
 void draw_spawn_queen_boss_gl(SpawnQueenBoss *queen, void *cr, int width, int height);
 void draw_void_nexus_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height);
 void draw_harbinger_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height);
