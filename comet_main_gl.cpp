@@ -23,6 +23,7 @@
 #include "visualization.h"
 #include "audio_wad.h"
 #include "comet_lang.h"
+#include "comet_preferences.h"
 
 // ============================================================
 // LOCAL HIGH SCORE ENTRY STATE (Not in header - local only)
@@ -102,6 +103,7 @@ typedef struct {
     SDL_Joystick *joystick;
     int music_volume;
     int sfx_volume;
+    CometPreferences preferences;  // Persistent user preferences (language, volumes)
 } CometGUI;
 
 // ============================================================
@@ -554,6 +556,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             if (gui->visualizer.comet_buster.current_language < 0) {
                                 gui->visualizer.comet_buster.current_language = 3;
                             }
+                            // SAVE PREFERENCES
+                            gui->preferences.language = gui->visualizer.comet_buster.current_language;
+                            preferences_save(&gui->preferences);
                         }
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
@@ -571,6 +576,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             if (gui->visualizer.comet_buster.current_language > 3) {
                                 gui->visualizer.comet_buster.current_language = 0;
                             }
+                            // SAVE PREFERENCES
+                            gui->preferences.language = gui->visualizer.comet_buster.current_language;
+                            preferences_save(&gui->preferences);
                         }
                     } else if (event.key.keysym.sym == SDLK_LEFT) {
                         if (gui->menu_state == 3) {
@@ -578,10 +586,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 gui->music_volume = (gui->music_volume - 5);
                                 if (gui->music_volume < 0) gui->music_volume = 0;
                                 audio_set_music_volume(&gui->audio, gui->music_volume);
+                                // SAVE PREFERENCES
+                                gui->preferences.music_volume = gui->music_volume;
+                                preferences_save(&gui->preferences);
                             } else {
                                 gui->sfx_volume = (gui->sfx_volume - 5);
                                 if (gui->sfx_volume < 0) gui->sfx_volume = 0;
                                 audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
+                                // SAVE PREFERENCES
+                                gui->preferences.sfx_volume = gui->sfx_volume;
+                                preferences_save(&gui->preferences);
                             }
                         }
                     } else if (event.key.keysym.sym == SDLK_RIGHT) {
@@ -590,10 +604,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 gui->music_volume = (gui->music_volume + 5);
                                 if (gui->music_volume > 100) gui->music_volume = 100;
                                 audio_set_music_volume(&gui->audio, gui->music_volume);
+                                // SAVE PREFERENCES
+                                gui->preferences.music_volume = gui->music_volume;
+                                preferences_save(&gui->preferences);
                             } else {
                                 gui->sfx_volume = (gui->sfx_volume + 5);
                                 if (gui->sfx_volume > 100) gui->sfx_volume = 100;
                                 audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
+                                // SAVE PREFERENCES
+                                gui->preferences.sfx_volume = gui->sfx_volume;
+                                preferences_save(&gui->preferences);
                             }
                         }
                     } else if (event.key.keysym.sym == SDLK_c) {
@@ -1493,9 +1513,15 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.window_width = 1024;
     gui.window_height = 768;
     gui.running = true;
-    gui.music_volume = 100;
-    gui.sfx_volume = 100;
     gui.finale_music_started = false;  // Initialize music state
+    
+    // LOAD PREFERENCES FROM DISK
+    preferences_load(&gui.preferences);
+    gui.music_volume = gui.preferences.music_volume;
+    gui.sfx_volume = gui.preferences.sfx_volume;
+    
+    printf("[INIT] Loaded preferences: music_volume=%d, sfx_volume=%d, language=%d\n",
+           gui.music_volume, gui.sfx_volume, gui.preferences.language);
     
     if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
         return 1;
@@ -1566,7 +1592,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Start with splash screen active
     gui.visualizer.comet_buster.splash_screen_active = true;
-    gui.visualizer.comet_buster.current_language = LANG_ENGLISH;
+    gui.visualizer.comet_buster.current_language = gui.preferences.language;
 
     comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, MEDIUM);
 
@@ -1616,6 +1642,13 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         uint32_t elapsed = SDL_GetTicks() - current_ticks;
         if (elapsed < 16) SDL_Delay(16 - elapsed);
     }
+    
+    // SAVE PREFERENCES BEFORE EXITING
+    gui.preferences.music_volume = gui.music_volume;
+    gui.preferences.sfx_volume = gui.sfx_volume;
+    gui.preferences.language = gui.visualizer.comet_buster.current_language;
+    preferences_save(&gui.preferences);
+    printf("[MAIN] Preferences saved at exit\n");
     
     cleanup(&gui);
     return 0;

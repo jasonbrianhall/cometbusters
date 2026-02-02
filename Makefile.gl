@@ -98,7 +98,7 @@ SOURCES_CPP_COMMON = comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_spawn.c
 	cometbuster_boss.cpp cometbuster_starboss.cpp cometbuster_render_gl.cpp \
 	cometbuster_util.cpp cometbuster_splashscreen.cpp joystick.cpp \
 	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_highscores.cpp \
-	comet_preference.cpp
+	comet_preferences.cpp
 	
 
 # Source files - Miniz WAD system (C files)
