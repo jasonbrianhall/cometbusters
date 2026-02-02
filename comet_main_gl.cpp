@@ -108,8 +108,6 @@ typedef struct {
 
 void play_intro(CometGUI *gui, int language) {
     printf("Language is %i\n", language);
-    //audio_play_intro_music(&gui->audio, "music/intro_ru.mp3");
-    //return;
     switch (language) {
         case LANG_SPANISH:
             audio_play_intro_music(&gui->audio, "music/intro_es.mp3");
@@ -1606,8 +1604,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     audio_play_music(&gui.audio, "music/track5.mp3", false);   // Load track 5
     audio_play_music(&gui.audio, "music/track6.mp3", false);   // Load track 6
     
-    // Play intro music during splash screen
-    //audio_play_intro_music(&gui.audio, "music/intro.mp3");
+    // Set language from preferences BEFORE playing intro
+    gui.visualizer.comet_buster.current_language = gui.preferences.language;
+    
+    // Play intro music during splash screen with correct language
     play_intro(&gui, gui.visualizer.comet_buster.current_language);
 #endif
     
@@ -1616,7 +1616,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Start with splash screen active
     gui.visualizer.comet_buster.splash_screen_active = true;
-    gui.visualizer.comet_buster.current_language = gui.preferences.language;
 
     comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, MEDIUM);
 
