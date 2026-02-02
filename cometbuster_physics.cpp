@@ -5,6 +5,7 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#include "comet_lang.h"
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -1641,7 +1642,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
             bool has_bombs = game->bomb_ammo > 0;
             bool spread_fire_enabled = (game->difficulty != 2);  // Enabled on Easy (0) & Medium (1), disabled on Hard (2)
             
-            const char *weapon_name = "Bullets";
+            const char *weapon_name = weapon_name_bullets[game->current_language];
             double text_color_r = 0.0, text_color_g = 1.0, text_color_b = 1.0;  // Cyan for bullets
             
             if (game->using_spread_fire) {
@@ -1650,7 +1651,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                 if (has_missiles) {
                     game->using_missiles = true;
                     game->using_bombs = false;
-                    weapon_name = "Missiles";
+                    weapon_name = weapon_name_missiles[game->current_language];
                     text_color_r = 1.0;
                     text_color_g = 1.0;
                     text_color_b = 0.0;  // Yellow for missiles
@@ -1658,7 +1659,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     // No missiles but have bombs, go to bombs
                     game->using_missiles = false;
                     game->using_bombs = true;
-                    weapon_name = "Bombs";
+                    weapon_name = weapon_name_bombs[game->current_language];
                     text_color_r = 1.0;
                     text_color_g = 0.6;
                     text_color_b = 0.0;  // Orange for bombs
@@ -1666,7 +1667,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     // No other weapons, go back to bullets
                     game->using_missiles = false;
                     game->using_bombs = false;
-                    weapon_name = "Bullets";
+                    weapon_name = weapon_name_bullets[game->current_language];
                     text_color_r = 0.0;
                     text_color_g = 1.0;
                     text_color_b = 1.0;  // Cyan for bullets
@@ -1677,14 +1678,14 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                 game->using_spread_fire = false;
                 if (has_bombs) {
                     game->using_bombs = true;
-                    weapon_name = "Bombs";
+                    weapon_name = weapon_name_bombs[game->current_language];
                     text_color_r = 1.0;
                     text_color_g = 0.6;
                     text_color_b = 0.0;  // Orange for bombs
                 } else {
                     // No bombs, go back to bullets
                     game->using_bombs = false;
-                    weapon_name = "Bullets";
+                    weapon_name = weapon_name_bullets[game->current_language];
                     text_color_r = 0.0;
                     text_color_g = 1.0;
                     text_color_b = 1.0;  // Cyan for bullets
@@ -1694,7 +1695,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                 game->using_missiles = false;
                 game->using_bombs = false;
                 game->using_spread_fire = false;
-                weapon_name = "Bullets";
+                weapon_name = weapon_name_bullets[game->current_language];
                 text_color_r = 0.0;
                 text_color_g = 1.0;
                 text_color_b = 1.0;  // Cyan for bullets
@@ -1706,7 +1707,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     game->using_missiles = true;
                     game->using_bombs = false;
                     game->using_spread_fire = false;
-                    weapon_name = "Missiles";
+                    weapon_name = weapon_name_missiles[game->current_language];
                     text_color_r = 1.0;
                     text_color_g = 1.0;
                     text_color_b = 0.0;  // Yellow for missiles
@@ -1715,7 +1716,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     game->using_spread_fire = true;
                     game->using_missiles = false;
                     game->using_bombs = false;
-                    weapon_name = "Spread Fire";
+                    weapon_name = weapon_name_spread_fire[game->current_language];
                     text_color_r = 1.0;
                     text_color_g = 0.5;
                     text_color_b = 1.0;  // Magenta for spread fire
@@ -1724,7 +1725,7 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     game->using_missiles = false;
                     game->using_bombs = true;
                     game->using_spread_fire = false;
-                    weapon_name = "Bombs";
+                    weapon_name = weapon_name_bombs[game->current_language];;
                     text_color_r = 1.0;
                     text_color_g = 0.6;
                     text_color_b = 0.0;  // Orange for bombs
@@ -2204,7 +2205,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             
             // Floating text
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
-                                           "+SHIELD", 0.0, 1.0, 1.0);  // Cyan
+                                           shield2_label_text[game->current_language], 0.0, 1.0, 1.0);  // Cyan
             
             // Play wave complete sound when picking up shield
 #ifdef ExternalSound
@@ -2241,7 +2242,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             game->invulnerability_time = 0.3;
             
             comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y, 
-                                           "+20 MISSILES", 1.0, 0.8, 0.0);
+                                           missiles2_label_text[game->current_language], 1.0, 0.8, 0.0);
             
 #ifdef ExternalSound
             if (visualizer && visualizer->audio.sfx_wave_complete && !game->splash_screen_active) {

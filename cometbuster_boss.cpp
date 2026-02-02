@@ -10,6 +10,7 @@
 #include "audio_wad.h"
 #endif 
 
+#include "comet_lang.h"
 
 void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int height) {
     if (!game || !game->boss_active) return;
@@ -710,7 +711,7 @@ void comet_buster_destroy_spawn_queen(CometBusterGame *game, int width, int heig
     
     // Victory text
     comet_buster_spawn_floating_text(game, queen->x, queen->y - 50,
-                                     "MOTHERSHIP DOWN", 1.0, 0.2, 1.0);
+                                     mothership_down_text[game->current_language], 1.0, 0.2, 1.0);
     
     // Scoring
     int base_score = 1000;
@@ -721,7 +722,7 @@ void comet_buster_destroy_spawn_queen(CometBusterGame *game, int width, int heig
     if (game->score_multiplier >= 4.0) {
         total_score += 500;
         comet_buster_spawn_floating_text(game, queen->x, queen->y,
-                                         "MULTIPLIER BONUS!", 0.0, 1.0, 1.0);
+                                         multiplier_bonus_text[game->current_language], 0.0, 1.0, 1.0);
     }
     
     game->score += total_score;
@@ -965,8 +966,8 @@ void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width,
         }
         
         // Death messages
-        comet_buster_spawn_floating_text(game, boss->x, boss->y - 50, "NEXUS SHATTERED", 0.2, 0.8, 1.0);
-        comet_buster_spawn_floating_text(game, boss->x, boss->y, "CRYSTALLINE COLLAPSE", 0.0, 1.0, 1.0);
+        comet_buster_spawn_floating_text(game, boss->x, boss->y - 50, nexus_shattered_text[game->current_language], 0.2, 0.8, 1.0);
+        comet_buster_spawn_floating_text(game, boss->x, boss->y, crystalline_collapse_text[game->current_language], 0.0, 1.0, 1.0);
         
         // Score reward
         int base_score = 1500;
@@ -975,7 +976,7 @@ void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width,
         
         if (game->score_multiplier >= 4.0) {
             total_score += 750;
-            comet_buster_spawn_floating_text(game, boss->x, boss->y + 50, "PERFECT DESTRUCTION!", 1.0, 1.0, 0.0);
+            comet_buster_spawn_floating_text(game, boss->x, boss->y + 50, perfect_destruction_text[game->current_language], 1.0, 1.0, 0.0);
         }
         
         game->score += total_score;
@@ -1087,7 +1088,7 @@ void void_nexus_split_into_fragments(CometBusterGame *game, int num_fragments) {
     
     // Award bonus for focused fire if destroying fragments quickly
     game->score += 500 * num_fragments;
-    comet_buster_spawn_floating_text(game, center_x, center_y - 30, "FRAGMENT!", 0.0, 1.0, 1.0);
+    comet_buster_spawn_floating_text(game, center_x, center_y - 30, fragment_text[game->current_language], 0.0, 1.0, 1.0);
     
     boss->fragment_reunite_timer = 0;
 }
@@ -1738,32 +1739,28 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
                 boss->fragment_count = 3;
                 boss->void_radius = 120.0;
                 boss->gravity_pull_strength = 50.0;
-                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60, 
-                    "GRAVITATIONAL PULL", 0.2, 0.8, 1.0);
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60,  gravitational_pull_text[game->current_language], 0.2, 0.8, 1.0);
                 break;
             case 1: // STELLAR COLLAPSE
                 boss->rotation_speed = 90.0;
                 boss->fragment_count = 6;
                 boss->void_radius = 150.0;
                 boss->gravity_pull_strength = 100.0;
-                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60,
-                    "GRAVITATIONAL FIELD INTENSIFIES", 0.2, 0.8, 1.0);
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60, gravitational_field_intensifies_text[game->current_language], 0.2, 0.8, 1.0);
                 break;
             case 2: // VOID EXPANSION
                 boss->rotation_speed = 90.0;
                 boss->fragment_count = 8;
                 boss->void_radius = 200.0;
                 boss->gravity_pull_strength = 150.0;
-                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60,
-                    "VOID EXPANSION IMMINENT", 0.2, 0.8, 1.0);
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60, void_expansion_imminent_text[game->current_language], 0.2, 0.8, 1.0);
                 break;
             case 3: // SINGULARITY COLLAPSE
                 boss->rotation_speed = 360.0;
                 boss->fragment_count = 8;
                 boss->void_radius = 250.0;
                 boss->gravity_pull_strength = 200.0;
-                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60,
-                    "SINGULARITY COLLAPSE INITIATED", 0.2, 0.8, 1.0);
+                comet_buster_spawn_floating_text(game, boss->x, boss->y - 60, singularity_collapse_initiated_text[game->current_language], 0.2, 0.8, 1.0);
                 break;
         }
     }
@@ -2260,11 +2257,11 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
         
         // DEATH MESSAGES
         comet_buster_spawn_floating_text(game, boss->x, boss->y - 60, 
-                                        "SINGULARITY COLLAPSED", 0.2, 0.8, 1.0);
+                                        singularity_collapsed_text[game->current_language], 0.2, 0.8, 1.0);
         comet_buster_spawn_floating_text(game, boss->x, boss->y, 
-                                        "DIMENSIONAL BARRIER RESTORED", 0.0, 1.0, 1.0);
+                                        dimensional_barrier_restored_text[game->current_language], 0.0, 1.0, 1.0);
         comet_buster_spawn_floating_text(game, boss->x, boss->y + 60,
-                                        "COSMIC THREAT ELIMINATED", 1.0, 1.0, 0.0);
+                                        cosmic_threat_eliminated_text[game->current_language], 1.0, 1.0, 0.0);
         
         // SCORE REWARD
         int base_score = 5000;
@@ -2274,7 +2271,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
         if (game->score_multiplier >= 4.0) {
             total_score += 1500;
             comet_buster_spawn_floating_text(game, boss->x, boss->y + 120,
-                                            "PERFECT VICTORY!", 1.0, 1.0, 0.0);
+                                            perfect_victory_text[game->current_language], 1.0, 1.0, 0.0);
         }
         
         game->score += total_score;

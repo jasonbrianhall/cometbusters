@@ -118,6 +118,65 @@ static const char* phase_fragmenting_text[] = {
     "ФРАГМЕНТАЦИЯ"
 };
 
+static const char* fragment_text[] = {
+    "FRAGMENT!",        // English
+    "¡FRAGMENTO!",      // Spanish
+    "FRAGMENT !",       // French
+    "ФРАГМЕНТ!"         // Russian
+};
+
+static const char* gravitational_pull_text[] = {
+    "GRAVITATIONAL PULL",        // English
+    "ATRACCIÓN GRAVITATORIA",    // Spanish
+    "ATTRACTION GRAVITATIONNELLE",// French
+    "ГРАВИТАЦИОННОЕ ПРИТЯЖЕНИЕ"  // Russian
+};
+
+static const char* void_expansion_imminent_text[] = {
+    "VOID EXPANSION IMMINENT",        // English
+    "EXPANSIÓN DEL VACÍO INMINENTE",  // Spanish
+    "EXPANSION DU VIDE IMMINENTE",    // French
+    "РАСШИРЕНИЕ ПУСТОТЫ НЕИЗБЕЖНО"    // Russian
+};
+
+static const char* singularity_collapse_initiated_text[] = {
+    "SINGULARITY COLLAPSE INITIATED",        // English
+    "COLAPSO DE SINGULARIDAD INICIADO",      // Spanish
+    "EFFONDREMENT DE LA SINGULARITÉ INITIÉ", // French
+    "КОЛЛАПС СИНГУЛЯРНОСТИ ЗАПУЩЕН"          // Russian
+};
+
+static const char* singularity_collapsed_text[] = {
+    "SINGULARITY COLLAPSED",          // English
+    "SINGULARIDAD COLAPSADA",         // Spanish
+    "SINGULARITÉ EFFONDREE",          // French
+    "СИНГУЛЯРНОСТЬ РУХНУЛА"           // Russian
+};
+
+static const char* dimensional_barrier_restored_text[] = {
+    "DIMENSIONAL BARRIER RESTORED",        // English
+    "BARRERA DIMENSIONAL RESTAURADA",      // Spanish
+    "BARRIÈRE DIMENSIONNELLE RESTAURÉE",   // French
+    "ИЗМЕРЕНЧЕСКИЙ БАРЬЕР ВОССТАНОВЛЕН"    // Russian
+};
+
+static const char* cosmic_threat_eliminated_text[] = {
+    "COSMIC THREAT ELIMINATED",        // English
+    "AMENAZA CÓSMICA ELIMINADA",       // Spanish
+    "MENACE COSMIQUE ÉLIMINÉE",        // French
+    "КОСМИЧЕСКАЯ УГРОЗА УСТРАНЕНА"     // Russian
+};
+
+
+
+
+static const char* gravitational_field_intensifies_text[] = {
+    "GRAVITATIONAL FIELD INTENSIFIES",        // English
+    "EL CAMPO GRAVITATORIO SE INTENSIFICA",   // Spanish
+    "LE CHAMP GRAVITATIONNEL S’INTENSIFIE",   // French
+    "ГРАВИТАЦИОННОЕ ПОЛЕ УСИЛИВАЕТСЯ"         // Russian
+};
+
 static const char* phase_dispersing_text[] = {
     "DISPERSING",
     "DISPERSANDO",
@@ -245,6 +304,13 @@ static const char* shield_label_text[] = {
     "ЩИТ:"            // Russian
 };
 
+static const char* shield2_label_text[] = {
+    "+SHIELD",        // English
+    "+ESCUDO",        // Spanish
+    "+BOUCLIER",     // French
+    "+ЩИТ"            // Russian
+};
+
 static const char* HUD_WAVE_LABEL[LANG_COUNT] = {
     "WAVE: %d",        // EN
     "OLEADA: %d",      // ES
@@ -287,11 +353,54 @@ static const char* missiles_label_text[] = {
     "РАКЕТЫ:"           // Russian
 };
 
+static const char* missiles2_label_text[] = {
+    "+20 MISSILES",        // English
+    "+20 MISILES",         // Spanish
+    "+20 MISSILES",       // French
+    "+20 РАКЕТЫ"           // Russian
+};
+
 static const char* bombs_label_text[] = {
     "BOMBS:",        // English
     "BOMBAS:",       // Spanish
     "BOMBES :",      // French
     "БОМБЫ:"         // Russian
+};
+
+static const char* weapon_name_bombs[] = {
+    "Bombs",     // English
+    "Bombas",    // Spanish
+    "Bombes",    // French
+    "Бомбы"      // Russian
+};
+
+static const char* weapon_name_spread_fire[] = {
+    "Spread Fire",        // English
+    "Disparo Abierto",    // Spanish (literally “open/spread shot”)
+    "Tir Éventail",       // French (“fan‑shaped shot” — standard shmup phrasing)
+    "Рассеянный Огонь"    // Russian (“scattered fire” — perfect for this weapon type)
+};
+
+static const char* perfect_victory_text[] = {
+    "PERFECT VICTORY!",        // English
+    "¡VICTORIA PERFECTA!",     // Spanish
+    "VICTOIRE PARFAITE !",     // French
+    "ИДЕАЛЬНАЯ ПОБЕДА!"        // Russian
+};
+
+
+static const char* weapon_name_bullets[] = {
+    "Bullets",      // English
+    "Balas",        // Spanish
+    "Balles",       // French
+    "Пули"          // Russian
+};
+
+static const char* weapon_name_missiles[] = {
+    "Missiles",     // English
+    "Misiles",      // Spanish
+    "Missiles",     // French
+    "Ракеты"        // Russian
 };
 
 static const char* armed_label_text[] = {
@@ -328,5 +437,41 @@ static const char* energy_used_text[] = {
     "ÉNERGIE UTILISÉE",   // French
     "ИСПОЛЬЗОВАНА ЭНЕРГИЯ"// Russian
 };
+
+static const char* mothership_down_text[] = {
+    "MOTHERSHIP DOWN",        // English
+    "NAVE MADRE CAÍDA",       // Spanish
+    "VAISSEAU-MÈRE ABATTU",   // French
+    "МАТЕРИНСКИЙ КОРАБЛЬ УНИЧТОЖЕН"  // Russian
+};
+
+static const char* multiplier_bonus_text[] = {
+    "MULTIPLIER BONUS!",        // English
+    "BONO DE MULTIPLICADOR!",   // Spanish
+    "BONUS DE MULTIPLICATEUR !",// French
+    "БОНУС МНОЖИТЕЛЯ!"          // Russian
+};
+
+static const char* nexus_shattered_text[] = {
+    "NEXUS SHATTERED",          // English
+    "NEXO DESTRUIDO",           // Spanish
+    "NEXUS BRISÉ",              // French
+    "НЕКСУС РАЗРУШЕН"           // Russian
+};
+
+static const char* crystalline_collapse_text[] = {
+    "CRYSTALLINE COLLAPSE",         // English
+    "COLAPSO CRISTALINO",           // Spanish
+    "EFFONDREMENT CRISTALLIN",      // French
+    "КРИСТАЛЛИЧЕСКИЙ КОЛЛАПС"       // Russian
+};
+
+static const char* perfect_destruction_text[] = {
+    "PERFECT DESTRUCTION!",        // English
+    "DESTRUCCIÓN PERFECTA!",       // Spanish
+    "DESTRUCTION PARFAITE !",      // French
+    "ИДЕАЛЬНОЕ УНИЧТОЖЕНИЕ!"       // Russian
+};
+
 
 
