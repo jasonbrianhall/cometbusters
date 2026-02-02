@@ -1531,13 +1531,16 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     CometGUI gui;
     memset(&gui, 0, sizeof(CometGUI));
     
+    // Explicitly initialize preferences struct to avoid junk data
+    memset(&gui.preferences, 0, sizeof(CometPreferences));
+    
     gui.window_width = 1024;
     gui.window_height = 768;
     gui.running = true;
     gui.finale_music_started = false;  // Initialize music state
     
     // LOAD PREFERENCES FROM DISK
-    preferences_load(&gui.preferences);
+    bool prefs_file_exists = preferences_load(&gui.preferences);
     gui.music_volume = gui.preferences.music_volume;
     gui.sfx_volume = gui.preferences.sfx_volume;
     
@@ -1607,20 +1610,34 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     // Set language from preferences BEFORE playing intro
     gui.visualizer.comet_buster.current_language = gui.preferences.language;
     
-    // Play intro music during splash screen with correct language
-    play_intro(&gui, gui.visualizer.comet_buster.current_language);
+    // Check if preferences file didn't exist (first run)
+    if (!prefs_file_exists) {
+        printf("[INIT] No preferences file found - showing language menu\n");
+        gui.show_menu = true;
+        gui.menu_state = 4;  // Language Menu
+        gui.menu_selection = 0;
+    } else {
+        // Play intro music during splash screen with correct language
+        play_intro(&gui, gui.visualizer.comet_buster.current_language);
+    }
 #endif
     
     printf("[INIT] Ready to play - press WASD to move, Z to fire, ESC to open menu, P to pause\n");
-    printf("[INIT] Starting with splash screen and intro music...\n");
     
-    // Start with splash screen active
-    gui.visualizer.comet_buster.splash_screen_active = true;
-
-    comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, MEDIUM);
-
-    gui.show_menu = false;
-    gui.menu_state = 0;
+    // Only start with splash screen if preferences file already existed
+    if (prefs_file_exists) {
+        printf("[INIT] Starting with splash screen and intro music...\n");
+        gui.visualizer.comet_buster.splash_screen_active = true;
+        comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, MEDIUM);
+        gui.show_menu = false;
+        gui.menu_state = 0;
+    } else {
+        printf("[INIT] Waiting for language selection...\n");
+        gui.visualizer.comet_buster.splash_screen_active = false;
+        gui.show_menu = true;
+        gui.menu_state = 4;  // Language Menu
+    }
+    
     gui.gui_difficulty_level = 2;  // Medium
     
     // Initialize local high score entry UI
