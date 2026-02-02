@@ -727,4 +727,7 @@ bool comet_buster_is_high_score(CometBusterGame *game, int score);
 void high_scores_add(CometBusterGame *game, int score, int wave, const char *name);
 const char* high_scores_get_path(void);
 
+const char **get_opening_crawl_for_language(int language);
+int get_num_crawl_lines_for_language(int language);
+
 #endif // COMETBUSTER_H

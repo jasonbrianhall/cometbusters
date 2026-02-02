@@ -63,7 +63,7 @@ static const char *OPENING_CRAWL_LINES[] = {
 
 #define NUM_CRAWL_LINES (sizeof(OPENING_CRAWL_LINES) / sizeof(OPENING_CRAWL_LINES[0]))
 
-static const char *OPENING_CRAWL_ES[] = {
+static const char *OPENING_CRAWL_LINES_ES[] = {
     "",
     "",
     "COMET BUSTER",
@@ -122,9 +122,9 @@ static const char *OPENING_CRAWL_ES[] = {
     "",
 };
 
-#define NUM_CRAWL_LINES_ES (sizeof(OPENING_CRAWL_LINES) / sizeof(OPENING_CRAWL_LINES_ES[0]))
+#define NUM_CRAWL_LINES_ES (sizeof(OPENING_CRAWL_LINES_ES) / sizeof(OPENING_CRAWL_LINES_ES[0]))
 
-static const char *OPENING_CRAWL_FR[] = {
+static const char *OPENING_CRAWL_LINES_FR[] = {
     "",
     "",
     "COMET BUSTER",
@@ -183,9 +183,9 @@ static const char *OPENING_CRAWL_FR[] = {
     "",
 };
 
-#define NUM_CRAWL_LINES_FR (sizeof(OPENING_CRAWL_LINES) / sizeof(OPENING_CRAWL_LINES_FR[0]))
+#define NUM_CRAWL_LINES_FR (sizeof(OPENING_CRAWL_LINES_FR) / sizeof(OPENING_CRAWL_LINES_FR[0]))
 
-static const char *OPENING_CRAWL_RU[] = {
+static const char *OPENING_CRAWL_LINES_RU[] = {
     "",
     "",
     "COMET BUSTER",
@@ -244,7 +244,7 @@ static const char *OPENING_CRAWL_RU[] = {
     "",
 };
 
-#define NUM_CRAWL_LINES_RU (sizeof(OPENING_CRAWL_LINES) / sizeof(OPENING_CRAWL_LINES_RU[0]))
+#define NUM_CRAWL_LINES_RU (sizeof(OPENING_CRAWL_LINES_RU) / sizeof(OPENING_CRAWL_LINES_RU[0]))
 
 // ============================================================================
 // VICTORY SCROLL TEXT - FINALE WHEN WAVE 30 IS BEATEN
@@ -422,7 +422,7 @@ static const char *VICTORY_SCROLL_ES[] = {
     "",
 };
 
-#define NUM_VICTORY_LINES_ES (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES_ES[0]))
+#define NUM_VICTORY_LINES_ES (sizeof(VICTORY_SCROLL_LINES_ES) / sizeof(VICTORY_SCROLL_LINES_ES[0]))
 
 static const char *VICTORY_SCROLL_FR[] = {
     "",
@@ -509,7 +509,7 @@ static const char *VICTORY_SCROLL_FR[] = {
     "",
 };
 
-#define NUM_VICTORY_LINES_FR (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES_FR[0]))
+#define NUM_VICTORY_LINES_FR (sizeof(VICTORY_SCROLL_LINES_FR) / sizeof(VICTORY_SCROLL_LINES_FR[0]))
 
 static const char *VICTORY_SCROLL_RU[] = {
     "",
@@ -596,7 +596,7 @@ static const char *VICTORY_SCROLL_RU[] = {
     "",
 };
 
-#define NUM_VICTORY_LINES_RU (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES_RU[0]))
+#define NUM_VICTORY_LINES_RU (sizeof(VICTORY_SCROLL_LINES_RU) / sizeof(VICTORY_SCROLL_LINES_RU[0]))
 
 
 // ============================================================================

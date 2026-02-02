@@ -2408,6 +2408,10 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
     double scroll_speed = 1.0;  // seconds per line - SLOWER
 
     if (game->splash_timer < 38.0) {
+        // GET LANGUAGE-SPECIFIC ARRAYS
+        const char **crawl_lines = get_opening_crawl_for_language(game->current_language);
+        int num_crawl_lines = get_num_crawl_lines_for_language(game->current_language);
+        
         cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, 24.0);
         
@@ -2430,7 +2434,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
         // Draw all lines that could be visible
         for (int i = 0; i < (int)lines_visible + 2; i++) {
             int line_index = (int)current_line_offset + i;
-            if (line_index < 0 || line_index >= (int)NUM_CRAWL_LINES) continue;
+            if (line_index < 0 || line_index >= num_crawl_lines) continue;
             
             // Calculate Y position (lines scroll up from bottom to top)
             double y_pos = height - (fractional_offset * line_height) + (i * line_height) - (current_line_offset * line_height);
@@ -2449,11 +2453,11 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
             cairo_set_source_rgba(cr, 1.0, 0.95, 0.0, alpha);
             
             // Center the text
-            cairo_text_extents(cr, OPENING_CRAWL_LINES[line_index], &extents);
+            cairo_text_extents(cr, crawl_lines[line_index], &extents);
             double x_pos = (width - extents.width) / 2.0;
             
             cairo_move_to(cr, x_pos, y_pos);
-            cairo_show_text(cr, OPENING_CRAWL_LINES[line_index]);
+            cairo_show_text(cr, crawl_lines[line_index]);
         }
     }
     // ===== TITLE PHASE =====
@@ -2495,7 +2499,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
         cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, 28.0);
         
-        cairo_text_extents(cr, "Press fire key to start", &extents);
+        cairo_text_extents(cr, subtitle_texts[game->current_language], &extents);
         double subtitle_x = (width - extents.width) / 2.0;
         double subtitle_y = title_y + 80;
         
@@ -2503,7 +2507,7 @@ void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int wid
         double blink_alpha = 0.5 + 0.5 * sin(game->splash_timer * 3.0);
         cairo_set_source_rgba(cr, 1.0, 1.0, 0.0, blink_alpha * title_alpha);
         cairo_move_to(cr, subtitle_x, subtitle_y);
-        cairo_show_text(cr, "Press fire key to start");
+        cairo_show_text(cr, subtitle_texts[game->current_language]);
     }
     // ===== WAIT PHASE =====
     // Just show the title and wait for input
@@ -2548,6 +2552,10 @@ void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int wi
     cairo_rectangle(cr, 0, 0, width, height);
     cairo_fill(cr);
     
+    // GET LANGUAGE-SPECIFIC ARRAYS
+    const char **victory_lines = get_victory_scroll_for_language(game->current_language);
+    int num_victory_lines = get_num_victory_lines_for_language(game->current_language);
+    
     // Setup text
     cairo_set_source_rgb(cr, 1.0, 1.0, 0.0);  // Yellow text like Star Wars
     cairo_select_font_face(cr, "monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
@@ -2561,7 +2569,7 @@ void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int wi
     
     // Draw visible lines
     int y_pos = height / 3;
-    for (int i = 0; i < 8 && start_line + i < NUM_VICTORY_LINES; i++) {
+    for (int i = 0; i < 8 && start_line + i < num_victory_lines; i++) {
         double fade = 1.0;
         
         // First line fades in
@@ -2577,11 +2585,11 @@ void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int wi
         
         // Center text horizontally
         cairo_text_extents_t extents;
-        cairo_text_extents(cr, VICTORY_SCROLL_LINES[start_line + i], &extents);
+        cairo_text_extents(cr, victory_lines[start_line + i], &extents);
         double x_pos = (width - extents.width) / 2.0;
         
         cairo_move_to(cr, x_pos, y_pos + i * 40);
-        cairo_show_text(cr, VICTORY_SCROLL_LINES[start_line + i]);
+        cairo_show_text(cr, victory_lines[start_line + i]);
     }
 }
 
@@ -2604,6 +2612,10 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
     cairo_move_to(cr, width/2.0 - extents.width/2.0, 80);
     cairo_show_text(cr, title);
     
+    // GET LANGUAGE-SPECIFIC ARRAYS
+    const char **victory_lines = get_victory_scroll_for_language(game->current_language);
+    int num_victory_lines = get_num_victory_lines_for_language(game->current_language);
+    
     // Victory scroll text - scrolling effect (show 24 lines at a time)
     cairo_set_source_rgb(cr, 0.2, 0.8, 1.0);
     cairo_set_font_size(cr, 15);
@@ -2613,10 +2625,10 @@ void comet_buster_draw_finale_splash(CometBusterGame *game, cairo_t *cr, int wid
                      (game->finale_scroll_line_index - visible_lines) : 0;
     
     double y_pos = 150;
-    for (int i = start_line; i <= game->finale_scroll_line_index && i < NUM_VICTORY_LINES; i++) {
-        cairo_text_extents(cr, VICTORY_SCROLL_LINES[i], &extents);
+    for (int i = start_line; i <= game->finale_scroll_line_index && i < num_victory_lines; i++) {
+        cairo_text_extents(cr, victory_lines[i], &extents);
         cairo_move_to(cr, width/2.0 - extents.width/2.0, y_pos);
-        cairo_show_text(cr, VICTORY_SCROLL_LINES[i]);
+        cairo_show_text(cr, victory_lines[i]);
         y_pos += 22;
     }
     
