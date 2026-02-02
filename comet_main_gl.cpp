@@ -107,15 +107,14 @@ typedef struct {
 } CometGUI;
 
 void play_intro(CometGUI *gui, int language) {
-    printf("Language is %i\n", language);
     switch (language) {
-        case LANG_SPANISH:
+        case WLANG_SPANISH:
             audio_play_intro_music(&gui->audio, "music/intro_es.mp3");
             break;
-        case LANG_FRENCH:
+        case WLANG_FRENCH:
             audio_play_intro_music(&gui->audio, "music/intro_fr.mp3");
             break;
-        case LANG_RUSSIAN:
+        case WLANG_RUSSIAN:
             audio_play_intro_music(&gui->audio, "music/intro_ru.mp3");
             break;
         default:
@@ -125,15 +124,14 @@ void play_intro(CometGUI *gui, int language) {
 }
 
 void play_finale(CometGUI *gui, int language) {
-    printf("Language is %i\n", language);
     switch (language) {
-        case LANG_SPANISH:
+        case WLANG_SPANISH:
             audio_play_music(&gui->audio, "music/finale_es.mp3", false);
             break;
-        case LANG_FRENCH:
+        case WLANG_FRENCH:
             audio_play_music(&gui->audio, "music/finale_fr.mp3", false);
             break;
-        case LANG_RUSSIAN:
+        case WLANG_RUSSIAN:
             audio_play_music(&gui->audio, "music/finale_ru.mp3", false);
             break;
         default:

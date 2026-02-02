@@ -10,36 +10,36 @@
 
 const char **get_opening_crawl_for_language(int language) {
     switch(language) {
-        case LANG_SPANISH: return OPENING_CRAWL_LINES_ES;
-        case LANG_FRENCH: return OPENING_CRAWL_LINES_FR;
-        case LANG_RUSSIAN: return OPENING_CRAWL_LINES_RU;
+        case WLANG_SPANISH: return OPENING_CRAWL_LINES_ES;
+        case WLANG_FRENCH: return OPENING_CRAWL_LINES_FR;
+        case WLANG_RUSSIAN: return OPENING_CRAWL_LINES_RU;
         default: return OPENING_CRAWL_LINES;
     }
 }
 
 int get_num_crawl_lines_for_language(int language) {
     switch(language) {
-        case LANG_SPANISH: return NUM_CRAWL_LINES_ES;
-        case LANG_FRENCH: return NUM_CRAWL_LINES_FR;
-        case LANG_RUSSIAN: return NUM_CRAWL_LINES_RU;
+        case WLANG_SPANISH: return NUM_CRAWL_LINES_ES;
+        case WLANG_FRENCH: return NUM_CRAWL_LINES_FR;
+        case WLANG_RUSSIAN: return NUM_CRAWL_LINES_RU;
         default: return NUM_CRAWL_LINES;
     }
 }
 
 const char **get_victory_scroll_for_language(int language) {
     switch(language) {
-        case LANG_SPANISH: return VICTORY_SCROLL_LINES_ES;
-        case LANG_FRENCH: return VICTORY_SCROLL_LINES_FR;
-        case LANG_RUSSIAN: return VICTORY_SCROLL_LINES_RU;
+        case WLANG_SPANISH: return VICTORY_SCROLL_LINES_ES;
+        case WLANG_FRENCH: return VICTORY_SCROLL_LINES_FR;
+        case WLANG_RUSSIAN: return VICTORY_SCROLL_LINES_RU;
         default: return VICTORY_SCROLL_LINES;
     }
 }
 
 int get_num_victory_lines_for_language(int language) {
     switch(language) {
-        case LANG_SPANISH: return NUM_VICTORY_LINES_ES;
-        case LANG_FRENCH: return NUM_VICTORY_LINES_FR;
-        case LANG_RUSSIAN: return NUM_VICTORY_LINES_RU;
+        case WLANG_SPANISH: return NUM_VICTORY_LINES_ES;
+        case WLANG_FRENCH: return NUM_VICTORY_LINES_FR;
+        case WLANG_RUSSIAN: return NUM_VICTORY_LINES_RU;
         default: return NUM_VICTORY_LINES;
     }
 }

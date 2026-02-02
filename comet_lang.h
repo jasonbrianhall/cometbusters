@@ -1,9 +1,9 @@
 typedef enum { 
-    LANG_ENGLISH = 0, 
-    LANG_SPANISH = 1,
-    LANG_FRENCH = 2,
-    LANG_RUSSIAN = 3, 
-    LANG_COUNT 
+    WLANG_ENGLISH = 0, 
+    WLANG_SPANISH = 1,
+    WLANG_FRENCH = 2,
+    WLANG_RUSSIAN = 3, 
+    WLANG_COUNT 
 } Language;
 
 static const char* bomb_text[] = { 
@@ -327,7 +327,7 @@ static const char* shield2_label_text[] = {
     "+ЩИТ"            // Russian
 };
 
-static const char* HUD_WAVE_LABEL[LANG_COUNT] = {
+static const char* HUD_WAVE_LABEL[WLANG_COUNT] = {
     "WAVE: %d",        // EN
     "OLEADA: %d",      // ES
     "VAGUE: %d",       // FR

@@ -72,7 +72,7 @@ const char* preferences_get_path(void) {
 void preferences_init_defaults(CometPreferences *prefs) {
     if (!prefs) return;
     
-    prefs->language = LANG_ENGLISH;
+    prefs->language = WLANG_ENGLISH;
     prefs->music_volume = 100;
     prefs->sfx_volume = 100;
     
@@ -109,9 +109,9 @@ bool preferences_load(CometPreferences *prefs) {
     fclose(f);
     
     // Validate values - check for corruption/junk data
-    if (prefs->language < 0 || prefs->language >= LANG_COUNT) {
+    if (prefs->language < 0 || prefs->language >= WLANG_COUNT) {
         printf("[PREFS] WARNING: Invalid language value (%d), resetting to default\n", prefs->language);
-        prefs->language = LANG_ENGLISH;
+        prefs->language = WLANG_ENGLISH;
     }
     if (prefs->music_volume < 0 || prefs->music_volume > 100) {
         printf("[PREFS] WARNING: Invalid music volume (%d), resetting to 100\n", prefs->music_volume);
@@ -141,9 +141,9 @@ bool preferences_save(const CometPreferences *prefs) {
            prefs->language, prefs->music_volume, prefs->sfx_volume);
     
     // Ensure all values are valid before saving
-    if (validated.language < 0 || validated.language >= LANG_COUNT) {
+    if (validated.language < 0 || validated.language >= WLANG_COUNT) {
         printf("[PREFS] WARNING: Invalid language (%d) during save, using default\n", validated.language);
-        validated.language = LANG_ENGLISH;
+        validated.language = WLANG_ENGLISH;
     }
     if (validated.music_volume < 0 || validated.music_volume > 100) {
         printf("[PREFS] WARNING: Invalid music volume (%d) during save, clamping to valid range\n", validated.music_volume);
