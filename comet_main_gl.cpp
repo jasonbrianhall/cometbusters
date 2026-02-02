@@ -1169,7 +1169,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         } else if (gui->menu_state == 2) {
             // High scores display
             gl_set_color(0.0f, 1.0f, 1.0f);
-            gl_draw_text_simple("HIGH SCORES", 850, 100, 20);
+            gl_draw_text_simple(label_high_scores[gui->visualizer.comet_buster.current_language], 850, 100, 20);
             
             gl_set_color(0.7f, 0.7f, 1.0f);
             CometBusterGame *game = &gui->visualizer.comet_buster;
@@ -1187,17 +1187,16 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
-            gl_draw_text_simple("ENTER to continue | ESC to go back", 700, 950, 10);
+            gl_draw_text_simple(hint_continue_back[gui->visualizer.comet_buster.current_language], 700, 950, 10);
+
             
         } else if (gui->menu_state == 3) {
             // Audio menu
             gl_set_color(0.0f, 1.0f, 1.0f);
-            gl_draw_text_simple("AUDIO SETTINGS", 820, 150, 18);
+            gl_draw_text_simple(label_audio_settings[gui->visualizer.comet_buster.current_language], 820, 150, 18);
+
             
-            const char *audio_options[] = {
-                "MUSIC VOLUME",
-                "SFX VOLUME"
-            };
+            const char* const *audio_options = menu_audio_options[gui->visualizer.comet_buster.current_language];
             
             int audio_y_start = 350;
             int audio_spacing = 150;

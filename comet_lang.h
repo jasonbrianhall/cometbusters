@@ -565,4 +565,43 @@ static const char* hint_select_close[][1] = {
     { "Вверх/Вниз/Enter — выбрать; ESC — закрыть" }        // RU
 };
 
+static const char* label_high_scores[] = {
+    "HIGH SCORES",      // EN
+    "PUNTUACIONES",     // ES
+    "MEILLEURS SCORES", // FR
+    "РЕКОРДЫ"           // RU
+};
+
+static const char* hint_continue_back[] = {
+    "ENTER to continue | ESC to go back",          // EN
+    "ENTER para continuar | ESC para volver",      // ES
+    "ENTRÉE pour continuer | ÉCHAP pour revenir",  // FR
+    "ENTER — продолжить | ESC — назад"             // RU
+};
+
+static const char* label_audio_settings[] = {
+    "AUDIO SETTINGS",     // EN
+    "AJUSTES DE AUDIO",   // ES
+    "RÉGLAGES AUDIO",     // FR
+    "НАСТРОЙКИ АУДИО"     // RU
+};
+
+static const char* menu_audio_options[][2] = {
+    {   // EN
+        "MUSIC VOLUME",
+        "SFX VOLUME"
+    },
+    {   // ES
+        "VOLUMEN DE MÚSICA",
+        "VOLUMEN DE SFX"
+    },
+    {   // FR
+        "VOLUME MUSIQUE",
+        "VOLUME EFFETS"
+    },
+    {   // RU
+        "ГРОМКОСТЬ МУЗЫКИ",
+        "ГРОМКОСТЬ ЭФФЕКТОВ"
+    }
+};
 
