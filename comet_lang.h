@@ -205,6 +205,14 @@ static const char* phase_shielded_text[] = {
     "ЗАЩИЩЁН"
 };
 
+static const char* provoked_text[] = {
+    "PROVOKED!",        // English
+    "¡PROVOCADO!",      // Spanish
+    "PROVOQUÉ !",       // French
+    "ПРОВОЦИРОВАН!"     // Russian
+};
+
+
 static const char* phase_enraged_text[] = {
     "ENRAGED!",
     "¡ENFURECIDO!",

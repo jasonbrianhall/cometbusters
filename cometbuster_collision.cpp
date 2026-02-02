@@ -659,10 +659,7 @@ bool comet_buster_hit_enemy_ship_provoke(CometBusterGame *game, int ship_index) 
         }
         ship->shoot_cooldown = 0.0;  // Immediately start shooting
         
-        // Spawn visual indicator that ship became angry
-        char anger_text[64];
-        sprintf(anger_text, "PROVOKED!");
-        comet_buster_spawn_floating_text(game, ship->x, ship->y, anger_text, 1.0, 0.2, 0.2);
+        comet_buster_spawn_floating_text(game, ship->x, ship->y, provoked_text[game->current_language], 1.0, 0.2, 0.2);
         
         return true;  // Successfully provoked
     }
