@@ -1232,10 +1232,10 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             gl_draw_text_simple("SELECT LANGUAGE", 800, 150, 24);
             
             const char *languages[] = {
-                "ENGLISH",
-                "SPANISH",
-                "FRENCH",
-                "RUSSIAN"
+                "English",
+                "Español",
+                "Français",
+                "Русский"
             };
             
             int lang_y_start = 350;
