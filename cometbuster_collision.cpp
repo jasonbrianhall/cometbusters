@@ -542,8 +542,7 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
         game->energy_amount = 0;
         
         // Floating text for energy drain
-        comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, 
-                                         "ENERGY DRAINED", 1.0, 0.5, 0.0);  // Orange
+        comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30,  energy_drained_text[game->current_language], 1.0, 0.5, 0.0);  // Orange
         
         // Don't return here - continue to shield check!
     }

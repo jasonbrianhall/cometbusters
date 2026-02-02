@@ -947,7 +947,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
             audio_stop_music(&gui->audio);
 #ifdef ExternalSound
             //audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
-            play_finale(&gui, gui->visualizer.comet_buster.current_language);
+            play_finale(gui, gui->visualizer.comet_buster.current_language);
 #endif
             gui->finale_music_started = true;
         }

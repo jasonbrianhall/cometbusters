@@ -212,6 +212,14 @@ static const char* provoked_text[] = {
     "ПРОВОЦИРОВАН!"     // Russian
 };
 
+static const char* energy_drained_text[] = {
+    "ENERGY DRAINED!",        // English
+    "¡ENERGÍA AGOTADA!",      // Spanish
+    "ÉNERGIE ÉPUISÉE !",      // French
+    "ЭНЕРГИЯ ИСЧЕРПАНА!"       // Russian
+};
+
+
 
 static const char* phase_enraged_text[] = {
     "ENRAGED!",
