@@ -4,7 +4,7 @@ typedef enum {
     WLANG_FRENCH = 2,
     WLANG_RUSSIAN = 3, 
     WLANG_COUNT 
-} Language;
+} WLanguage;
 
 static const char* bomb_text[] = { 
     "Bomb", // English 
