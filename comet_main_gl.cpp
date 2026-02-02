@@ -1078,14 +1078,6 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             gl_set_color(0.0f, 1.0f, 1.0f);
             gl_draw_text_simple("COMET BUSTERS", 800, 100, 28);
             
-            /*const char *menu_items[] = {
-                "CONTINUE",
-                "NEW GAME",
-                "HIGH SCORES",
-                "AUDIO",
-                "LANGUAGE",
-                "QUIT"
-            };*/
             const char* const *menu_items = main_menu_items[gui->visualizer.comet_buster.current_language];
             //menu_items=main_menu_items[0];
 
@@ -1131,13 +1123,9 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         } else if (gui->menu_state == 1) {
             // Difficulty selection menu
             gl_set_color(0.0f, 1.0f, 1.0f);
-            gl_draw_text_simple("SELECT DIFFICULTY", 780, 150, 24);
+            gl_draw_text_simple(label_select_difficulty[gui->visualizer.comet_buster.current_language], 780, 150, 24);
             
-            const char *difficulties[] = {
-                "EASY",
-                "NORMAL",
-                "HARD"
-            };
+            const char* const *difficulties = menu_difficulties[gui->visualizer.comet_buster.current_language];
             
             int diff_y_start = 350;
             int diff_spacing = 120;
@@ -1164,7 +1152,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
-            gl_draw_text_simple("UP/DOWN to select | ENTER to start | ESC to go back", 550, 950, 10);
+            gl_draw_text_simple(hint_continue_back[gui->visualizer.comet_buster.current_language], 550, 950, 10);
             
         } else if (gui->menu_state == 2) {
             // High scores display
@@ -1230,7 +1218,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
-            gl_draw_text_simple("UP/DOWN to select | LEFT/RIGHT to adjust | ESC to go back", 550, 950, 10);
+            gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 550, 950, 10);
         } else if (gui->menu_state == 4) {
             // Language selection menu
             gl_set_color(0.0f, 1.0f, 1.0f);
@@ -1268,7 +1256,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
-            gl_draw_text_simple("UP/DOWN to select language | ENTER to confirm | ESC to go back", 480, 950, 10);
+            gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 480, 950, 10);
         }
     }
     
@@ -1302,19 +1290,17 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Title - Dark brown text
         gl_set_color(0.2f, 0.15f, 0.1f);  // Dark brown
-        gl_draw_text_simple("NEW HIGH SCORE!", 740, 345, 24);
+        gl_draw_text_simple(label_new_high_score[gui->visualizer.comet_buster.current_language], 740, 345, 24);
         
         // Score display - Dark brown
         gl_set_color(0.3f, 0.25f, 0.15f);
         char score_text[128];
-        sprintf(score_text, "Score: %d | Wave: %d", 
-                gui->visualizer.comet_buster.score,
-                gui->visualizer.comet_buster.current_wave);
+        sprintf(score_text, fmt_score_wave[gui->visualizer.comet_buster.current_language],  gui->visualizer.comet_buster.score, gui->visualizer.comet_buster.current_wave);
         gl_draw_text_simple(score_text, 620, 395, 14);
         
         // Name entry label - Dark brown
         gl_set_color(0.2f, 0.15f, 0.1f);
-        gl_draw_text_simple("Enter Your Name:", 620, 445, 13);
+        gl_draw_text_simple(label_enter_name[gui->visualizer.comet_buster.current_language], 620, 445, 13);
         
         // Input box background - Slightly off-white
         gl_set_color(0.95f, 0.93f, 0.88f);
@@ -1337,10 +1323,9 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Instructions - Split into two lines
         gl_set_color(0.4f, 0.3f, 0.2f);  // Darker brown for readability
-        gl_draw_text_simple("Type your name | ENTER to save | BKSP to delete", 
+        gl_draw_text_simple(hint_name_entry[gui->visualizer.comet_buster.current_language], 
                            580, 550, 11);
-        gl_draw_text_simple("Max 32 characters", 
-                           580, 568, 11);
+        gl_draw_text_simple(hint_max_chars[gui->visualizer.comet_buster.current_language], 580, 568, 11);
     }
     
     // Render pause overlay if game is paused
@@ -1376,16 +1361,16 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // PAUSED title - Large, glowing
         gl_set_color(1.0f, 1.0f, 0.0f);
-        gl_draw_text_simple("PAUSED", 800, 380, 56);
+        gl_draw_text_simple(label_paused[gui->visualizer.comet_buster.current_language], 800, 380, 56);
         
         // Game continues in background info - Cyan
         gl_set_color(0.0f, 1.0f, 1.0f);
-        gl_draw_text_simple("The game is paused", 810, 480, 18);
+        gl_draw_text_simple(label_game_paused[gui->visualizer.comet_buster.current_language], 810, 480, 18);
         
         // Stats while paused - White
         gl_set_color(1.0f, 1.0f, 1.0f);
         char pause_stats[256];
-        sprintf(pause_stats, "Wave %d | Score %d | Lives %d",
+        sprintf(pause_stats, fmt_pause_stats[gui->visualizer.comet_buster.current_language],
                 gui->visualizer.comet_buster.current_wave,
                 gui->visualizer.comet_buster.score,
                 gui->visualizer.comet_buster.ship_lives);
@@ -1393,11 +1378,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Resume instruction - Bright cyan, larger
         gl_set_color(0.2f, 1.0f, 0.8f);
-        gl_draw_text_simple("Press P to Resume", 795, 600, 24);
+        gl_draw_text_simple(hint_resume_p[gui->visualizer.comet_buster.current_language], 795, 600, 24);
         
         // Additional hints - Dimmer cyan
         gl_set_color(0.0f, 0.8f, 0.9f);
-        gl_draw_text_simple("ESC for Menu", 835, 650, 16);
+        gl_draw_text_simple(hint_esc_menu[gui->visualizer.comet_buster.current_language], 835, 650, 16);
     }
     
     // Render cheat menu if open
@@ -1430,7 +1415,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Title
         gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_text_simple("CHEAT MENU", 800, 230, 26);
+        gl_draw_text_simple(label_cheat_menu[gui->visualizer.comet_buster.current_language], 800, 230, 26);
         
         // Cheat options
         int option_y = 300;

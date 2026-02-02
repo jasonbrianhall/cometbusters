@@ -605,3 +605,118 @@ static const char* menu_audio_options[][2] = {
     }
 };
 
+static const char* menu_difficulties[][3] = {
+    {   // EN
+        "EASY",
+        "NORMAL",
+        "HARD"
+    },
+    {   // ES
+        "FÁCIL",
+        "NORMAL",
+        "DIFÍCIL"
+    },
+    {   // FR
+        "FACILE",
+        "NORMAL",
+        "DIFFICILE"
+    },
+    {   // RU
+        "ЛЁГКО",
+        "НОРМАЛЬНО",
+        "ТРУДНО"
+    }
+};
+
+static const char* hint_name_entry[] = {
+    "Type your name | ENTER to save | BackSpace to delete",          // EN
+    "Escribe tu nombre | ENTER para guardar | BackSpace para borrar", // ES
+    "Tapez votre nom | ENTRÉE pour valider | BackSpace pour effacer", // FR
+    "Введите имя | ENTER — сохранить | BackSpace — удалить"           // RU
+};
+
+static const char* hint_max_chars[] = {
+    "Max 32 characters",          // EN
+    "Máx. 32 caracteres",         // ES
+    "Max 32 caractères",          // FR
+    "Макс. 32 символа"            // RU
+};
+
+static const char* fmt_score_wave[] = {
+    "Score: %d | Wave: %d",          // EN
+    "Puntuación: %d | Oleada: %d",   // ES
+    "Score : %d | Vague : %d",       // FR
+    "Счёт: %d | Волна: %d"           // RU
+};
+
+static const char* label_select_difficulty[] = {
+    "SELECT DIFFICULTY",     // EN
+    "SELECCIONA DIFICULTAD", // ES
+    "SÉLECTIONNEZ LA DIFFICULTÉ", // FR
+    "ВЫБЕРИТЕ СЛОЖНОСТЬ"     // RU
+};
+
+static const char* hint_adjust_menu[] = {
+    "UP/DOWN to select | LEFT/RIGHT to adjust | ESC to go back",              // EN
+    "ARRIBA/ABAJO para elegir | IZQ/DER para ajustar | ESC para volver",     // ES
+    "HAUT/BAS pour choisir | GAUCHE/DROITE pour régler | ÉCHAP pour revenir",// FR
+    "ВВЕРХ/ВНИЗ — выбрать | ВЛЕВО/ВПРАВО — изменить | ESC — назад"           // RU
+};
+
+static const char* label_new_high_score[] = {
+    "NEW HIGH SCORE!",      // EN
+    "¡NUEVA PUNTUACIÓN!",   // ES
+    "NOUVEAU RECORD !",     // FR
+    "НОВЫЙ РЕКОРД!"         // RU
+};
+
+static const char* label_enter_name[] = {
+    "Enter Your Name:",        // EN
+    "Ingresa tu nombre:",      // ES
+    "Entrez votre nom :",      // FR
+    "Введите имя:"             // RU
+};
+
+static const char* label_paused[] = {
+    "PAUSED",      // EN
+    "PAUSA",       // ES
+    "PAUSE",       // FR
+    "ПАУЗА"        // RU
+};
+
+static const char* label_game_paused[] = {
+    "The game is paused",        // EN
+    "El juego está en pausa",    // ES
+    "Le jeu est en pause",       // FR
+    "Игра на паузе"              // RU
+};
+
+static const char* fmt_pause_stats[] = {
+    "Wave %d | Score %d | Lives %d",        // EN
+    "Oleada %d | Puntuación %d | Vidas %d", // ES
+    "Vague %d | Score %d | Vies %d",        // FR
+    "Волна %d | Счёт %d | Жизни %d"         // RU
+};
+
+static const char* hint_resume_p[] = {
+    "Press P to Resume",        // EN
+    "Pulsa P para reanudar",    // ES
+    "Appuyez sur P pour reprendre", // FR
+    "Нажмите P, чтобы продолжить"   // RU
+};
+
+static const char* hint_esc_menu[] = {
+    "ESC for Menu",          // EN
+    "ESC para Menú",         // ES
+    "ÉCHAP pour le menu",    // FR
+    "ESC — меню"             // RU
+};
+
+static const char* label_cheat_menu[] = {
+    "CHEAT MENU",        // EN
+    "MENÚ DE TRUCOS",    // ES
+    "MENU DES CODES",    // FR
+    "МЕНЮ ЧИТОВ"          // RU
+};
+
+
