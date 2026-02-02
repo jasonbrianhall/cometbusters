@@ -374,69 +374,15 @@ static float gl_calculate_text_width(const char *text, int font_size) {
     return width;
 }
 
-static inline int is_emoji(uint32_t codepoint) {
-    // Check if emoji bitmap exists in our lookup table
-    return emoji_bitmap_lookup(codepoint) != NULL;
-}
-
-static float draw_emoji_bitmap(uint32_t codepoint, float x, float y, 
-                               Vertex *verts, int *vert_count, int max_verts) {
-    const EmojiBitmapInfo *emoji_info = emoji_bitmap_lookup(codepoint);
-    if (!emoji_info) return 0.0f;
-    
-    // Clamp vertex count check
-    if (*vert_count >= max_verts - 6) return (float)emoji_info->advance;
-    
-    // Get the bitmap data
-    const uint8_t *bitmap_ptr = &EMOJI_BITMAP_DATA[emoji_info->bitmap_data_offset];
-    uint16_t width = emoji_info->width;
-    uint16_t height = emoji_info->height;
-    
-    float emoji_x = x + emoji_info->offset_x;
-    float emoji_y = y - emoji_info->offset_y;
-    
-    // Render the bitmap as vertices
-    for (int row = 0; row < height && *vert_count < max_verts - 6; row++) {
-        float pixel_y = emoji_y + row;
-        
-        for (int col = 0; col < width && *vert_count < max_verts - 6; col++) {
-            uint8_t pixel_value = bitmap_ptr[row * width + col];
-            
-            // Only render non-transparent pixels
-            if (pixel_value > 3) {
-                float pixel_x = emoji_x + col;
-                float alpha = gl_state.color[3] * ((float)pixel_value / 255.0f);
-                
-                float r = gl_state.color[0];
-                float g = gl_state.color[1];
-                float b = gl_state.color[2];
-                
-                // Create two triangles for the pixel
-                verts[(*vert_count)++] = {pixel_x, pixel_y, r, g, b, alpha};
-                verts[(*vert_count)++] = {pixel_x + 1.0f, pixel_y, r, g, b, alpha};
-                verts[(*vert_count)++] = {pixel_x + 1.0f, pixel_y + 1.0f, r, g, b, alpha};
-                
-                verts[(*vert_count)++] = {pixel_x, pixel_y, r, g, b, alpha};
-                verts[(*vert_count)++] = {pixel_x + 1.0f, pixel_y + 1.0f, r, g, b, alpha};
-                verts[(*vert_count)++] = {pixel_x, pixel_y + 1.0f, r, g, b, alpha};
-            }
-        }
-    }
-    
-    return (float)emoji_info->advance;
-}
-
-/**
- * Updated gl_draw_text_simple with emoji support
- * 
- * This function now detects emojis by codepoint and renders them using
- * pre-generated bitmaps from the emoji font instead of FreeType.
- */
 void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
-    if (!text || !text[0]) return;
+    if (!text || !text[0] || !ft_face) return;
     
-    // For emoji rendering, we don't set font size the same way
-    // Instead, we use the pre-rendered emoji bitmaps
+    // Set font size
+    FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
+    if (error) {
+        fprintf(stderr, "[FONT] Warning: Failed to set font size\n");
+        return;
+    }
     
     float current_x = (float)x;
     float baseline_y = (float)y;
@@ -445,34 +391,6 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     static Vertex verts[1000000];
     int vert_count = 0;
     const int MAX_VERTS = 999994;
-    
-    // Check if we need FreeType for regular text
-    int need_freetype = 0;
-    for (int i = 0; text[i]; ) {
-        int bytes_read = 0;
-        unsigned int codepoint = utf8_to_codepoint((const unsigned char*)&text[i], &bytes_read);
-        if (bytes_read == 0) {
-            i++;
-            continue;
-        }
-        
-        // Check if this is NOT an emoji and NOT ASCII space
-        if (!is_emoji(codepoint) && codepoint != ' ') {
-            need_freetype = 1;
-            break;
-        }
-        i += bytes_read;
-    }
-    
-    // Set FreeType font size only if we have regular text
-    FT_Error error = 0;
-    if (need_freetype && ft_face) {
-        error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
-        if (error) {
-            fprintf(stderr, "[FONT] Warning: Failed to set font size\n");
-            return;
-        }
-    }
     
     // Process UTF-8 text
     for (int i = 0; text[i] && vert_count < MAX_VERTS - 6; ) {
@@ -484,137 +402,67 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
             continue;
         }
         
-        // Check if this is an emoji
-        if (is_emoji(codepoint)) {
-            // Render emoji bitmap
-            float advance = draw_emoji_bitmap(codepoint, current_x, baseline_y, 
-                                             verts, &vert_count, MAX_VERTS);
-            current_x += advance;
-        }
-        // Check for space character
-        else if (codepoint == ' ') {
-            // For space, estimate width or use a default
-            current_x += (float)(font_size * 0.5);  // Rough estimate
-        }
-        // Regular character - render with FreeType
-        else if (ft_face) {
-            // Get glyph index and load it
-            FT_UInt glyph_index = FT_Get_Char_Index(ft_face, codepoint);
-            error = FT_Load_Glyph(ft_face, glyph_index, FT_LOAD_RENDER);
-            
-            if (error) {
-                // Skip glyphs that can't be loaded, but advance position
-                if (FT_Load_Glyph(ft_face, glyph_index, FT_LOAD_DEFAULT) == 0) {
-                    current_x += (float)(ft_face->glyph->advance.x >> 6);
-                }
-                i += bytes_read;
-                continue;
+        // Get glyph index and load it
+        FT_UInt glyph_index = FT_Get_Char_Index(ft_face, codepoint);
+        error = FT_Load_Glyph(ft_face, glyph_index, FT_LOAD_RENDER);
+        
+        if (error) {
+            // Skip glyphs that can't be loaded, but advance position
+            if (FT_Load_Glyph(ft_face, glyph_index, FT_LOAD_DEFAULT) == 0) {
+                current_x += (float)(ft_face->glyph->advance.x >> 6);
             }
+            i += bytes_read;
+            continue;
+        }
+        
+        FT_GlyphSlot slot = ft_face->glyph;
+        FT_Bitmap *bitmap = &slot->bitmap;
+        
+        if (bitmap->buffer && bitmap->width > 0 && bitmap->rows > 0) {
+            // Render glyph bitmap as vertices
+            float glyph_x = current_x + slot->bitmap_left;
+            float glyph_y = baseline_y - slot->bitmap_top;
             
-            FT_GlyphSlot slot = ft_face->glyph;
-            FT_Bitmap *bitmap = &slot->bitmap;
-            
-            if (bitmap->buffer && bitmap->width > 0 && bitmap->rows > 0) {
-                // Render glyph bitmap as vertices
-                float glyph_x = current_x + slot->bitmap_left;
-                float glyph_y = baseline_y - slot->bitmap_top;
+            for (int row = 0; row < (int)bitmap->rows && vert_count < MAX_VERTS - 6; row++) {
+                float pixel_y = glyph_y + row;
                 
-                for (int row = 0; row < (int)bitmap->rows && vert_count < MAX_VERTS - 6; row++) {
-                    float pixel_y = glyph_y + row;
+                for (int col = 0; col < (int)bitmap->width && vert_count < MAX_VERTS - 6; col++) {
+                    unsigned char pixel_value = bitmap->buffer[row * bitmap->pitch + col];
                     
-                    for (int col = 0; col < (int)bitmap->width && vert_count < MAX_VERTS - 6; col++) {
-                        unsigned char pixel_value = bitmap->buffer[row * bitmap->pitch + col];
+                    if (pixel_value > 3) {
+                        float pixel_x = glyph_x + col;
+                        float alpha = gl_state.color[3] * ((float)pixel_value / 255.0f);
                         
-                        if (pixel_value > 3) {
-                            float pixel_x = glyph_x + col;
-                            float alpha = gl_state.color[3] * ((float)pixel_value / 255.0f);
-                            
-                            float r = gl_state.color[0];
-                            float g = gl_state.color[1];
-                            float b = gl_state.color[2];
-                            
-                            // Create two triangles for the pixel
-                            verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
-                            verts[vert_count++] = {pixel_x + 1.0f, pixel_y, r, g, b, alpha};
-                            verts[vert_count++] = {pixel_x + 1.0f, pixel_y + 1.0f, r, g, b, alpha};
-                            
-                            verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
-                            verts[vert_count++] = {pixel_x + 1.0f, pixel_y + 1.0f, r, g, b, alpha};
-                            verts[vert_count++] = {pixel_x, pixel_y + 1.0f, r, g, b, alpha};
-                        }
+                        float r = gl_state.color[0];
+                        float g = gl_state.color[1];
+                        float b = gl_state.color[2];
+                        
+                        // Create two triangles for the pixel
+                        verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
+                        verts[vert_count++] = {pixel_x + 1.0f, pixel_y, r, g, b, alpha};
+                        verts[vert_count++] = {pixel_x + 1.0f, pixel_y + 1.0f, r, g, b, alpha};
+                        
+                        verts[vert_count++] = {pixel_x, pixel_y, r, g, b, alpha};
+                        verts[vert_count++] = {pixel_x + 1.0f, pixel_y + 1.0f, r, g, b, alpha};
+                        verts[vert_count++] = {pixel_x, pixel_y + 1.0f, r, g, b, alpha};
                     }
                 }
-                
-                // Advance position
-                current_x += (float)(slot->advance.x >> 6);
             }
         }
         
+        // Advance to next character position
+        current_x += (float)(slot->advance.x >> 6);
         i += bytes_read;
     }
     
-    // Draw all accumulated vertices
+    // Draw all glyphs at once
     if (vert_count > 0) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         draw_vertices(verts, vert_count, GL_TRIANGLES);
     }
 }
 
-/**
- * Calculate text width including emoji support
- * 
- * This function accounts for both regular characters (FreeType) and emojis
- */
-static float gl_calculate_text_width(const char *text, int font_size) {
-    if (!text || !text[0]) return 0.0f;
-    
-    // Set font size for FreeType measurements
-    FT_Error error = 0;
-    if (ft_face) {
-        error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
-        if (error) {
-            fprintf(stderr, "[FONT] Warning: Failed to set font size\n");
-            return 0.0f;
-        }
-    }
-    
-    float width = 0.0f;
-    
-    // Process UTF-8 text
-    for (int i = 0; text[i]; ) {
-        int bytes_read = 0;
-        unsigned int codepoint = utf8_to_codepoint((const unsigned char*)&text[i], &bytes_read);
-        
-        if (bytes_read == 0) {
-            i++;
-            continue;
-        }
-        
-        // Check if this is an emoji
-        if (is_emoji(codepoint)) {
-            const EmojiBitmapInfo *emoji_info = emoji_bitmap_lookup(codepoint);
-            if (emoji_info) {
-                width += (float)emoji_info->advance;
-            }
-        }
-        // Space character
-        else if (codepoint == ' ') {
-            width += (float)(font_size * 0.5);
-        }
-        // Regular character
-        else if (ft_face) {
-            FT_UInt glyph_index = FT_Get_Char_Index(ft_face, codepoint);
-            error = FT_Load_Glyph(ft_face, glyph_index, FT_LOAD_DEFAULT);
-            
-            if (!error) {
-                width += (float)(ft_face->glyph->advance.x >> 6);
-            }
-        }
-        
-        i += bytes_read;
-    }
-    
-    return width;
-}
 
 void gl_draw_line(float x1, float y1, float x2, float y2, float width) {
     glLineWidth(width);
