@@ -124,6 +124,24 @@ void play_intro(CometGUI *gui, int language) {
     }
 }
 
+void play_finale(CometGUI *gui, int language) {
+    printf("Language is %i\n", language);
+    switch (language) {
+        case LANG_SPANISH:
+            audio_play_music(&gui->audio, "music/finale_es.mp3", false);
+            break;
+        case LANG_FRENCH:
+            audio_play_music(&gui->audio, "music/finale_fr.mp3", false);
+            break;
+        case LANG_RUSSIAN:
+            audio_play_music(&gui->audio, "music/finale_ru.mp3", false);
+            break;
+        default:
+            audio_play_music(&gui->audio, "music/finale.mp3", false);
+            break;
+    }
+}
+
 
 // ============================================================
 // INPUT HANDLING
@@ -928,7 +946,8 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
             fprintf(stdout, "[FINALE] Starting finale music...\n");
             audio_stop_music(&gui->audio);
 #ifdef ExternalSound
-            audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
+            //audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
+            play_finale(&gui, gui->visualizer.comet_buster.current_language);
 #endif
             gui->finale_music_started = true;
         }
