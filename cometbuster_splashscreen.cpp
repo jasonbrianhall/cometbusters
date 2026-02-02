@@ -26,6 +26,25 @@ int get_num_crawl_lines_for_language(int language) {
     }
 }
 
+const char **get_victory_scroll_for_language(int language) {
+    switch(language) {
+        case LANG_SPANISH: return VICTORY_SCROLL_LINES_ES;
+        case LANG_FRENCH: return VICTORY_SCROLL_LINES_FR;
+        case LANG_RUSSIAN: return VICTORY_SCROLL_LINES_RU;
+        default: return VICTORY_SCROLL_LINES;
+    }
+}
+
+int get_num_victory_lines_for_language(int language) {
+    switch(language) {
+        case LANG_SPANISH: return NUM_VICTORY_LINES_ES;
+        case LANG_FRENCH: return NUM_VICTORY_LINES_FR;
+        case LANG_RUSSIAN: return NUM_VICTORY_LINES_RU;
+        default: return NUM_VICTORY_LINES;
+    }
+}
+
+
 void comet_buster_init_splash_screen(CometBusterGame *game, int width, int height) {
     if (!game) return;
     

@@ -729,5 +729,7 @@ const char* high_scores_get_path(void);
 
 const char **get_opening_crawl_for_language(int language);
 int get_num_crawl_lines_for_language(int language);
+const char **get_victory_scroll_for_language(int language);
+int get_num_victory_lines_for_language(int language);
 
 #endif // COMETBUSTER_H

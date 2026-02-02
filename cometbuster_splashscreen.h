@@ -337,7 +337,7 @@ static const char *VICTORY_SCROLL_LINES[] = {
 
 #define NUM_VICTORY_LINES (sizeof(VICTORY_SCROLL_LINES) / sizeof(VICTORY_SCROLL_LINES[0]))
 
-static const char *VICTORY_SCROLL_ES[] = {
+static const char *VICTORY_SCROLL_LINES_ES[] = {
     "",
     "",
     "",
@@ -424,7 +424,7 @@ static const char *VICTORY_SCROLL_ES[] = {
 
 #define NUM_VICTORY_LINES_ES (sizeof(VICTORY_SCROLL_LINES_ES) / sizeof(VICTORY_SCROLL_LINES_ES[0]))
 
-static const char *VICTORY_SCROLL_FR[] = {
+static const char *VICTORY_SCROLL_LINES_FR[] = {
     "",
     "",
     "",
@@ -511,7 +511,7 @@ static const char *VICTORY_SCROLL_FR[] = {
 
 #define NUM_VICTORY_LINES_FR (sizeof(VICTORY_SCROLL_LINES_FR) / sizeof(VICTORY_SCROLL_LINES_FR[0]))
 
-static const char *VICTORY_SCROLL_RU[] = {
+static const char *VICTORY_SCROLL_LINES_RU[] = {
     "",
     "",
     "",

@@ -2631,6 +2631,11 @@ void boss_explosion_draw_gl(BossExplosion *explosion, void *cr) {
 
 
 
+// ============================================================================
+// COMPLETE LOCALIZED OPENGL SPLASH SCREEN FUNCTIONS
+// Replace your existing GL functions with these
+// ============================================================================
+
 void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game || !game->splash_screen_active) return;
     
@@ -2667,6 +2672,10 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
     double scroll_speed = 1.0;  // seconds per line
     
     if (game->splash_timer < 38.0) {
+        // GET LANGUAGE-SPECIFIC ARRAYS
+        const char **crawl_lines = get_opening_crawl_for_language(game->current_language);
+        int num_crawl_lines = get_num_crawl_lines_for_language(game->current_language);
+        
         gl_set_color(1.0f, 0.95f, 0.0f);
         
         // Approximate line height (monospace font)
@@ -2683,7 +2692,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         // Draw all lines that could be visible
         for (int i = 0; i < (int)lines_visible + 2; i++) {
             int line_index = (int)current_line_offset + i;
-            if (line_index < 0 || line_index >= (int)NUM_CRAWL_LINES) continue;
+            if (line_index < 0 || line_index >= num_crawl_lines) continue;
             
             // Calculate Y position (lines scroll up from bottom to top)
             double y_pos = height - (fractional_offset * line_height) + (i * line_height) - (current_line_offset * line_height);
@@ -2702,13 +2711,13 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
             gl_set_color_alpha(1.0f, 0.95f, 0.0f, (float)alpha);
             
             // Center text horizontally using actual text width
-            float text_width = gl_calculate_text_width(OPENING_CRAWL_LINES[line_index], 24);
+            float text_width = gl_calculate_text_width(crawl_lines[line_index], 24);
             float ideal_x = (viewport_width - text_width) / 2.0f;
             // Clamp to viewport bounds: min 30px margin to prevent cutoff (text can be long)
             int x_pos = (int)ideal_x;
             if (x_pos < 30) x_pos = 30;
             if (x_pos + text_width > viewport_width - 30) x_pos = viewport_width - (int)text_width - 30;
-            gl_draw_text_simple(OPENING_CRAWL_LINES[line_index], x_pos, (int)y_pos, 24);
+            gl_draw_text_simple(crawl_lines[line_index], x_pos, (int)y_pos, 24);
         }
     }
     // ===== TITLE PHASE =====
@@ -2800,6 +2809,10 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
     gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.95f);
     gl_draw_rect_filled(0.0f, 0.0f, (float)width, (float)height);
     
+    // GET LANGUAGE-SPECIFIC ARRAYS
+    const char **victory_lines = get_victory_scroll_for_language(game->current_language);
+    int num_victory_lines = get_num_victory_lines_for_language(game->current_language);
+    
     // Setup text
     gl_set_color(1.0f, 1.0f, 0.0f);
     
@@ -2813,7 +2826,7 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
     
     // Draw visible lines
     int y_pos = height / 3;
-    for (int i = 0; i < 8 && start_line + i < NUM_VICTORY_LINES; i++) {
+    for (int i = 0; i < 8 && start_line + i < num_victory_lines; i++) {
         double fade = 1.0;
         
         // First line fades in
@@ -2828,7 +2841,7 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
         gl_set_color_alpha(1.0f, 1.0f, 0.0f, (float)fade);
         
         // Center text horizontally using actual text width
-        const char *line_text = VICTORY_SCROLL_LINES[start_line + i];
+        const char *line_text = victory_lines[start_line + i];
         float text_width = gl_calculate_text_width(line_text, 24);
         float ideal_x = (viewport_width - text_width) / 2.0f;
         // Clamp to viewport bounds with safe margin to prevent cutoff
@@ -2854,6 +2867,10 @@ void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int wid
     float title_x = (width - title_width) / 2.0f;
     gl_draw_text_simple(title, (int)title_x, 80, 36);
     
+    // GET LANGUAGE-SPECIFIC ARRAYS
+    const char **victory_lines = get_victory_scroll_for_language(game->current_language);
+    int num_victory_lines = get_num_victory_lines_for_language(game->current_language);
+    
     // Victory scroll text - scrolling effect
     gl_set_color(0.2f, 0.8f, 1.0f);
     
@@ -2862,8 +2879,8 @@ void comet_buster_draw_finale_splash_gl(CometBusterGame *game, void *cr, int wid
                      (game->finale_scroll_line_index - visible_lines) : 0;
     
     float y_pos = 150.0f;
-    for (int i = start_line; i <= game->finale_scroll_line_index && i < NUM_VICTORY_LINES; i++) {
-        const char *line_text = VICTORY_SCROLL_LINES[i];
+    for (int i = start_line; i <= game->finale_scroll_line_index && i < num_victory_lines; i++) {
+        const char *line_text = victory_lines[i];
         float text_width = gl_calculate_text_width(line_text, 15);
         float text_x = (width - text_width) / 2.0f;
         gl_draw_text_simple(line_text, (int)text_x, (int)y_pos, 15);
@@ -2887,6 +2904,9 @@ void comet_buster_update_victory_scroll_gl(CometBusterGame *game, double dt) {}
 void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {
     if (!game || !game->finale_splash_active) return;
     
+    // GET LANGUAGE-SPECIFIC LINE COUNT
+    int num_victory_lines = get_num_victory_lines_for_language(game->current_language);
+    
     game->finale_splash_timer += dt;
     game->finale_scroll_timer += dt;
     
@@ -2896,9 +2916,9 @@ void comet_buster_update_finale_splash_gl(CometBusterGame *game, double dt) {
         game->finale_scroll_timer = 0.0;
         
         // When we reach the end, wait for input
-        if (game->finale_scroll_line_index >= NUM_VICTORY_LINES) {
+        if (game->finale_scroll_line_index >= num_victory_lines) {
             game->finale_waiting_for_input = true;
-            game->finale_scroll_line_index = NUM_VICTORY_LINES - 1;
+            game->finale_scroll_line_index = num_victory_lines - 1;
         }
     }
 }
