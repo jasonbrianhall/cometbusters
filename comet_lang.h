@@ -523,5 +523,46 @@ static const char* perfect_destruction_text[] = {
     "ИДЕАЛЬНОЕ УНИЧТОЖЕНИЕ!"       // Russian
 };
 
+static const char* main_menu_items[][6] = {
+    {   // English
+        "CONTINUE",
+        "NEW GAME",
+        "HIGH SCORES",
+        "AUDIO",
+        "LANGUAGE",
+        "QUIT"
+    },
+    {   // Spanish
+        "CONTINUAR",
+        "NUEVA PARTIDA",
+        "PUNTUACIONES",
+        "AUDIO",
+        "IDIOMA",
+        "SALIR"
+    },
+    {   // French
+        "CONTINUER",
+        "NOUVELLE PARTIE",
+        "MEILLEURS SCORES",
+        "AUDIO",
+        "LANGUE",
+        "QUITTER"
+    },
+    {   // Russian
+        "ПРОДОЛЖИТЬ",
+        "НОВАЯ ИГРА",
+        "РЕКОРДЫ",
+        "АУДИО",
+        "ЯЗЫК",
+        "ВЫХОД"
+    }
+};
+
+static const char* hint_select_close[][1] = {
+    { "Up/Down/Enter to select; ESC to close" },        // EN
+    { "Arriba/Abajo/Enter para elegir; ESC para cerrar" }, // ES
+    { "Haut/Bas/Entrée pour choisir; Échap pour fermer" }, // FR
+    { "Вверх/Вниз/Enter — выбрать; ESC — закрыть" }        // RU
+};
 
 

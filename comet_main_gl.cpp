@@ -1078,14 +1078,19 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             gl_set_color(0.0f, 1.0f, 1.0f);
             gl_draw_text_simple("COMET BUSTERS", 800, 100, 28);
             
-            const char *menu_items[] = {
+            /*const char *menu_items[] = {
                 "CONTINUE",
                 "NEW GAME",
                 "HIGH SCORES",
                 "AUDIO",
                 "LANGUAGE",
                 "QUIT"
-            };
+            };*/
+            const char* const *menu_items = main_menu_items[gui->visualizer.comet_buster.current_language];
+            //menu_items=main_menu_items[0];
+
+            //const char *menu_items[] = main_menu_items[gui->visualizer.comet_buster.current_language];
+
             
             int menu_y_start = 350;
             int menu_spacing = 120;
@@ -1120,7 +1125,8 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
-            gl_draw_text_simple("Up/Down/Enter to select; ESC to close", 550, 950, 24);
+            //gl_draw_text_simple("Up/Down/Enter to select; ESC to close", 550, 950, 24);
+            gl_draw_text_simple(hint_select_close[gui->visualizer.comet_buster.current_language][0], 550, 950, 24);
             
         } else if (gui->menu_state == 1) {
             // Difficulty selection menu
