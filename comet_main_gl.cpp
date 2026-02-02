@@ -106,6 +106,27 @@ typedef struct {
     CometPreferences preferences;  // Persistent user preferences (language, volumes)
 } CometGUI;
 
+void play_intro(CometGUI *gui, int language) {
+    printf("Language is %i\n", language);
+    //audio_play_intro_music(&gui->audio, "music/intro_ru.mp3");
+    //return;
+    switch (language) {
+        case LANG_SPANISH:
+            audio_play_intro_music(&gui->audio, "music/intro_es.mp3");
+            break;
+        case LANG_FRENCH:
+            audio_play_intro_music(&gui->audio, "music/intro_fr.mp3");
+            break;
+        case LANG_RUSSIAN:
+            audio_play_intro_music(&gui->audio, "music/intro_ru.mp3");
+            break;
+        default:
+            audio_play_intro_music(&gui->audio, "music/intro.mp3");
+            break;
+    }
+}
+
+
 // ============================================================
 // INPUT HANDLING
 // ============================================================
@@ -662,7 +683,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
                             }
 #ifdef ExternalSound
-                            audio_play_intro_music(&gui->audio, "music/intro.mp3");
+                           play_intro(gui, gui->visualizer.comet_buster.current_language);
 #endif
                             gui->show_menu = false;
                             gui->game_paused = false;
@@ -795,7 +816,8 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     // Start game with selected difficulty
                                     comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, gui->gui_difficulty_level-1);
 #ifdef ExternalSound
-                                    audio_play_intro_music(&gui->audio, "music/intro.mp3");
+                                    play_intro(gui, gui->visualizer.comet_buster.current_language);
+                                    //audio_play_intro_music(&gui->audio, "music/intro.mp3");
 #endif
                                     gui->show_menu = false;
                                     gui->game_paused = false;
@@ -845,7 +867,8 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             gui->game_paused = false;
                             gui->finale_music_started = false;
 #ifdef ExternalSound
-                            audio_play_intro_music(&gui->audio, "music/intro.mp3");
+                            play_intro(gui, gui->visualizer.comet_buster.current_language);
+                            //audio_play_intro_music(&gui->audio, "music/intro.mp3");
 #endif
                         }
                     }
@@ -1584,7 +1607,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     audio_play_music(&gui.audio, "music/track6.mp3", false);   // Load track 6
     
     // Play intro music during splash screen
-    audio_play_intro_music(&gui.audio, "music/intro.mp3");
+    //audio_play_intro_music(&gui.audio, "music/intro.mp3");
+    play_intro(&gui, gui.visualizer.comet_buster.current_language);
 #endif
     
     printf("[INIT] Ready to play - press WASD to move, Z to fire, ESC to open menu, P to pause\n");
