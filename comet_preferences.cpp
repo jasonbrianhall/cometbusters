@@ -1,4 +1,5 @@
 #include "comet_preferences.h"
+#include "comet_lang.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

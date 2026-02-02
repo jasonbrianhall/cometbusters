@@ -1,8 +1,6 @@
 #ifndef COMET_PREFERENCES_H
 #define COMET_PREFERENCES_H
 
-#include "comet_lang.h"
-
 // Preferences structure
 typedef struct {
     int language;           // Language enum (LANG_ENGLISH, LANG_SPANISH, etc.)
