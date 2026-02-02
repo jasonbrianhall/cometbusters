@@ -22,6 +22,7 @@
 #include "cometbuster.h"
 #include "visualization.h"
 #include "audio_wad.h"
+#include "comet_lang.h"
 
 // ============================================================
 // LOCAL HIGH SCORE ENTRY STATE (Not in header - local only)
@@ -1565,6 +1566,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Start with splash screen active
     gui.visualizer.comet_buster.splash_screen_active = true;
+    gui.visualizer.comet_buster.current_language = LANG_ENGLISH;
+
     comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, MEDIUM);
 
     gui.show_menu = false;
