@@ -149,7 +149,7 @@ static const char* singularity_collapse_initiated_text[] = {
 static const char* singularity_collapsed_text[] = {
     "SINGULARITY COLLAPSED",          // English
     "SINGULARIDAD COLAPSADA",         // Spanish
-    "SINGULARITÉ EFFONDREE",          // French
+    "SINGULARITÉ EFFONDRÉE",          // French
     "СИНГУЛЯРНОСТЬ РУХНУЛА"           // Russian
 };
 
@@ -157,7 +157,7 @@ static const char* dimensional_barrier_restored_text[] = {
     "DIMENSIONAL BARRIER RESTORED",        // English
     "BARRERA DIMENSIONAL RESTAURADA",      // Spanish
     "BARRIÈRE DIMENSIONNELLE RESTAURÉE",   // French
-    "ИЗМЕРЕНЧЕСКИЙ БАРЬЕР ВОССТАНОВЛЕН"    // Russian
+    "МЕРНЫЙ БАРЬЕР ВОССТАНОВЛЕН"           // Russian
 };
 
 static const char* cosmic_threat_eliminated_text[] = {
@@ -217,7 +217,7 @@ static const char* phase_enraged_text[] = {
     "ENRAGED!",
     "¡ENFURECIDO!",
     "ENRAGÉ!",
-    "ВБЕШЕНСТВЕ!"
+    "РАЗЪЯРЁН!"
 };
 
 static const char* queen_phase_recruiting_text[] = {
@@ -279,7 +279,7 @@ static const char* suppressing_threats_text[] = {
 
 static const char* core_destabilizing_text[] = {
     "CORE DESTABILIZING!",          // English
-    "¡NÚCLEO DESestabilizándose!",  // Spanish
+    "¡NÚCLEO DESESTABILIZÁNDOSE!",  // Spanish
     "DÉSTABILISATION DU NŒUD !",    // French
     "ЯДРО ДЕСТАБИЛИЗИРУЕТСЯ!"        // Russian
 };
