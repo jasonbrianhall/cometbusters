@@ -10,6 +10,8 @@
 #include "audio_wad.h"
 #endif 
 
+#include "comet_lang.h"
+
 void comet_buster_spawn_comet(CometBusterGame *game, int frequency_band, int screen_width, int screen_height) {
     if (!game) return;
     
@@ -125,7 +127,7 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
     
     // Check if this is a boss wave
     if (game->current_wave % 30 == 5) {
-        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, "DEATH STAR APPROACHES", 0.8, 0.8, 0.2);
+        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, death_star_approaches_text[game->current_language], 0.8, 0.8, 0.2);
         // Regular boss on waves 5, 35, 65, 95, etc.
         comet_buster_spawn_boss(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
@@ -134,32 +136,29 @@ void comet_buster_spawn_wave(CometBusterGame *game, int screen_width, int screen
         // Spawn Queen on waves 10, 40, 70, 100, etc.
         comet_buster_spawn_spawn_queen(game, screen_width, screen_height);
         // Don't spawn normal comets - spawn queen controls the difficulty
-        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, "SPAWN QUEEN RISES", 1.0, 0.3, 0.8);
+        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, spawn_queen_rises_text[game->current_language], 1.0, 0.3, 0.8);
     } else if (game->current_wave % 30 == 15) {
         // Void Nexus on waves 15, 45, 75, 105, etc.
-        printf("Should be spawning void\n");
-        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, "VOID NEXUS EMERGES", 0.2, 0.8, 1.0);
+        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, void_nexus_emerges_text[game->current_language], 0.2, 0.8, 1.0);
         comet_buster_spawn_void_nexus(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
         comet_buster_spawn_random_comets(game, 5, screen_width, screen_height);
     } else if (game->current_wave % 30 == 20) {
         // Harbinger on waves 20, 50, 80, 110, etc.
-        printf("Should be spawning harbinger\n");
-        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, "HARBINGER DESCENDS", 1.0, 0.2, 0.2);
+        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, harbinger_descends_text[game->current_language], 1.0, 0.2, 0.2);
         comet_buster_spawn_harbinger(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
         comet_buster_spawn_random_comets(game, 5, screen_width, screen_height);
     } else if (game->current_wave % 30 == 25) {
-        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, "STAR VORTEX AWAKENS", 0.8, 0.2, 1.0);
+        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, star_vortex_awakens_text[game->current_language], 0.8, 0.2, 1.0);
         // Star boss on waves 25, 55, 85, 115, etc.
         comet_buster_spawn_star_vortex(game, screen_width, screen_height);
         //comet_buster_spawn_boss(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
         comet_buster_spawn_random_comets(game, 8, screen_width, screen_height);
     } else if (game->current_wave % 30 == 0) {
-        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, "ULTIMATE THREAT DETECTED", 1.0, 1.0, 0.0);
+        comet_buster_spawn_floating_text(game, screen_width/2.0, 100.0, ultimate_threat_detected_text[game->current_language], 1.0, 1.0, 0.0);
         // Final boss on waves 30, 60, 90, 120, etc. - THE SINGULARITY
-        printf("Should be spawning The Singularity\n");
         comet_buster_spawn_singularity(game, screen_width, screen_height);
         // Spawn some normal comets alongside the boss
         comet_buster_spawn_random_comets(game, 10, screen_width, screen_height);

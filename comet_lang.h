@@ -388,6 +388,48 @@ static const char* perfect_victory_text[] = {
     "ИДЕАЛЬНАЯ ПОБЕДА!"        // Russian
 };
 
+static const char* death_star_approaches_text[] = {
+    "DEATH STAR APPROACHES",        // English
+    "LA ESTRELLA DE LA MUERTE SE ACERCA",  // Spanish
+    "L’ÉTOILE DE LA MORT APPROCHE",        // French
+    "ЗВЕЗДА СМЕРТИ ПРИБЛИЖАЕТСЯ"           // Russian
+};
+
+static const char* spawn_queen_rises_text[] = {
+    "SPAWN QUEEN RISES",        // English
+    "LA REINA ENGENDRADORA SE ALZA",   // Spanish
+    "LA REINE DES ENGEANCE S’ÉLÈVE",   // French
+    "КОРОЛЕВА ПОРОЖДЕНИЙ ВОССТАЁТ"     // Russian
+};
+
+static const char* void_nexus_emerges_text[] = {
+    "VOID NEXUS EMERGES",          // English
+    "SURGE EL NEXO DEL VACÍO",     // Spanish
+    "LE NEXUS DU VIDE ÉMERGE",     // French
+    "ВОЗНИКАЕТ НЕКСУС ПУСТОТЫ"     // Russian
+};
+
+static const char* harbinger_descends_text[] = {
+    "HARBINGER DESCENDS",          // English
+    "EL HERALDO DESCIENDE",        // Spanish
+    "LE PRÉCURSEUR DESCEND",       // French
+    "ВЕСТНИК НИСПАДАЕТ"            // Russian
+};
+
+static const char* star_vortex_awakens_text[] = {
+    "STAR VORTEX AWAKENS",          // English
+    "EL VÓRTICE ESTELAR DESPIERTA", // Spanish
+    "LE VORTEX STELLAIRE S’ÉVEILLE",// French
+    "ЗВЁЗДНЫЙ ВИХРЬ ПРОБУЖДАЕТСЯ"   // Russian
+};
+
+static const char* ultimate_threat_detected_text[] = {
+    "ULTIMATE THREAT DETECTED",        // English
+    "AMENAZA SUPREMA DETECTADA",       // Spanish
+    "MENACE ULTIME DÉTECTÉE",          // French
+    "ОБНАРУЖЕНА ВЫСШАЯ УГРОЗА"         // Russian
+};
+
 
 static const char* weapon_name_bullets[] = {
     "Bullets",      // English
