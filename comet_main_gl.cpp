@@ -1222,13 +1222,13 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         } else if (gui->menu_state == 4) {
             // Language selection menu
             gl_set_color(0.0f, 1.0f, 1.0f);
-            gl_draw_text_simple("SELECT LANGUAGE", 800, 150, 24);
+            gl_draw_text_simple(label_select_language[gui->visualizer.comet_buster.current_language], 800, 150, 24);
             
             const char *languages[] = {
-                "English",
-                "Español",
-                "Français",
-                "Русский"
+                "🇬🇧 English",
+                "🇪🇸 Español",
+                "🇫🇷 Français",
+                "🇷🇺 Русский"
             };
             
             int lang_y_start = 350;
@@ -1426,7 +1426,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 0 ? 1.0f : 0.7f, 
                      cheat_menu->selection == 0 ? 1.0f : 0.7f);
         char wave_text[128];
-        sprintf(wave_text, "Wave: %d/30 (LEFT/RIGHT to adjust)", cheat_menu->wave);
+        sprintf(wave_text, fmt_cheat_wave[gui->visualizer.comet_buster.current_language], cheat_menu->wave);
         gl_draw_text_simple(wave_text, 550, option_y, 16);
         
         // Option 1: Lives
@@ -1435,7 +1435,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 1 ? 1.0f : 0.7f,
                      cheat_menu->selection == 1 ? 1.0f : 0.7f);
         char lives_text[128];
-        sprintf(lives_text, "Lives: %d/20 (LEFT/RIGHT to adjust)", cheat_menu->lives);
+        sprintf(lives_text, fmt_cheat_lives[gui->visualizer.comet_buster.current_language], cheat_menu->lives);
         gl_draw_text_simple(lives_text, 550, option_y, 16);
         
         // Option 2: Missiles
@@ -1444,7 +1444,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 2 ? 1.0f : 0.7f,
                      cheat_menu->selection == 2 ? 1.0f : 0.7f);
         char missiles_text[128];
-        sprintf(missiles_text, "Missiles: %d/99 (LEFT/RIGHT to adjust)", cheat_menu->missiles);
+        sprintf(missiles_text, fmt_cheat_missiles[gui->visualizer.comet_buster.current_language], cheat_menu->missiles);
         gl_draw_text_simple(missiles_text, 550, option_y, 16);
         
         // Option 3: Bombs
@@ -1453,7 +1453,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 3 ? 1.0f : 0.7f,
                      cheat_menu->selection == 3 ? 1.0f : 0.7f);
         char bombs_text[128];
-        sprintf(bombs_text, "Bombs: %d/99 (LEFT/RIGHT to adjust)", cheat_menu->bombs);
+        sprintf(bombs_text, fmt_cheat_bombs[gui->visualizer.comet_buster.current_language], cheat_menu->bombs);
         gl_draw_text_simple(bombs_text, 550, option_y, 16);
 
         // Option 4: Difficulty
@@ -1462,19 +1462,8 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 4 ? 1.0f : 0.7f,
                      cheat_menu->selection == 4 ? 1.0f : 0.7f);
         char difficulty_text[128];
-        switch (cheat_menu->cheat_difficulty) {
-           case 0:
-               sprintf(difficulty_text, "Difficulty: Easy (LEFT/RIGHT to adjust)");
-               break;
-           case 1:
-               sprintf(difficulty_text, "Difficulty: Medium (LEFT/RIGHT to adjust)");
-               break;
-           case 2:
-               sprintf(difficulty_text, "Difficulty: Hard (LEFT/RIGHT to adjust)");
-               break;
-            default:
-               sprintf(difficulty_text, "Difficulty: Out of Range (LEFT/RIGHT to adjust)");
-        }
+        sprintf(difficulty_text, fmt_cheat_difficulty[gui->visualizer.comet_buster.current_language][cheat_menu->cheat_difficulty]);
+
         gl_draw_text_simple(difficulty_text, 550, option_y, 16);
         
         // Option 5: Apply
@@ -1486,7 +1475,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color(cheat_menu->selection == 5 ? 1.0f : 0.8f,
                      cheat_menu->selection == 5 ? 1.0f : 0.8f,
                      cheat_menu->selection == 5 ? 1.0f : 0.8f);
-        gl_draw_text_simple("APPLY", 600, option_y+5, 14);
+        gl_draw_text_simple(label_apply[gui->visualizer.comet_buster.current_language], 600, option_y+5, 14);
         
         // Option 6: Cancel
         option_y += 60;
@@ -1497,7 +1486,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color(cheat_menu->selection == 6 ? 1.0f : 0.8f,
                      cheat_menu->selection == 6 ? 1.0f : 0.8f,
                      cheat_menu->selection == 6 ? 1.0f : 0.8f);
-        gl_draw_text_simple("CANCEL", 600, option_y+5, 14);
+        gl_draw_text_simple(label_cancel[gui->visualizer.comet_buster.current_language], 600, option_y+5, 14);
         
     }
     

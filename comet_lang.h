@@ -719,4 +719,76 @@ static const char* label_cheat_menu[] = {
     "МЕНЮ ЧИТОВ"          // RU
 };
 
+static const char* fmt_cheat_wave[] = {
+    "Wave: %d/30 (LEFT/RIGHT to adjust)",          // EN
+    "Oleada: %d/30 (IZQ/DER para ajustar)",        // ES
+    "Vague : %d/30 (GAUCHE/DROITE pour régler)",   // FR
+    "Волна: %d/30 (ВЛЕВО/ВПРАВО изменить)"         // RU
+};
+
+static const char* fmt_cheat_lives[] = {
+    "Lives: %d/20 (LEFT/RIGHT to adjust)",          // EN
+    "Vidas: %d/20 (IZQ/DER para ajustar)",          // ES
+    "Vies : %d/20 (GAUCHE/DROITE pour régler)",     // FR
+    "Жизни: %d/20 (ВЛЕВО/ВПРАВО изменить)"          // RU
+};
+
+static const char* fmt_cheat_missiles[] = {
+    "Missiles: %d/99 (LEFT/RIGHT to adjust)",          // EN
+    "Misiles: %d/99 (IZQ/DER para ajustar)",           // ES
+    "Missiles : %d/99 (GAUCHE/DROITE pour régler)",    // FR
+    "Ракеты: %d/99 (ВЛЕВО/ВПРАВО изменить)"            // RU
+};
+
+static const char* fmt_cheat_bombs[] = {
+    "Bombs: %d/99 (LEFT/RIGHT to adjust)",          // EN
+    "Bombas: %d/99 (IZQ/DER para ajustar)",         // ES
+    "Bombes : %d/99 (GAUCHE/DROITE pour régler)",   // FR
+    "Бомбы: %d/99 (ВЛЕВО/ВПРАВО изменить)"          // RU
+};
+
+static const char* fmt_cheat_difficulty[][3] = {
+    {   // EN
+        "Difficulty: Easy (LEFT/RIGHT to adjust)",
+        "Difficulty: Medium (LEFT/RIGHT to adjust)",
+        "Difficulty: Hard (LEFT/RIGHT to adjust)"
+    },
+    {   // ES
+        "Dificultad: Fácil (IZQ/DER para ajustar)",
+        "Dificultad: Media (IZQ/DER para ajustar)",
+        "Dificultad: Difícil (IZQ/DER para ajustar)"
+    },
+    {   // FR
+        "Difficulté : Facile (GAUCHE/DROITE pour régler)",
+        "Difficulté : Moyenne (GAUCHE/DROITE pour régler)",
+        "Difficulté : Difficile (GAUCHE/DROITE pour régler)"
+    },
+    {   // RU
+        "Сложность: Лёгкая (ВЛЕВО/ВПРАВО изменить)",
+        "Сложность: Средняя (ВЛЕВО/ВПРАВО изменить)",
+        "Сложность: Тяжёлая (ВЛЕВО/ВПРАВО изменить)"
+    }
+};
+
+static const char* label_apply[] = {
+    "APPLY",        // EN
+    "APLICAR",      // ES
+    "APPLIQUER",    // FR
+    "ПРИМЕНИТЬ"     // RU
+};
+
+static const char* label_cancel[] = {
+    "CANCEL",       // EN
+    "CANCELAR",     // ES
+    "ANNULER",      // FR
+    "ОТМЕНА"        // RU
+};
+
+static const char* label_select_language[] = {
+    "SELECT LANGUAGE",        // EN
+    "SELECCIONA IDIOMA",      // ES
+    "SÉLECTIONNEZ LA LANGUE", // FR
+    "ВЫБЕРИТЕ ЯЗЫК"           // RU
+};
+
 
