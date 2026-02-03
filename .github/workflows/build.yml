@@ -475,6 +475,7 @@ jobs:
             <Resource Language="fr-fr" />
             <Resource Language="es-es" />
             <Resource Language="ru-ru" />
+            <Resource Language="de-de" />
           </Resources>
           
           <Applications>

@@ -9,11 +9,27 @@ typedef enum {
 
 static const char *wlanguagename[] = {
    "English",
-   "Español",
-   "Français",
-   "Русский",
-   "Deutsch"
+   "Español (Spanish)",
+   "Français (French)",
+   "Русский (Russian)",
+   "Deutsch (German)"
 };
+
+static const char *wlanguage_intro_file[] = {
+    "music/intro.mp3", // English
+    "music/intro_es.mp3", // Spanish
+    "music/intro_fr.mp3", // French
+    "music/intro_ru.mp3", // Russian
+    "music/intro.mp3", // German (needs replaced)
+};  
+
+static const char *wlanguage_finale_file[] = {
+    "music/finale.mp3", // English
+    "music/finale_es.mp3", // Spanish
+    "music/finale_fr.mp3", // French
+    "music/finale_ru.mp3", // Russian
+    "music/finale.mp3", // German (needs replaced)
+};  
 
 
 static const char* bomb_text[] = { 
@@ -380,7 +396,7 @@ static const char* main_menu_items[][6] = {
         "NUEVA PARTIDA",
         "PUNTUACIONES",
         "AUDIO",
-        "IDIOMA",
+        "IDIOMA (Language)",
         "SALIR"
     },
     {   // French
@@ -388,7 +404,7 @@ static const char* main_menu_items[][6] = {
         "NOUVELLE PARTIE",
         "MEILLEURS SCORES",
         "AUDIO",
-        "LANGUE",
+        "LANGUE (Language)",
         "QUITTER"
     },
     {   // Russian
@@ -396,7 +412,7 @@ static const char* main_menu_items[][6] = {
         "НОВАЯ ИГРА",
         "РЕКОРДЫ",
         "АУДИО",
-        "ЯЗЫК",
+        "ЯЗЫК (Language)",
         "ВЫХОД"
     },
     {   // German
@@ -404,7 +420,7 @@ static const char* main_menu_items[][6] = {
         "NEUES SPIEL",
         "HIGHSCORES",
         "AUDIO",
-        "SPRACHE",
+        "SPRACHE (Language)",
         "BEENDEN"
     }
 };
