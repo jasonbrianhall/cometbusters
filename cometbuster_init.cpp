@@ -170,7 +170,7 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     game->boss_spawn_timer = 0;
     game->last_boss_wave = 0;  // Track which wave had the boss
 
-    if (game->current_language > WLANG_RUSSIAN || game->current_language < WLANG_ENGLISH) {
+    if (game->current_language > sizeof(wlanguagename) / sizeof(wlanguagename[0]) || game->current_language < 0) {
         game->current_language = WLANG_ENGLISH;
     }
 
