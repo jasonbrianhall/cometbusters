@@ -7,6 +7,15 @@ typedef enum {
     WLANG_COUNT 
 } WLanguage;
 
+static const char *wlanguagename[] = {
+   "English",
+   "Español",
+   "Français",
+   "Русский",
+   "Deutsch"
+};
+
+
 static const char* bomb_text[] = { 
     "Bomb", // English 
     "Bomba", // Spanish

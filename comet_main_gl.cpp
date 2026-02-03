@@ -587,9 +587,10 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         } else if (gui->menu_state == 3) {
                             gui->menu_selection = (gui->menu_selection - 1 + 2) % 2;
                         } else if (gui->menu_state == 4) {
+                            int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
                             gui->visualizer.comet_buster.current_language--;
                             if (gui->visualizer.comet_buster.current_language < 0) {
-                                gui->visualizer.comet_buster.current_language = 3;
+                                gui->visualizer.comet_buster.current_language = num_languages - 1;
                             }
                             // SAVE PREFERENCES
                             gui->preferences.language = gui->visualizer.comet_buster.current_language;
@@ -607,8 +608,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         } else if (gui->menu_state == 3) {
                             gui->menu_selection = (gui->menu_selection + 1) % 2;
                         } else if (gui->menu_state == 4) {
+                            int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
                             gui->visualizer.comet_buster.current_language++;
-                            if (gui->visualizer.comet_buster.current_language > 3) {
+                            if (gui->visualizer.comet_buster.current_language >= num_languages) {
                                 gui->visualizer.comet_buster.current_language = 0;
                             }
                             // SAVE PREFERENCES
@@ -1237,27 +1239,44 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             gl_set_color(0.8f, 0.8f, 0.8f);
             gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 550, 950, 10);
         } else if (gui->menu_state == 4) {
-            // Language selection menu
+            // Language selection menu with scrolling
             gl_set_color(0.0f, 1.0f, 1.0f);
             gl_draw_text_simple(label_select_language[gui->visualizer.comet_buster.current_language], 800, 150, 24);
-            
-            const char *languages[] = {
-                "English",
-                "Español",
-                "Français",
-                "Русский"
-            };
-            
+                        
             int lang_y_start = 350;
             int lang_spacing = 120;
             int lang_width = 400;
             int lang_height = 60;
+            int items_per_page = 4;  // Show 4 languages at a time
+            int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
             
-            for (int i = 0; i < 4; i++) {
-                int lang_y = lang_y_start + (i * lang_spacing);
+            // Calculate scroll position - keep selected language visible
+            int current_lang = gui->visualizer.comet_buster.current_language;
+            int scroll_offset = 0;
+            
+            if (current_lang >= items_per_page) {
+                scroll_offset = current_lang - items_per_page + 1;
+            }
+            
+            // Clamp scroll offset
+            int max_scroll = (num_languages > items_per_page) ? (num_languages - items_per_page) : 0;
+            if (scroll_offset > max_scroll) {
+                scroll_offset = max_scroll;
+            }
+
+            // Draw visible languages only
+            for (int i = 0; i < num_languages; i++) {
+                // Skip languages above scroll area
+                if (i < scroll_offset) continue;
+                
+                // Stop if we've drawn enough for the page
+                if (i >= scroll_offset + items_per_page) break;
+                
+                int display_index = i - scroll_offset;
+                int lang_y = lang_y_start + (display_index * lang_spacing);
                 int lang_x = (1920 - lang_width) / 2;
                 
-                if (i == gui->visualizer.comet_buster.current_language) {
+                if (i == current_lang) {
                     gl_set_color(1.0f, 1.0f, 0.0f);
                     gl_draw_rect_filled(lang_x - 3, lang_y - 3, lang_width + 6, lang_height + 6);
                     gl_set_color(0.0f, 0.5f, 1.0f);
@@ -1269,7 +1288,25 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                     gl_set_color(0.7f, 0.7f, 1.0f);
                 }
                 
-                gl_draw_text_simple(languages[i], lang_x + 100, lang_y + 25, 24);
+                gl_draw_text_simple(wlanguagename[i], lang_x + 100, lang_y + 25, 24);
+            }
+            
+            // Show scroll indicators if there are more languages
+            if (num_languages > items_per_page) {
+                gl_set_color(0.8f, 0.8f, 0.8f);
+                
+                if (scroll_offset > 0) {
+                    gl_draw_text_simple("↑ More above", 800, 310, 12);
+                }
+                
+                if (scroll_offset + items_per_page < num_languages) {
+                    gl_draw_text_simple("More below ↓", 800, 880, 12);
+                }
+                
+                char count_text[64];
+                sprintf(count_text, "%d / %d", current_lang + 1, num_languages);
+                gl_set_color(0.7f, 0.7f, 0.9f);
+                gl_draw_text_simple(count_text, 880, 920, 12);
             }
             
             gl_set_color(0.8f, 0.8f, 0.8f);
