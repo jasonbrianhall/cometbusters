@@ -839,6 +839,22 @@ static const char* armed_label_text[] = {
     "BEWAFFNET"         // DE
 };
 
+static const char* final_score_label_text[] = {
+    "FINAL SCORE",      // EN
+    "PUNTUACIÓN FINAL", // ES
+    "SCORE FINAL",      // FR
+    "ИТОГОВЫЙ СЧЁТ",    // RU
+    "ENDSCORE"          // DE
+};
+
+static const char* wave_reached_label_text[] = {
+    "WAVE REACHED",     // EN
+    "OLEADA ALCANZADA", // ES
+    "VAGUE ATTEINTE",   // FR
+    "ВОЛНА ДОСТИГНУТА", // RU
+    "WELLE ERREICHT"    // DE
+};
+
 static const char* death_star_approaches_text[] = {
     "DEATH STAR APPROACHES",        // EN
     "ESTRELLA DE LA MUERTE SE APROXIMA", // ES
