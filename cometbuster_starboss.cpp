@@ -315,11 +315,12 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
             
             // Score bonus
             int bonus = 50000;
-            game->score += bonus;
-            char bonus_text[64];
-            snprintf(bonus_text, sizeof(bonus_text), "+%d %s", bonus, boss_bonus_text[game->current_language]); 
-            comet_buster_spawn_floating_text(game, boss->x, boss->y - 40, bonus_text, 1.0, 1.0, 0.2);
-            
+            if (!game->game_over) {
+                 game->score += bonus;
+                char bonus_text[64];
+                 snprintf(bonus_text, sizeof(bonus_text), "+%d %s", bonus, boss_bonus_text[game->current_language]); 
+                 comet_buster_spawn_floating_text(game, boss->x, boss->y - 40, bonus_text, 1.0, 1.0, 0.2);
+            }  
             return;
         }
         

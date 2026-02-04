@@ -719,14 +719,14 @@ void comet_buster_destroy_spawn_queen(CometBusterGame *game, int width, int heig
     int total_score = base_score + wave_bonus;
     
     // Bonus if multiplier was high
-    if (game->score_multiplier >= 4.0) {
+    if (game->score_multiplier >= 4.0 && !game->game_over) {
         total_score += 500;
         comet_buster_spawn_floating_text(game, queen->x, queen->y,
                                          multiplier_bonus_text[game->current_language], 0.0, 1.0, 1.0);
     }
-    
-    game->score += total_score;
-    
+    if (!game->game_over) {
+        game->score += total_score;
+    }
     // Mark inactive
     queen->active = false;
     game->boss_active = false;
@@ -978,9 +978,10 @@ void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width,
             total_score += 750;
             comet_buster_spawn_floating_text(game, boss->x, boss->y + 50, perfect_destruction_text[game->current_language], 1.0, 1.0, 0.0);
         }
-        
-        game->score += total_score;
-        fprintf(stdout, "[VOID NEXUS] Score awarded: %d\n", total_score);
+        if (!game->game_over) {
+            game->score += total_score;
+            fprintf(stdout, "[VOID NEXUS] Score awarded: %d\n", total_score);
+        }
         
         boss->active = false;
         game->boss_active = false;
@@ -1087,7 +1088,9 @@ void void_nexus_split_into_fragments(CometBusterGame *game, int num_fragments) {
     }
     
     // Award bonus for focused fire if destroying fragments quickly
-    game->score += 500 * num_fragments;
+    if (!game->game_over) {
+        game->score += 500 * num_fragments;
+    }
     comet_buster_spawn_floating_text(game, center_x, center_y - 30, fragment_text[game->current_language], 0.0, 1.0, 1.0);
     
     boss->fragment_reunite_timer = 0;
@@ -1229,9 +1232,10 @@ void comet_buster_damage_void_nexus(CometBusterGame *game, int damage, int fragm
             comet_buster_spawn_explosion(game, boss->fragment_positions[fragment_id][0],
                                         boss->fragment_positions[fragment_id][1], 2, 20);
             
-            game->score += 250;
-            game->score_multiplier += 0.1;  // Boost multiplier
-            
+            if (!game->game_over) {
+                game->score += 250;
+                game->score_multiplier += 0.1;  // Boost multiplier
+            }        
             // Remove destroyed fragment by shifting array
             for (int i = fragment_id; i < boss->fragment_count - 1; i++) {
                 boss->fragment_positions[i][0] = boss->fragment_positions[i+1][0];
@@ -2273,10 +2277,10 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
             comet_buster_spawn_floating_text(game, boss->x, boss->y + 120,
                                             perfect_victory_text[game->current_language], 1.0, 1.0, 0.0);
         }
-        
-        game->score += total_score;
-        fprintf(stdout, "[SINGULARITY] Score awarded: %d\n", total_score);
-        
+        if (!game->game_over) {
+            game->score += total_score;
+            fprintf(stdout, "[SINGULARITY] Score awarded: %d\n", total_score);
+        }    
         boss->active = false;
         game->boss_active = false;
     }

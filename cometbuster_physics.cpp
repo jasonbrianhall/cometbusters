@@ -2397,7 +2397,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                         comet_buster_destroy_enemy_ship(game, i, width, height, visualizer);
                         
                         // Award player points for friendly fire destruction
-                        game->score += (int)(150 * game->score_multiplier);
+                        if (!game->game_over) {
+                            game->score += (int)(150 * game->score_multiplier);
+                        }
                         break;  // Exit inner loop since we destroyed the ship
                     }
                     break;  // Bullet hit this ship, move to next bullet
@@ -2504,8 +2506,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 comet_buster_spawn_explosion(game, ex, ey, 1, 15);  // Mid-frequency explosion
                 
                 // Award points for mutual destruction
-                game->score += (int)(250 * game->score_multiplier);
-                
+                if (!game->game_over) {
+                    game->score += (int)(250 * game->score_multiplier);
+                }
                 break;  // Exit inner loop after collision
             }
         }

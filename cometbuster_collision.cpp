@@ -171,9 +171,11 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
     }
     
     int score_add = (int)(points * game->score_multiplier);
-    game->score += score_add;
-    game->comets_destroyed++;
-    game->consecutive_hits++;
+    if (!game->game_over) {
+        game->score += score_add;
+        game->comets_destroyed++;
+        game->consecutive_hits++;
+    }
     
     // Check for extra life bonus - every 100000 points
     int current_milestone = game->score / 100000;
@@ -349,13 +351,16 @@ void comet_buster_destroy_enemy_ship(CometBusterGame *game, int ship_index, int 
     // Award points
     int points = 300;  // Enemy ships worth 300 points
     int score_add = (int)(points * game->score_multiplier);
-    game->score += score_add;
-    game->consecutive_hits++;
+    if (!game->game_over) {
+        game->score += score_add;
+        game->consecutive_hits++;
     
-    // Floating text
-    char text[32];
-    snprintf(text, sizeof(text), "+%d", score_add);
-    comet_buster_spawn_floating_text(game, ship->x, ship->y, text, 0.0, 1.0, 0.0);  // Green
+    
+        // Floating text
+        char text[32];
+        snprintf(text, sizeof(text), "+%d", score_add);
+        comet_buster_spawn_floating_text(game, ship->x, ship->y, text, 0.0, 1.0, 0.0);  // Green
+    }
     
     // Increase multiplier
     if (game->consecutive_hits % 5 == 0) {
@@ -460,17 +465,20 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     // Award MASSIVE points
     int points = 5000;  // Boss worth 5000 points!
     int score_add = (int)(points * game->score_multiplier);
-    game->score += score_add;
-    game->consecutive_hits += 10;  // Big hit bonus
+    if (!game->game_over) {
+        game->score += score_add;
+        game->consecutive_hits += 10;  // Big hit bonus
     
-    // Floating text - BIG text
-    char text[64];
-    snprintf(text, sizeof(text), "%s +%d", boss_destroyed_text[game->current_language], score_add);
+        // Floating text - BIG text
+        char text[64];
+        snprintf(text, sizeof(text), "%s +%d", boss_destroyed_text[game->current_language], score_add);
 
-    comet_buster_spawn_floating_text(game, boss->x, boss->y, text, 1.0, 1.0, 0.0);  // Yellow
+        comet_buster_spawn_floating_text(game, boss->x, boss->y, text, 1.0, 1.0, 0.0);  // Yellow
     
-    // Increase multiplier significantly
-    game->score_multiplier += 1.0;
+       // Increase multiplier significantly
+        game->score_multiplier += 1.0;
+    }
+    
     if (game->score_multiplier > 5.0) game->score_multiplier = 5.0;
     
     // MAJOR visual feedback for boss multiplier increase - always show for boss kills
