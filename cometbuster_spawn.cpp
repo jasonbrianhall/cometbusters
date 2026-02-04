@@ -1253,8 +1253,9 @@ void comet_buster_destroy_ufo(CometBusterGame *game, int ufo_index, int width, i
     
     // Award points - UFOs are worth 250 points (bonus!) with multiplier applied
     int base_points = 250;
+    int score_add=0;
     if (!game->game_over) {
-        int score_add = (int)(base_points * game->score_multiplier);
+        score_add = (int)(base_points * game->score_multiplier);
         game->score += score_add;
     }
     // Explosion
