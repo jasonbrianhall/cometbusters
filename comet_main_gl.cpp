@@ -1185,11 +1185,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                 gl_set_color(0.8f, 0.8f, 0.8f);
                 
                 if (scroll_offset > 0) {
-                    gl_draw_text_simple("↑ More above", 800, 260, 12);
+                    gl_draw_text_simple(hint_more_above[gui->visualizer.comet_buster.current_language], 800, 260, 12);
                 }
                 
                 if (scroll_offset + items_per_page < num_menu_items) {
-                    gl_draw_text_simple("More below ↓", 800, 870, 12);
+                    gl_draw_text_simple(hint_more_below[gui->visualizer.comet_buster.current_language], 800, 870, 12);
                 }
                 
                 char count_text[64];
@@ -1358,11 +1358,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                 gl_set_color(0.8f, 0.8f, 0.8f);
                 
                 if (scroll_offset > 0) {
-                    gl_draw_text_simple("↑ More above", 800, 310, 12);
+                    gl_draw_text_simple(hint_more_above[gui->visualizer.comet_buster.current_language], 800, 310, 12);
                 }
                 
                 if (scroll_offset + items_per_page < num_languages) {
-                    gl_draw_text_simple("More below ↓", 800, 880, 12);
+                    gl_draw_text_simple(hint_more_below[gui->visualizer.comet_buster.current_language], 800, 880, 12);
                 }
                 
                 char count_text[64];

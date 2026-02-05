@@ -435,6 +435,23 @@ static const char* hint_select_close[] = {
     { "Auf/Ab/Enter zum Auswählen; ESC zum Schließen" } // DE
 };
 
+static const char* hint_more_above[] = {
+    { "↑ More above" },              // EN
+    { "↑ Más arriba" },              // ES
+    { "↑ Plus haut" },               // FR
+    { "↑ Ещё выше" },                // RU
+    { "↑ Weiter oben" }              // DE
+};
+
+static const char* hint_more_below[] = {
+    { "More below ↓" },          // EN
+    { "Más abajo ↓" },           // ES
+    { "Plus bas ↓" },            // FR
+    { "Ниже ↓" },                // RU
+    { "Weiter unten ↓" }         // DE
+};
+
+
 static const char* label_high_scores[] = {
     "HIGH SCORES",      // EN
     "PUNTUACIONES",     // ES
