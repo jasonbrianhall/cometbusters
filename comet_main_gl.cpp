@@ -99,6 +99,9 @@ typedef struct {
     // Main Menu state
     int main_menu_scroll_offset; // Track scrolling position in main menu
     
+    // Language Menu state
+    int lang_menu_scroll_offset; // Track scrolling position in language menu
+    
     // Music/Audio state tracking
     bool finale_music_started;  // Tracks if finale music has been played
     
@@ -581,10 +584,18 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             gui->menu_selection = (gui->menu_selection - 1 + 2) % 2;
                         } else if (gui->menu_state == 4) {
                             int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+                            int items_per_page = 4;
+                            
                             gui->visualizer.comet_buster.current_language--;
                             if (gui->visualizer.comet_buster.current_language < 0) {
                                 gui->visualizer.comet_buster.current_language = num_languages - 1;
                             }
+                            
+                            // Adjust scroll offset to keep selection visible
+                            if (gui->visualizer.comet_buster.current_language < gui->lang_menu_scroll_offset) {
+                                gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language;
+                            }
+                            
                             // SAVE PREFERENCES
                             gui->preferences.language = gui->visualizer.comet_buster.current_language;
                             preferences_save(&gui->preferences);
@@ -615,10 +626,25 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             gui->menu_selection = (gui->menu_selection + 1) % 2;
                         } else if (gui->menu_state == 4) {
                             int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+                            int items_per_page = 4;
+                            
                             gui->visualizer.comet_buster.current_language++;
                             if (gui->visualizer.comet_buster.current_language >= num_languages) {
                                 gui->visualizer.comet_buster.current_language = 0;
                             }
+                            
+                            // Adjust scroll offset to keep selection visible
+                            int max_scroll = (num_languages > items_per_page) ? 
+                                            (num_languages - items_per_page) : 0;
+                            
+                            if (gui->visualizer.comet_buster.current_language >= gui->lang_menu_scroll_offset + items_per_page) {
+                                gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language - items_per_page + 1;
+                            }
+                            
+                            if (gui->lang_menu_scroll_offset > max_scroll) {
+                                gui->lang_menu_scroll_offset = max_scroll;
+                            }
+                            
                             // SAVE PREFERENCES
                             gui->preferences.language = gui->visualizer.comet_buster.current_language;
                             preferences_save(&gui->preferences);
@@ -794,21 +820,31 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     if (event.button.button == SDL_BUTTON_LEFT) {
                         // Main menu buttons
                         if (gui->menu_state == 0) {
-                            const int menu_y_start = 350;
-                            const int menu_spacing = 120;
+                            const int menu_y_start = 300;  // MUST MATCH render code
+                            const int menu_spacing = 110;  // MUST MATCH render code
                             const int menu_width = 400;
                             const int menu_height = 60;
+                            const int items_per_page = 5;
+                            const int menu_x = (1920 - menu_width) / 2;
                             
-                            for (int i = 0; i < 6; i++) {
-                                int menu_y = menu_y_start + (i * menu_spacing);
-                                int menu_x = (1920 - menu_width) / 2;
+                            for (int i = 0; i < 7; i++) {  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                                // Only check items that are visible on screen
+                                if (i < gui->main_menu_scroll_offset || i >= gui->main_menu_scroll_offset + items_per_page) {
+                                    continue;  // Skip items outside visible area
+                                }
+                                
+                                // Calculate Y position accounting for scroll offset (MUST MATCH render code)
+                                int display_index = i - gui->main_menu_scroll_offset;
+                                int menu_y = menu_y_start + (display_index * menu_spacing);
                                 
                                 if (mouse_x >= menu_x && mouse_x <= menu_x + menu_width &&
                                     mouse_y >= menu_y && mouse_y <= menu_y + menu_height) {
                                     gui->menu_selection = i;
                                     switch (gui->menu_selection) {
                                         case 0:  // Continue
-                                            gui->show_menu = false;
+                                            if(gui->visualizer.comet_buster.ship_lives > 0) {
+                                                gui->show_menu = false;
+                                            }
                                             break;
                                         case 1:  // New Game
                                             gui->menu_state = 1;
@@ -825,7 +861,11 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                             gui->menu_state = 4;
                                             gui->menu_selection = 0;
                                             break;
-                                        case 5:  // Quit
+                                        case 5:  // Help
+                                            gui->show_help_overlay = true;
+                                            gui->help_scroll_offset = 0;
+                                            break;
+                                        case 6:  // Quit
                                             gui->running = false;
                                             break;
                                     }
@@ -881,12 +921,26 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             const int lang_width = 400;
                             const int lang_height = 60;
                             const int lang_x = (1920 - lang_width) / 2;
+                            const int items_per_page = 4;
                             
-                            for (int i = 0; i < 4; i++) {
-                                int lang_y = lang_y_start + (i * lang_spacing);
+                            int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+                            
+                            for (int i = 0; i < num_languages; i++) {
+                                // Only check items that are visible on screen
+                                if (i < gui->lang_menu_scroll_offset || i >= gui->lang_menu_scroll_offset + items_per_page) {
+                                    continue;  // Skip items outside visible area
+                                }
+                                
+                                // Calculate Y position accounting for scroll offset
+                                int display_index = i - gui->lang_menu_scroll_offset;
+                                int lang_y = lang_y_start + (display_index * lang_spacing);
+                                
                                 if (mouse_x >= lang_x && mouse_x <= lang_x + lang_width &&
                                     mouse_y >= lang_y && mouse_y <= lang_y + lang_height) {
                                     gui->visualizer.comet_buster.current_language = i;
+                                    // SAVE PREFERENCES
+                                    gui->preferences.language = i;
+                                    preferences_save(&gui->preferences);
                                 }
                             }
                         }
@@ -940,6 +994,66 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
             case SDL_MOUSEWHEEL:
                 gui->visualizer.mouse_just_moved = true;
                 gui->visualizer.scroll_direction = event.wheel.y;
+                
+                // Handle menu scrolling with mouse wheel
+                if (gui->show_menu) {
+                    if (gui->menu_state == 0) {
+                        // Main menu scrolling
+                        int num_menu_items = 7;
+                        int items_per_page = 5;
+                        
+                        if (event.wheel.y > 0) {
+                            // Scroll up - previous item
+                            gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
+                        } else if (event.wheel.y < 0) {
+                            // Scroll down - next item
+                            gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
+                        }
+                        
+                        // Auto-adjust scroll offset to keep selection visible
+                        if (gui->menu_selection < gui->main_menu_scroll_offset) {
+                            gui->main_menu_scroll_offset = gui->menu_selection;
+                        }
+                        int max_scroll = (num_menu_items > items_per_page) ? (num_menu_items - items_per_page) : 0;
+                        if (gui->menu_selection >= gui->main_menu_scroll_offset + items_per_page) {
+                            gui->main_menu_scroll_offset = gui->menu_selection - items_per_page + 1;
+                        }
+                        if (gui->main_menu_scroll_offset > max_scroll) {
+                            gui->main_menu_scroll_offset = max_scroll;
+                        }
+                    } else if (gui->menu_state == 4) {
+                        // Language menu scrolling
+                        int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+                        int items_per_page = 4;
+                        
+                        if (event.wheel.y > 0) {
+                            // Scroll up - previous language
+                            gui->visualizer.comet_buster.current_language = 
+                                (gui->visualizer.comet_buster.current_language - 1 + num_languages) % num_languages;
+                        } else if (event.wheel.y < 0) {
+                            // Scroll down - next language
+                            gui->visualizer.comet_buster.current_language = 
+                                (gui->visualizer.comet_buster.current_language + 1) % num_languages;
+                        }
+                        
+                        // Auto-adjust scroll offset to keep selection visible
+                        int current_lang = gui->visualizer.comet_buster.current_language;
+                        if (current_lang < gui->lang_menu_scroll_offset) {
+                            gui->lang_menu_scroll_offset = current_lang;
+                        }
+                        int max_scroll = (num_languages > items_per_page) ? (num_languages - items_per_page) : 0;
+                        if (current_lang >= gui->lang_menu_scroll_offset + items_per_page) {
+                            gui->lang_menu_scroll_offset = current_lang - items_per_page + 1;
+                        }
+                        if (gui->lang_menu_scroll_offset > max_scroll) {
+                            gui->lang_menu_scroll_offset = max_scroll;
+                        }
+                        
+                        // SAVE PREFERENCES
+                        gui->preferences.language = gui->visualizer.comet_buster.current_language;
+                        preferences_save(&gui->preferences);
+                    }
+                }
                 break;
             
 /*            case SDL_JOYDEVICEADDED:
@@ -1183,15 +1297,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             // Show scroll indicators if there are more items
             if (num_menu_items > items_per_page) {
                 gl_set_color(0.8f, 0.8f, 0.8f);
-                
-                if (scroll_offset > 0) {
-                    //gl_draw_text_simple(hint_more_above[gui->visualizer.comet_buster.current_language], 800, 260, 12);
-                }
-                
-                if (scroll_offset + items_per_page < num_menu_items) {
-                    //gl_draw_text_simple(hint_more_below[gui->visualizer.comet_buster.current_language], 800, 870, 12);
-                }
-                
+                                
                 char count_text[64];
                 sprintf(count_text, "%d / %d", current_selection + 1, num_menu_items);
                 gl_set_color(0.7f, 0.7f, 0.9f);
@@ -1314,9 +1420,14 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             
             // Calculate scroll position - keep selected language visible
             int current_lang = gui->visualizer.comet_buster.current_language;
-            int scroll_offset = 0;
+            int scroll_offset = gui->lang_menu_scroll_offset;
             
-            if (current_lang >= items_per_page) {
+            if (current_lang < scroll_offset) {
+                scroll_offset = current_lang;
+            }
+            
+            // Keep selection in view when scrolling down
+            if (current_lang >= scroll_offset + items_per_page) {
                 scroll_offset = current_lang - items_per_page + 1;
             }
             
@@ -1325,6 +1436,8 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             if (scroll_offset > max_scroll) {
                 scroll_offset = max_scroll;
             }
+            
+            gui->lang_menu_scroll_offset = scroll_offset;
 
             // Draw visible languages only
             for (int i = 0; i < num_languages; i++) {
@@ -1356,14 +1469,6 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             // Show scroll indicators if there are more languages
             if (num_languages > items_per_page) {
                 gl_set_color(0.8f, 0.8f, 0.8f);
-                
-                if (scroll_offset > 0) {
-                    //gl_draw_text_simple(hint_more_above[gui->visualizer.comet_buster.current_language], 800, 310, 12);
-                }
-                
-                if (scroll_offset + items_per_page < num_languages) {
-                    //gl_draw_text_simple(hint_more_below[gui->visualizer.comet_buster.current_language], 800, 880, 12);
-                }
                 
                 char count_text[64];
                 sprintf(count_text, "%d / %d", current_lang + 1, num_languages);
@@ -1786,6 +1891,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.show_help_overlay = false;  // Initialize help overlay
     gui.help_scroll_offset = 0;     // Initialize help scroll
     gui.main_menu_scroll_offset = 0; // Initialize main menu scroll
+    gui.lang_menu_scroll_offset = 0; // Initialize language menu scroll
     
     // Initialize local high score entry UI
     HighScoreEntryUI hs_entry;
