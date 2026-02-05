@@ -428,27 +428,27 @@ static const char* main_menu_items[][7] = {
 };
 
 static const char* hint_select_close[] = {
-    { "Up/Down/Enter to select; ESC to close" },        // EN
-    { "Arriba/Abajo/Enter para elegir; ESC para cerrar" }, // ES
-    { "Haut/Bas/Entrée pour choisir; Échap pour fermer" }, // FR
-    { "Вверх/Вниз/Enter — выбрать; ESC — закрыть" },    // RU
-    { "Auf/Ab/Enter zum Auswählen; ESC zum Schließen" } // DE
+    "Up/Down/Enter to select; ESC to close",        // EN
+    "Arriba/Abajo/Enter para elegir; ESC para cerrar", // ES
+    "Haut/Bas/Entrée pour choisir; Échap pour fermer", // FR
+    "Вверх/Вниз/Enter — выбрать; ESC — закрыть",    // RU
+    "Auf/Ab/Enter zum Auswählen; ESC zum Schließen" // DE
 };
 
 static const char* hint_more_above[] = {
-    { "↑ More above" },              // EN
-    { "↑ Más arriba" },              // ES
-    { "↑ Plus haut" },               // FR
-    { "↑ Ещё выше" },                // RU
-    { "↑ Weiter oben" }              // DE
+    "↑ More above",              // EN
+    "↑ Más arriba",              // ES
+    "↑ Plus haut",               // FR
+    "↑ Ещё выше",                // RU
+    "↑ Weiter oben"              // DE
 };
 
 static const char* hint_more_below[] = {
-    { "More below ↓" },          // EN
-    { "Más abajo ↓" },           // ES
-    { "Plus bas ↓" },            // FR
-    { "Ниже ↓" },                // RU
-    { "Weiter unten ↓" }         // DE
+    "More below ↓",          // EN
+    "Más abajo ↓",           // ES
+    "Plus bas ↓",            // FR
+    "Ниже ↓",                // RU
+    "Weiter unten ↓"         // DE
 };
 
 
@@ -461,11 +461,11 @@ static const char* label_high_scores[] = {
 };
 
 static const char* help_controls_text[] = {
-    { "HELP & CONTROLS" },              // EN
-    { "AYUDA Y CONTROLES" },            // ES
-    { "AIDE & COMMANDES" },             // FR
-    { "СПРАВКА И УПРАВЛЕНИЕ" },         // RU
-    { "HILFE & STEUERUNG" }             // DE
+    "HELP & CONTROLS",              // EN
+    "AYUDA Y CONTROLES",            // ES
+    "AIDE & COMMANDES",             // FR
+    "СПРАВКА И УПРАВЛЕНИЕ",         // RU
+    "HILFE & STEUERUNG"             // DE
 };
 
 
@@ -1100,5 +1100,3 @@ F11                  - Vollbild umschalten
 C im Hauptmenü       - Verstecktes Cheat-Menü)"
     }
 };
-
-
