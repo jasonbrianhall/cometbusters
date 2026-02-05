@@ -110,7 +110,11 @@ typedef struct {
     double delta_time;
     uint32_t last_frame_ticks;
     
+    // Joystick state
     SDL_Joystick *joystick;
+    uint32_t last_joystick_axis_time;  // For throttling axis inputs
+    int last_axis_0_state;              // Previous state of axis 0
+    int last_axis_1_state;              // Previous state of axis 1
     int music_volume;
     int sfx_volume;
     CometPreferences preferences;  // Persistent user preferences (language, volumes)
@@ -316,7 +320,22 @@ static void init_joystick(CometGUI *gui) {
         gui->joystick = SDL_JoystickOpen(0);
         if (gui->joystick) {
             printf("[JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
+            printf("[JOYSTICK] Buttons: %d\n", SDL_JoystickNumButtons(gui->joystick));
+            printf("[JOYSTICK] Axes: %d\n", SDL_JoystickNumAxes(gui->joystick));
+            printf("[JOYSTICK] Hats: %d\n", SDL_JoystickNumHats(gui->joystick));
+            printf("[JOYSTICK] ===== BUTTON MAPPING =====\n");
+            printf("[JOYSTICK] Button 0 (A/Cross)      - Fire/Select\n");
+            printf("[JOYSTICK] Button 1 (B/Circle)     - Boost/Back\n");
+            printf("[JOYSTICK] Button 2 (X/Square)     - Toggle Missiles\n");
+            printf("[JOYSTICK] Button 3 (Y/Triangle)   - Alt Fire\n");
+            printf("[JOYSTICK] Button 6 (LB/L1)        - Pause\n");
+            printf("[JOYSTICK] Button 7 (RB/R1)        - Menu\n");
+            printf("[JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
+            printf("[JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
+            printf("[JOYSTICK] ============================\n");
         }
+    } else {
+        printf("[JOYSTICK] No joysticks detected\n");
     }
 }
 
@@ -325,6 +344,9 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         fprintf(stderr, "[ERROR] SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
+    
+    // Enable joystick events
+    SDL_JoystickEventState(SDL_ENABLE);
     
     uint32_t flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_RESIZABLE;
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -1059,10 +1081,304 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 }
                 break;
             
-/*            case SDL_JOYDEVICEADDED:
+            // JOYSTICK BUTTON EVENTS
+            case SDL_JOYBUTTONDOWN:
+            case SDL_JOYBUTTONUP: {
+                bool pressed = (event.type == SDL_JOYBUTTONDOWN);
+                int button = event.jbutton.button;
+                
+                if (gui->show_menu) {
+                    // Menu navigation with joystick
+                    switch (button) {
+                        case 0:  // A button - select/confirm
+                            if (pressed && gui->menu_state == 0) {
+                                switch (gui->menu_selection) {
+                                    case 0:  // Continue
+                                        if(gui->visualizer.comet_buster.ship_lives > 0) {
+                                            gui->show_menu = false;
+                                        }
+                                        break;
+                                    case 1:  // New Game
+                                        gui->menu_state = 1;
+                                        gui->gui_difficulty_level = 1;
+                                        break;
+                                    case 2:  // High Scores
+                                        gui->menu_state = 2;
+                                        break;
+                                    case 3:  // Audio
+                                        gui->menu_state = 3;
+                                        gui->menu_selection = 0;
+                                        break;
+                                    case 4:  // Language
+                                        gui->menu_state = 4;
+                                        gui->menu_selection = 0;
+                                        break;
+                                    case 5:  // Help
+                                        gui->show_help_overlay = true;
+                                        gui->help_scroll_offset = 0;
+                                        break;
+                                    case 6:  // Quit
+                                        gui->running = false;
+                                        break;
+                                }
+                            } else if (pressed && gui->menu_state == 1) {
+                                // Start game with selected difficulty
+                                comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, gui->gui_difficulty_level-1);
+#ifdef ExternalSound
+                                play_intro(gui, gui->visualizer.comet_buster.current_language);
+#endif
+                                gui->show_menu = false;
+                                gui->game_paused = false;
+                                gui->finale_music_started = false;
+                            }
+                            break;
+                        case 1:  // B button - back/cancel
+                            if (pressed) {
+                                if (gui->show_help_overlay) {
+                                    gui->show_help_overlay = false;
+                                    gui->help_scroll_offset = 0;
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = 5;
+                                } else if (gui->menu_state != 0) {
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = (gui->menu_state == 4) ? 4 : 1;
+                                }
+                            }
+                            break;
+                    }
+                } else {
+                    // In-game joystick controls
+                    gui->visualizer.mouse_just_moved = false;  // Disable mouse following
+                    
+                    switch (button) {
+                        case 0:  // A - Fire (like Z key)
+                            gui->visualizer.key_z_pressed = pressed;
+                            break;
+                        case 1:  // B - Boost (like SPACE/X)
+                            gui->visualizer.key_x_pressed = pressed;
+                            break;
+                        case 2:  // X - Missiles/Bullets toggle (like Q)
+                            gui->visualizer.key_q_pressed = pressed;
+                            break;
+                        case 3:  // Y - Alternative fire (like CTRL)
+                            gui->visualizer.key_ctrl_pressed = pressed;
+                            break;
+                        case 6:  // LB - Pause (like P)
+                            if (pressed) {
+                                if (!gui->visualizer.comet_buster.game_over && 
+                                    !gui->visualizer.comet_buster.splash_screen_active &&
+                                    !gui->visualizer.comet_buster.finale_splash_active) {
+                                    gui->game_paused = !gui->game_paused;
+                                    if (gui->game_paused) {
+                                        audio_stop_music(&gui->audio);
+                                        printf("[PAUSE] Game paused via joystick\n");
+                                    } else {
+                                        printf("[RESUME] Game resumed via joystick\n");
+#ifdef ExternalSound
+                                        if (!gui->show_menu) {
+                                            audio_play_random_music(&gui->audio);
+                                        }
+#endif
+                                    }
+                                }
+                            }
+                            break;
+                        case 7:  // RB - Menu (like ESC)
+                            if (pressed) {
+                                gui->show_menu = !gui->show_menu;
+                                gui->menu_state = 0;
+                                gui->menu_selection = 0;
+                            }
+                            break;
+                    }
+                }
+                break;
+            }
+            
+            // JOYSTICK AXIS EVENTS (analog sticks and triggers)
+            case SDL_JOYAXISMOTION: {
+                int axis = event.jaxis.axis;
+                int value = event.jaxis.value;
+                const int AXIS_THRESHOLD = 16384;  // ~25% of max range
+                const uint32_t AXIS_THROTTLE_MS = 150;  // Throttle menu navigation to 150ms per input
+                
+                if (gui->show_menu) {
+                    // Menu navigation with D-pad/left stick (with throttling)
+                    uint32_t current_time = SDL_GetTicks();
+                    bool should_process = (current_time - gui->last_joystick_axis_time) >= AXIS_THROTTLE_MS;
+                    
+                    if (axis == 0) {
+                        // Left stick X-axis (or D-pad)
+                        int current_state = (value < -AXIS_THRESHOLD) ? -1 : (value > AXIS_THRESHOLD) ? 1 : 0;
+                        
+                        if (current_state != gui->last_axis_0_state && should_process) {
+                            if (current_state < 0) {
+                                // Moving left in menu
+                                if (gui->menu_state == 3) {
+                                    // Audio menu - decrease volume
+                                    if (gui->menu_selection == 0) {
+                                        gui->music_volume = (gui->music_volume - 5);
+                                        if (gui->music_volume < 0) gui->music_volume = 0;
+                                        audio_set_music_volume(&gui->audio, gui->music_volume);
+                                        gui->preferences.music_volume = gui->music_volume;
+                                        preferences_save(&gui->preferences);
+                                    }
+                                }
+                            } else if (current_state > 0) {
+                                // Moving right in menu
+                                if (gui->menu_state == 3) {
+                                    // Audio menu - increase volume
+                                    if (gui->menu_selection == 0) {
+                                        gui->music_volume = (gui->music_volume + 5);
+                                        if (gui->music_volume > 100) gui->music_volume = 100;
+                                        audio_set_music_volume(&gui->audio, gui->music_volume);
+                                        gui->preferences.music_volume = gui->music_volume;
+                                        preferences_save(&gui->preferences);
+                                    }
+                                }
+                            }
+                            gui->last_axis_0_state = current_state;
+                            gui->last_joystick_axis_time = current_time;
+                        }
+                    } else if (axis == 1) {
+                        // Left stick Y-axis (or D-pad vertical)
+                        int current_state = (value < -AXIS_THRESHOLD) ? -1 : (value > AXIS_THRESHOLD) ? 1 : 0;
+                        
+                        if (current_state != gui->last_axis_1_state && should_process) {
+                            if (current_state < 0) {
+                                // Moving up in menu
+                                if (gui->menu_state == 0) {
+                                    int num_menu_items = 7;
+                                    int items_per_page = 5;
+                                    gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
+                                    if (gui->menu_selection < gui->main_menu_scroll_offset) {
+                                        gui->main_menu_scroll_offset = gui->menu_selection;
+                                    }
+                                } else if (gui->menu_state == 1) {
+                                    gui->gui_difficulty_level = (gui->gui_difficulty_level - 1);
+                                    if (gui->gui_difficulty_level < 1) gui->gui_difficulty_level = 3;
+                                } else if (gui->menu_state == 4) {
+                                    int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+                                    int items_per_page = 4;
+                                    gui->visualizer.comet_buster.current_language--;
+                                    if (gui->visualizer.comet_buster.current_language < 0) {
+                                        gui->visualizer.comet_buster.current_language = num_languages - 1;
+                                    }
+                                    if (gui->visualizer.comet_buster.current_language < gui->lang_menu_scroll_offset) {
+                                        gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language;
+                                    }
+                                    gui->preferences.language = gui->visualizer.comet_buster.current_language;
+                                    preferences_save(&gui->preferences);
+                                }
+                            } else if (current_state > 0) {
+                                // Moving down in menu
+                                if (gui->menu_state == 0) {
+                                    int num_menu_items = 7;
+                                    int items_per_page = 5;
+                                    gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
+                                    int max_scroll = (num_menu_items > items_per_page) ? (num_menu_items - items_per_page) : 0;
+                                    if (gui->menu_selection >= gui->main_menu_scroll_offset + items_per_page) {
+                                        gui->main_menu_scroll_offset = gui->menu_selection - items_per_page + 1;
+                                    }
+                                    if (gui->main_menu_scroll_offset > max_scroll) {
+                                        gui->main_menu_scroll_offset = max_scroll;
+                                    }
+                                } else if (gui->menu_state == 1) {
+                                    gui->gui_difficulty_level = (gui->gui_difficulty_level + 1);
+                                    if (gui->gui_difficulty_level > 3) gui->gui_difficulty_level = 1;
+                                } else if (gui->menu_state == 4) {
+                                    int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+                                    int items_per_page = 4;
+                                    gui->visualizer.comet_buster.current_language++;
+                                    if (gui->visualizer.comet_buster.current_language >= num_languages) {
+                                        gui->visualizer.comet_buster.current_language = 0;
+                                    }
+                                    int max_scroll = (num_languages > items_per_page) ? (num_languages - items_per_page) : 0;
+                                    if (gui->visualizer.comet_buster.current_language >= gui->lang_menu_scroll_offset + items_per_page) {
+                                        gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language - items_per_page + 1;
+                                    }
+                                    if (gui->lang_menu_scroll_offset > max_scroll) {
+                                        gui->lang_menu_scroll_offset = max_scroll;
+                                    }
+                                    gui->preferences.language = gui->visualizer.comet_buster.current_language;
+                                    preferences_save(&gui->preferences);
+                                }
+                            }
+                            gui->last_axis_1_state = current_state;
+                            gui->last_joystick_axis_time = current_time;
+                        }
+                    }
+                } else {
+                    // In-game joystick analog stick controls (no throttling needed for gameplay)
+                    gui->visualizer.mouse_just_moved = false;  // Disable mouse following
+                    
+                    if (axis == 0) {
+                        // Left stick X-axis
+                        if (value < -AXIS_THRESHOLD) {
+                            gui->visualizer.key_a_pressed = true;  // Turn left
+                            gui->visualizer.key_d_pressed = false;
+                        } else if (value > AXIS_THRESHOLD) {
+                            gui->visualizer.key_d_pressed = true;  // Turn right
+                            gui->visualizer.key_a_pressed = false;
+                        } else {
+                            gui->visualizer.key_a_pressed = false;
+                            gui->visualizer.key_d_pressed = false;
+                        }
+                    } else if (axis == 1) {
+                        // Left stick Y-axis (inverted - down is positive)
+                        if (value < -AXIS_THRESHOLD) {
+                            gui->visualizer.key_w_pressed = true;   // Forward
+                            gui->visualizer.key_s_pressed = false;
+                        } else if (value > AXIS_THRESHOLD) {
+                            gui->visualizer.key_s_pressed = true;   // Backward
+                            gui->visualizer.key_w_pressed = false;
+                        } else {
+                            gui->visualizer.key_w_pressed = false;
+                            gui->visualizer.key_s_pressed = false;
+                        }
+                    } else if (axis == 2 || axis == 5) {
+                        // Right stick or triggers - could be used for aiming/weapons
+                        // axis 2 = right stick X, axis 5 = right stick Y
+                        // Currently not mapped, can be extended for right-stick aiming
+                    }
+                }
+                break;
+            }
+            
+            // HAT SWITCH (D-Pad) EVENTS
+            case SDL_JOYHATMOTION: {
+                int hat = event.jhat.value;
+                
+                if (gui->show_menu) {
+                    if (gui->menu_state == 0) {
+                        int num_menu_items = 7;
+                        int items_per_page = 5;
+                        
+                        if (hat & SDL_HAT_UP) {
+                            gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
+                            if (gui->menu_selection < gui->main_menu_scroll_offset) {
+                                gui->main_menu_scroll_offset = gui->menu_selection;
+                            }
+                        } else if (hat & SDL_HAT_DOWN) {
+                            gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
+                            int max_scroll = (num_menu_items > items_per_page) ? (num_menu_items - items_per_page) : 0;
+                            if (gui->menu_selection >= gui->main_menu_scroll_offset + items_per_page) {
+                                gui->main_menu_scroll_offset = gui->menu_selection - items_per_page + 1;
+                            }
+                            if (gui->main_menu_scroll_offset > max_scroll) {
+                                gui->main_menu_scroll_offset = max_scroll;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            
+            case SDL_JOYDEVICEADDED:
             case SDL_JOYDEVICEREMOVED:
                 init_joystick(gui);
-                break;*/
+                printf("[JOYSTICK] Device change detected, re-initializing joystick\n");
+                break;
         }
     }
 }
@@ -1895,6 +2211,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.help_scroll_offset = 0;     // Initialize help scroll
     gui.main_menu_scroll_offset = 0; // Initialize main menu scroll
     gui.lang_menu_scroll_offset = 0; // Initialize language menu scroll
+    gui.last_joystick_axis_time = 0; // Initialize joystick throttling
+    gui.last_axis_0_state = 0;      // Initialize axis state tracking
+    gui.last_axis_1_state = 0;      // Initialize axis state tracking
     
     // Initialize local high score entry UI
     HighScoreEntryUI hs_entry;
