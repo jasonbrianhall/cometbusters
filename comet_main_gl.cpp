@@ -1409,7 +1409,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Get help text for current language
         const char* const *help_text = help_menu_text[gui->visualizer.comet_buster.current_language];
-        int num_help_items = 11;
+        int num_help_items = 1;
         
         // Draw all help text in the box - white text for 508 compliance
         int text_x = box_x + 40;

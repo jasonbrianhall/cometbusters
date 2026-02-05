@@ -384,13 +384,17 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         return;
     }
     
+    // Disable scissor test to prevent text clipping
+    glDisable(GL_SCISSOR_TEST);
+    
     float current_x = (float)x;
     float baseline_y = (float)y;
+    float line_height = (float)font_size * 1.2f;  // Line height with 20% spacing
     
     // Build vertex array
-    static Vertex verts[1000000];
+    static Vertex verts[20000000];
     int vert_count = 0;
-    const int MAX_VERTS = 999994;
+    const int MAX_VERTS = 19999999;
     
     // Process UTF-8 text
     for (int i = 0; text[i] && vert_count < MAX_VERTS - 6; ) {
@@ -399,6 +403,14 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
         
         if (bytes_read == 0) {
             i++;
+            continue;
+        }
+        
+        // Handle newline character
+        if (codepoint == '\n') {
+            current_x = (float)x;
+            baseline_y += line_height;
+            i += bytes_read;
             continue;
         }
         
