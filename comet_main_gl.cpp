@@ -328,8 +328,8 @@ static void init_joystick(CometGUI *gui) {
             printf("[JOYSTICK] Button 1 (B/Circle)     - Boost/Back\n");
             printf("[JOYSTICK] Button 2 (X/Square)     - Toggle Missiles\n");
             printf("[JOYSTICK] Button 3 (Y/Triangle)   - Alt Fire\n");
-            printf("[JOYSTICK] Button 6 (LB/L1)        - Pause\n");
-            printf("[JOYSTICK] Button 7 (RB/R1)        - Menu\n");
+            printf("[JOYSTICK] Button 4 (LB/L1)        - Pause\n");
+            printf("[JOYSTICK] Button 7 (Start)        - Toggle Menu\n");
             printf("[JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
             printf("[JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
             printf("[JOYSTICK] ============================\n");
@@ -352,7 +352,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     
     gui->window = SDL_CreateWindow(
-        "Comet Busters (Press F11 to Toggle Full Screen)",
+        "Comet Busters",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         width, height,
@@ -1163,7 +1163,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         case 3:  // Y - Alternative fire (like CTRL)
                             gui->visualizer.key_ctrl_pressed = pressed;
                             break;
-                        case 6:  // LB - Pause (like P)
+                        case 4:  // LB / L1 - Pause (like P)
                             if (pressed) {
                                 if (!gui->visualizer.comet_buster.game_over && 
                                     !gui->visualizer.comet_buster.splash_screen_active &&
@@ -1183,7 +1183,10 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 }
                             }
                             break;
-                        case 7:  // RB - Menu (like ESC)
+                        case 6:
+                        case 7:
+                        case 8:
+                        case 9:  // START - Toggle Menu (supports multiple button mappings)
                             if (pressed) {
                                 gui->show_menu = !gui->show_menu;
                                 gui->menu_state = 0;
