@@ -216,9 +216,6 @@ static const char* cosmic_threat_eliminated_text[] = {
     "KOSMISCHE BEDROHUNG BESEITIGT"    // German
 };
 
-
-
-
 static const char* gravitational_field_intensifies_text[] = {
     "GRAVITATIONAL FIELD INTENSIFIES",        // English
     "EL CAMPO GRAVITATORIO SE INTENSIFICA",   // Spanish
@@ -228,11 +225,11 @@ static const char* gravitational_field_intensifies_text[] = {
 };
 
 static const char* phase_dispersing_text[] = {
-    "DISPERSING",
-    "DISPERSANDO",
-    "DISPERSION",
-    "РАССЕИВАНИЕ",
-    "ZERSTREUUNG"
+    "DISPERSING",  // English
+    "DISPERSANDO", // Spanish
+    "DISPERSION",  // French
+    "РАССЕИВАНИЕ", // Russian 
+    "ZERSTREUUNG"  //German
 };
 
 static const char* subtitle_texts[] = {
@@ -382,13 +379,14 @@ static const char* perfect_destruction_text[] = {
     "PERFEKTE ZERSTÖRUNG!"         // German
 };
 
-static const char* main_menu_items[][6] = {
+static const char* main_menu_items[][7] = {
     {   // English
         "CONTINUE",
         "NEW GAME",
         "HIGH SCORES",
         "AUDIO",
         "LANGUAGE",
+        "HELP",
         "QUIT"
     },
     {   // Spanish
@@ -397,6 +395,7 @@ static const char* main_menu_items[][6] = {
         "PUNTUACIONES",
         "AUDIO",
         "IDIOMA (Language)",
+        "AYUDA",
         "SALIR"
     },
     {   // French
@@ -405,6 +404,7 @@ static const char* main_menu_items[][6] = {
         "MEILLEURS SCORES",
         "AUDIO",
         "LANGUE (Language)",
+        "AIDE",
         "QUITTER"
     },
     {   // Russian
@@ -413,6 +413,7 @@ static const char* main_menu_items[][6] = {
         "РЕКОРДЫ",
         "АУДИО",
         "ЯЗЫК (Language)",
+        "СПРАВКА",
         "ВЫХОД"
     },
     {   // German
@@ -421,6 +422,7 @@ static const char* main_menu_items[][6] = {
         "HIGHSCORES",
         "AUDIO",
         "SPRACHE (Language)",
+        "HILFE",
         "BEENDEN"
     }
 };
@@ -935,3 +937,72 @@ static const char* ultimate_threat_detected_text[] = {
     "СМЕРТЕЛЬНАЯ УГРОЗА ОБНАРУЖЕНА",  // RU
     "ULTIMATIVE BEDROHUNG ERKANNT"    // DE
 };
+
+static const char* help_menu_text[][11] = {
+    {   // ENGLISH
+        "W or Up Arrow        - Forward thrust",
+        "A or Left Arrow      - Turn left",
+        "D or Right Arrow     - Turn right",
+        "S or Down Arrow      - Backward thrust",
+        "Q                    - Toggle weapons (missiles auto-select when gained)",
+        "SPACE or X           - Boost",
+        "CTRL                 - Fire forward",
+        "Z                    - Omnidirectional fire",
+        "ESC/P                - Pause/Resume",
+        "F11                  - Toggle fullscreen",
+        "C in main menu       - Hidden Cheat Menu"
+    },
+    {   // SPANISH
+        "W o Flecha Arriba    - Impulso hacia adelante",
+        "A o Flecha Izquierda - Girar a la izquierda",
+        "D o Flecha Derecha   - Girar a la derecha",
+        "S o Flecha Abajo     - Impulso hacia atrás",
+        "Q                    - Cambiar armas (misiles se seleccionan automáticamente)",
+        "ESPACIO o X          - Aceleración",
+        "CTRL                 - Disparo frontal",
+        "Z                    - Disparo omnidireccional",
+        "ESC/P                - Pausar/Reanudar",
+        "F11                  - Pantalla completa",
+        "C en el menú principal - Menú de trucos oculto"
+    },
+    {   // FRENCH
+        "W ou Flèche Haut     - Poussée avant",
+        "A ou Flèche Gauche   - Tourner à gauche",
+        "D ou Flèche Droite   - Tourner à droite",
+        "S ou Flèche Bas      - Poussée arrière",
+        "Q                    - Changer d'arme (missiles auto-sélectionnés)",
+        "ESPACE ou X          - Boost",
+        "CTRL                 - Tir vers l'avant",
+        "Z                    - Tir omnidirectionnel",
+        "ESC/P                - Pause/Reprise",
+        "F11                  - Plein écran",
+        "C dans le menu principal - Menu de triche caché"
+    },
+    {   // RUSSIAN
+        "W или Стрелка Вверх  - Тяга вперёд",
+        "A или Стрелка Влево  - Поворот влево",
+        "D или Стрелка Вправо - Поворот вправо",
+        "S или Стрелка Вниз   - Тяга назад",
+        "Q                    - Переключить оружие (ракеты выбираются автоматически)",
+        "ПРОБЕЛ или X         - Ускорение",
+        "CTRL                 - Огонь вперёд",
+        "Z                    - Огонь во все стороны",
+        "ESC/P                - Пауза/Продолжить",
+        "F11                  - Полный экран",
+        "C в главном меню     - Скрытое меню читов"
+    },
+    {   // GERMAN
+        "W oder Pfeil Hoch    - Schub nach vorne",
+        "A oder Pfeil Links   - Nach links drehen",
+        "D oder Pfeil Rechts  - Nach rechts drehen",
+        "S oder Pfeil Unten   - Rückwärtsschub",
+        "Q                    - Waffen wechseln (Raketen werden automatisch gewählt)",
+        "LEERTASTE oder X     - Boost",
+        "STRG                 - Nach vorne feuern",
+        "Z                    - Rundumfeuer",
+        "ESC/P                - Pause/Fortsetzen",
+        "F11                  - Vollbild umschalten",
+        "C im Hauptmenü       - Verstecktes Cheat-Menü"
+    }
+};
+

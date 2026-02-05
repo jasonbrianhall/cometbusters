@@ -88,9 +88,16 @@ typedef struct {
     
     // Menu state
     bool show_menu;
-    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Language, 5=Quit
+    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
     int menu_state;      // 0=Main Menu, 1=Difficulty Select, 2=High Scores Display, 3=Audio Menu, 4=Language Menu
     int gui_difficulty_level; // 1-3
+    
+    // Help overlay state
+    bool show_help_overlay;      // Display help text overlay
+    int help_scroll_offset;      // Track scrolling position in help text
+    
+    // Main Menu state
+    int main_menu_scroll_offset; // Track scrolling position in main menu
     
     // Music/Audio state tracking
     bool finale_music_started;  // Tracks if finale music has been played
@@ -320,7 +327,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     
     gui->window = SDL_CreateWindow(
-        "Comet Busters",
+        "Comet Busters (Press F11 to Toggle Full Screen)",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         width, height,
@@ -443,7 +450,13 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 
                 // Handle escape for menu toggle
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    if (gui->show_menu && gui->menu_state != 0) {
+                    // Close help overlay and return to main menu
+                    if (gui->show_help_overlay) {
+                        gui->show_help_overlay = false;
+                        gui->help_scroll_offset = 0;
+                        gui->menu_state = 0;
+                        gui->menu_selection = 5;  // Keep Help selected
+                    } else if (gui->show_menu && gui->menu_state != 0) {
                         gui->menu_state = 0;
                         gui->menu_selection = 1;
                     } else {
@@ -550,9 +563,15 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Handle regular menu navigation
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
-                            gui->menu_selection = (gui->menu_selection - 1 + 6) % 6;
-                            if (gui->menu_selection == 0 && gui->visualizer.comet_buster.ship_lives<=0) {
-                                gui->menu_selection = 5;
+                            // Main menu wrapping navigation
+                            int num_menu_items = 7;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                            int items_per_page = 5;
+                            
+                            gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
+                            
+                            // Adjust scroll offset to keep selection visible
+                            if (gui->menu_selection < gui->main_menu_scroll_offset) {
+                                gui->main_menu_scroll_offset = gui->menu_selection;
                             }
 
                         } else if (gui->menu_state == 1) {
@@ -572,9 +591,22 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         }
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
-                            gui->menu_selection = (gui->menu_selection + 1) % 6;
-                            if (gui->menu_selection == 0 && gui->visualizer.comet_buster.ship_lives<=0) {
-                                gui->menu_selection = 1;
+                            // Main menu wrapping navigation
+                            int num_menu_items = 7;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                            int items_per_page = 5;
+                            
+                            gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
+                            
+                            // Adjust scroll offset to keep selection visible
+                            int max_scroll = (num_menu_items > items_per_page) ? 
+                                            (num_menu_items - items_per_page) : 0;
+                            
+                            if (gui->menu_selection >= gui->main_menu_scroll_offset + items_per_page) {
+                                gui->main_menu_scroll_offset = gui->menu_selection - items_per_page + 1;
+                            }
+                            
+                            if (gui->main_menu_scroll_offset > max_scroll) {
+                                gui->main_menu_scroll_offset = max_scroll;
                             }
                         } else if (gui->menu_state == 1) {
                             gui->gui_difficulty_level = (gui->gui_difficulty_level + 1);
@@ -636,7 +668,13 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         }
                     }
                     else if (event.key.keysym.sym == SDLK_RETURN) {
-                        if (gui->menu_state == 0) {
+                        if (gui->show_help_overlay) {
+                            // Close help overlay and return to main menu
+                            gui->show_help_overlay = false;
+                            gui->help_scroll_offset = 0;
+                            gui->menu_state = 0;
+                            gui->menu_selection = 5;  // Keep Help selected
+                        } else if (gui->menu_state == 0) {
                             switch (gui->menu_selection) {
                                 case 0:  // Continue
                                     if(gui->visualizer.comet_buster.ship_lives >0) {
@@ -658,7 +696,11 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     gui->menu_state = 4;
                                     gui->menu_selection = 0;
                                     break;
-                                case 5:  // Quit
+                                case 5:  // Help - Show help overlay
+                                    gui->show_help_overlay = true;
+                                    gui->help_scroll_offset = 0;
+                                    break;
+                                case 6:  // Quit
                                     gui->running = false;
                                     break;
                             }
@@ -1072,19 +1114,48 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             gl_draw_text_simple("COMET BUSTERS", 800, 100, 28);
             
             const char* const *menu_items = main_menu_items[gui->visualizer.comet_buster.current_language];
-            //menu_items=main_menu_items[0];
-
-            //const char *menu_items[] = main_menu_items[gui->visualizer.comet_buster.current_language];
-
             
-            int menu_y_start = 350;
-            int menu_spacing = 120;
+            int menu_y_start = 300;
+            int menu_spacing = 110;
             int menu_width = 400;
             int menu_height = 60;
+            int items_per_page = 5;
+            int num_menu_items = 7;  // Continue, New Game, High Scores, Audio, Language, Help, Quit
             
-            for (int i = 0; i < 6; i++) {
-                int menu_y = menu_y_start + (i * menu_spacing);
+            // Calculate scroll position - keep selected item visible
+            int current_selection = gui->menu_selection;
+            int scroll_offset = gui->main_menu_scroll_offset;
+            
+            if (current_selection < scroll_offset) {
+                scroll_offset = current_selection;
+            }
+            
+            // Keep selection in view when scrolling down
+            if (current_selection >= scroll_offset + items_per_page) {
+                scroll_offset = current_selection - items_per_page + 1;
+            }
+            
+            // Clamp scroll offset
+            int max_scroll = (num_menu_items > items_per_page) ? 
+                            (num_menu_items - items_per_page) : 0;
+            if (scroll_offset > max_scroll) {
+                scroll_offset = max_scroll;
+            }
+            
+            gui->main_menu_scroll_offset = scroll_offset;
+            
+            // Draw visible menu items only
+            for (int i = 0; i < num_menu_items; i++) {
+                // Skip items above scroll area
+                if (i < scroll_offset) continue;
+                
+                // Stop if we've drawn enough for the page
+                if (i >= scroll_offset + items_per_page) break;
+                
+                int display_index = i - scroll_offset;
+                int menu_y = menu_y_start + (display_index * menu_spacing);
                 int menu_x = (1920 - menu_width) / 2;
+                
                 if (i == 0 && gui->visualizer.comet_buster.ship_lives <= 0) {
                     // Disabled / grayed-out look
                     gl_set_color(0.3f, 0.3f, 0.3f);   // dark gray border
@@ -1094,7 +1165,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                     gl_draw_rect_filled(menu_x, menu_y, menu_width, menu_height);
 
                     gl_set_color(0.5f, 0.5f, 0.5f);   // lighter gray text color
-                } else if (i == gui->menu_selection) {
+                } else if (i == current_selection) {
                     gl_set_color(1.0f, 1.0f, 0.0f);
                     gl_draw_rect_filled(menu_x - 3, menu_y - 3, menu_width + 6, menu_height + 6);
                     gl_set_color(0.0f, 0.5f, 1.0f);
@@ -1109,8 +1180,25 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                 gl_draw_text_simple(menu_items[i], menu_x + 110, menu_y + 25, 24);
             }
             
+            // Show scroll indicators if there are more items
+            if (num_menu_items > items_per_page) {
+                gl_set_color(0.8f, 0.8f, 0.8f);
+                
+                if (scroll_offset > 0) {
+                    gl_draw_text_simple("↑ More above", 800, 260, 12);
+                }
+                
+                if (scroll_offset + items_per_page < num_menu_items) {
+                    gl_draw_text_simple("More below ↓", 800, 870, 12);
+                }
+                
+                char count_text[64];
+                sprintf(count_text, "%d / %d", current_selection + 1, num_menu_items);
+                gl_set_color(0.7f, 0.7f, 0.9f);
+                gl_draw_text_simple(count_text, 880, 920, 12);
+            }
+            
             gl_set_color(0.8f, 0.8f, 0.8f);
-            //gl_draw_text_simple("Up/Down/Enter to select; ESC to close", 550, 950, 24);
             gl_draw_text_simple(hint_select_close[gui->visualizer.comet_buster.current_language][0], 550, 950, 24);
             
         } else if (gui->menu_state == 1) {
@@ -1288,7 +1376,56 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         }
     }
     
-    // Render high score entry dialog if active
+    // Render help overlay if active
+    if (gui->show_help_overlay) {
+        extern void gl_set_color_alpha(float r, float g, float b, float a);
+        extern void gl_draw_rect_filled(float x, float y, float width, float height);
+        extern void gl_set_color(float r, float g, float b);
+        extern void gl_draw_text_simple(const char *text, int x, int y, int font_size);
+        
+        // Semi-transparent overlay
+        gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+        gl_draw_rect_filled(0, 0, 1920, 1080);
+        
+        // Title - bright white for high contrast
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        gl_draw_text_simple("HELP & CONTROLS", 800, 50, 28);
+        
+        // Main help text box - large single box with all text
+        int box_x = 100;
+        int box_y = 130;
+        int box_width = 1720;
+        int box_height = 850;
+        
+        // Text box background
+        gl_set_color(0.1f, 0.1f, 0.2f);
+        gl_draw_rect_filled(box_x, box_y, box_width, box_height);
+        
+        // Text box border - subtle cyan
+        gl_set_color(0.2f, 0.6f, 0.8f);
+        gl_draw_rect_filled(box_x - 1, box_y - 1, box_width + 2, box_height + 2);
+        gl_set_color(0.1f, 0.1f, 0.2f);
+        gl_draw_rect_filled(box_x, box_y, box_width, box_height);
+        
+        // Get help text for current language
+        const char* const *help_text = help_menu_text[gui->visualizer.comet_buster.current_language];
+        int num_help_items = 11;
+        
+        // Draw all help text in the box - white text for 508 compliance
+        int text_x = box_x + 40;
+        int text_y = box_y + 65;
+        int line_height = 56;  // Proper spacing for 14pt font with ascenders/descenders
+        
+        gl_set_color(1.0f, 1.0f, 1.0f);  // Pure white for maximum contrast
+        for (int i = 0; i < num_help_items; i++) {
+            gl_draw_text_simple(help_text[i], text_x, text_y + (i * line_height), 14);
+        }
+        
+        // Instructions - light gray
+        gl_set_color(0.9f, 0.9f, 0.9f);
+        gl_draw_text_simple("ESC or RETURN - Back to Menu", 750, 980, 14);
+    }
+    
     if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
         extern void gl_set_color_alpha(float r, float g, float b, float a);
         extern void gl_draw_rect_filled(float x, float y, float width, float height);
@@ -1646,6 +1783,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     }
     
     gui.gui_difficulty_level = 2;  // Medium
+    gui.show_help_overlay = false;  // Initialize help overlay
+    gui.help_scroll_offset = 0;     // Initialize help scroll
+    gui.main_menu_scroll_offset = 0; // Initialize main menu scroll
     
     // Initialize local high score entry UI
     HighScoreEntryUI hs_entry;
