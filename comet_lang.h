@@ -427,7 +427,7 @@ static const char* main_menu_items[][7] = {
     }
 };
 
-static const char* hint_select_close[][1] = {
+static const char* hint_select_close[] = {
     { "Up/Down/Enter to select; ESC to close" },        // EN
     { "Arriba/Abajo/Enter para elegir; ESC para cerrar" }, // ES
     { "Haut/Bas/Entrée pour choisir; Échap pour fermer" }, // FR
@@ -442,6 +442,15 @@ static const char* label_high_scores[] = {
     "РЕКОРДЫ",          // RU
     "HIGHSCORES"        // DE
 };
+
+static const char* help_controls_text[] = {
+    { "HELP & CONTROLS" },              // EN
+    { "AYUDA Y CONTROLES" },            // ES
+    { "AIDE & COMMANDES" },             // FR
+    { "СПРАВКА И УПРАВЛЕНИЕ" },         // RU
+    { "HILFE & STEUERUNG" }             // DE
+};
+
 
 static const char* hint_continue_back[] = {
     "ENTER to continue | ESC to go back",          // EN

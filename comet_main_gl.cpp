@@ -1389,7 +1389,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Title - bright white for high contrast
         gl_set_color(1.0f, 1.0f, 1.0f);
-        gl_draw_text_simple("HELP & CONTROLS", 800, 50, 28);
+        gl_draw_text_simple(help_controls_text[gui->visualizer.comet_buster.current_language], 800, 50, 28);
         
         // Main help text box - large single box with all text
         int box_x = 100;
@@ -1418,12 +1418,12 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         gl_set_color(1.0f, 1.0f, 1.0f);  // Pure white for maximum contrast
         for (int i = 0; i < num_help_items; i++) {
-            gl_draw_text_simple(help_text[i], text_x, text_y + (i * line_height), 14);
+            gl_draw_text_simple(help_text[i], text_x, text_y + (i * line_height), 24);
         }
         
         // Instructions - light gray
         gl_set_color(0.9f, 0.9f, 0.9f);
-        gl_draw_text_simple("ESC or RETURN - Back to Menu", 750, 980, 14);
+        gl_draw_text_simple(hint_continue_back[gui->visualizer.comet_buster.current_language], 750, 980, 14);
     }
     
     if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
