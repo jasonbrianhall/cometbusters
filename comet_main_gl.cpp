@@ -941,6 +941,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     // SAVE PREFERENCES
                                     gui->preferences.language = i;
                                     preferences_save(&gui->preferences);
+                                    // Return to main menu
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = 4;
                                 }
                             }
                         }
