@@ -222,6 +222,7 @@ NDK_TOOLCHAIN_VERSION := clang
 EOF
 
 # Create SDL2 module Android.mk
+mkdir -p android/app/src/jni/SDL2
 cat > android/app/src/jni/SDL2/Android.mk << 'EOF'
 LOCAL_PATH := $(call my-dir)
 
