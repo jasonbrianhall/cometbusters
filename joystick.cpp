@@ -7,7 +7,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef ANDROID
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
 
 // ============================================================
 // SDL JOYSTICK STATE

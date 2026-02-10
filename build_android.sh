@@ -223,7 +223,75 @@ else
     echo "SDL2 already present"
 fi
 
-echo -e "${YELLOW}Step 5: Creating NDK build files...${NC}"
+echo -e "${YELLOW}Step 5: Downloading prebuilt FreeType libraries...${NC}"
+
+mkdir -p android/app/src/jni/freetype/lib/arm64-v8a
+mkdir -p android/app/src/jni/freetype/lib/armeabi-v7a
+mkdir -p android/app/src/jni/freetype/include
+
+# Download prebuilt FreeType libraries for Android NDK
+# These are precompiled static libraries for Android API 21+
+
+echo "Downloading prebuilt FreeType for arm64-v8a..."
+wget -q -O android/app/src/jni/freetype/lib/arm64-v8a/libfreetype.a \
+    "https://github.com/LibreSprite/freetype-android-build/releases/download/v2.13.2-android/libfreetype-arm64-v8a.a" 2>/dev/null || {
+    echo -e "${YELLOW}Note: Could not download prebuilt library, creating minimal build config...${NC}"
+    # Create a minimal static library config as fallback
+    mkdir -p android/app/src/jni/freetype
+    cat > android/app/src/jni/freetype/Android.mk << 'MKEOF'
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := freetype
+
+LOCAL_SRC_FILES := \
+    src/base/ftbase.c \
+    src/base/ftbbox.c \
+    src/base/ftbitmap.c \
+    src/base/ftdebug.c \
+    src/base/ftglyph.c \
+    src/base/ftinit.c \
+    src/base/ftsystem.c \
+    src/cff/cff.c \
+    src/psaux/psaux.c \
+    src/pshinter/pshinter.c \
+    src/psnames/psnames.c \
+    src/raster/raster.c \
+    src/sfnt/sfnt.c \
+    src/smooth/smooth.c \
+    src/truetype/truetype.c
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/include
+
+LOCAL_CFLAGS := -DFT2_BUILD_LIBRARY
+LOCAL_CPPFLAGS := -std=c++11
+
+include $(BUILD_STATIC_LIBRARY)
+MKEOF
+}
+
+if [ -f "android/app/src/jni/freetype/lib/arm64-v8a/libfreetype.a" ]; then
+    echo "Downloading prebuilt FreeType for armeabi-v7a..."
+    wget -q -O android/app/src/jni/freetype/lib/armeabi-v7a/libfreetype.a \
+        "https://github.com/LibreSprite/freetype-android-build/releases/download/v2.13.2-android/libfreetype-armeabi-v7a.a" 2>/dev/null || true
+    
+    # Create Android.mk for prebuilt libraries
+    cat > android/app/src/jni/freetype/Android.mk << 'MKEOF'
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := freetype
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libfreetype.a
+
+include $(PREBUILT_STATIC_LIBRARY)
+MKEOF
+    
+    echo -e "${GREEN}✓ Prebuilt FreeType libraries configured${NC}"
+fi
+
+echo -e "${YELLOW}Step 6: Creating NDK build files...${NC}"
 
 mkdir -p android/app/src/jni
 
@@ -242,6 +310,9 @@ LOCAL_PATH := $(call my-dir)
 
 # Save the real project path BEFORE SDL2 messes with LOCAL_PATH
 PROJECT_PATH := $(LOCAL_PATH)
+
+# --- FreeType library ---
+include $(PROJECT_PATH)/freetype/Android.mk
 
 # --- SDL2 library ---
 include $(PROJECT_PATH)/SDL2/Android.mk
@@ -283,12 +354,14 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
     $(PROJECT_PATH)/src \
     $(PROJECT_PATH)/SDL2/include \
-    $(PROJECT_PATH)/SDL2_mixer/include
-
+    $(PROJECT_PATH)/SDL2_mixer/include \
+    $(PROJECT_PATH)/freetype/include \
+    $(PROJECT_PATH)/GL
 
 LOCAL_CFLAGS := -DExternalSound -DANDROID
 LOCAL_CPPFLAGS := -std=c++11
 
+LOCAL_STATIC_LIBRARIES := freetype
 LOCAL_SHARED_LIBRARIES := SDL2 SDL2_mixer
 LOCAL_LDLIBS := -llog -lGLESv2 -lz -landroid
 
@@ -297,7 +370,7 @@ EOF
 
 echo -e "${GREEN}✓ NDK build files created${NC}"
 
-echo -e "${YELLOW}Step 6: Creating OpenGL stubs...${NC}"
+echo -e "${YELLOW}Step 7: Creating OpenGL stubs...${NC}"
 
 mkdir -p android/app/src/jni/GL
 
@@ -334,7 +407,7 @@ EOF
 
 echo -e "${GREEN}✓ OpenGL stubs created${NC}"
 
-echo -e "${YELLOW}Step 7: Building APK with Docker...${NC}"
+echo -e "${YELLOW}Step 8: Building APK with Docker...${NC}"
 
 mkdir -p ~/.m2
 mkdir -p ~/.android/sdk-cache
@@ -354,7 +427,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}Step 8: Finalizing APK...${NC}"
+echo -e "${YELLOW}Step 9: Finalizing APK...${NC}"
 
 if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
     cp -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" "build/android/cometbuster-unsigned.apk"
