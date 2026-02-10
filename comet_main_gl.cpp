@@ -1,4 +1,8 @@
+#ifdef ANDROID
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <stdlib.h>

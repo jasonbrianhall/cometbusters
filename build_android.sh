@@ -44,9 +44,9 @@ mkdir -p android/app/src/jni/src
 mkdir -p android/app/src/main/assets
 mkdir -p build/android
 
-cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp android/app/src/jni/SDL2/src/ 2>/dev/null || true
-cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/SDL2/src/ 2>/dev/null || true
-cp -f *.h android/app/src/jni/SDL2/src/ 2>/dev/null || true
+cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp android/app/src/jni/src/ 2>/dev/null || true
+cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/src/ 2>/dev/null || true
+cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
 
 if [ -f cometbuster.wad ]; then
     cp -f cometbuster.wad android/app/src/main/assets/
@@ -226,47 +226,48 @@ EOF
 cat > android/app/src/jni/Android.mk << 'EOF'
 LOCAL_PATH := $(call my-dir)
 
-# Save the main module path before including SDL2
-MAIN_MODULE_PATH := $(LOCAL_PATH)
+# Save the real project path BEFORE SDL2 messes with LOCAL_PATH
+PROJECT_PATH := $(LOCAL_PATH)
 
-# Build SDL2 library
-include $(LOCAL_PATH)/SDL2/Android.mk
+# --- SDL2 library ---
+include $(PROJECT_PATH)/SDL2/Android.mk
 
-# Build game code
+# --- Game code ---
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := main
 
-# Use the saved path for game source files
+# Restore LOCAL_PATH so src/ is relative to jni/
+LOCAL_PATH := $(PROJECT_PATH)
+
 LOCAL_SRC_FILES := \
-    /workspace/android/app/src/jni/SDL2/src/comet_main_gl.cpp \
-    /workspace/android/app/src/jni/SDL2/src/wad.cpp \
-    /workspace/android/app/src/jni/SDL2/src/audio_wad.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_spawn.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_init.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_physics.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_collision.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_boss.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_starboss.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_render_gl.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_util.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_splashscreen.cpp \
-    /workspace/android/app/src/jni/SDL2/src/joystick.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_bombs.cpp \
-    /workspace/android/app/src/jni/SDL2/src/cometbuster_bossexplosion.cpp \
-    /workspace/android/app/src/jni/SDL2/src/comet_highscores.cpp \
-    /workspace/android/app/src/jni/SDL2/src/comet_preferences.cpp \
-    /workspace/android/app/src/jni/SDL2/src/miniz.c \
-    /workspace/android/app/src/jni/SDL2/src/miniz_tdef.c \
-    /workspace/android/app/src/jni/SDL2/src/miniz_tinfl.c \
-    /workspace/android/app/src/jni/SDL2/src/miniz_zip.c
+    src/comet_main_gl.cpp \
+    src/wad.cpp \
+    src/audio_wad.cpp \
+    src/cometbuster_spawn.cpp \
+    src/cometbuster_init.cpp \
+    src/cometbuster_physics.cpp \
+    src/cometbuster_collision.cpp \
+    src/cometbuster_boss.cpp \
+    src/cometbuster_starboss.cpp \
+    src/cometbuster_render_gl.cpp \
+    src/cometbuster_util.cpp \
+    src/cometbuster_splashscreen.cpp \
+    src/joystick.cpp \
+    src/cometbuster_bombs.cpp \
+    src/cometbuster_bossexplosion.cpp \
+    src/comet_highscores.cpp \
+    src/comet_preferences.cpp \
+    src/miniz.c \
+    src/miniz_tdef.c \
+    src/miniz_tinfl.c \
+    src/miniz_zip.c
 
 LOCAL_C_INCLUDES := \
-    $(MAIN_MODULE_PATH) \
-    $(MAIN_MODULE_PATH)/src \
-    $(MAIN_MODULE_PATH)/SDL2/include
+    $(PROJECT_PATH)/src \
+    $(PROJECT_PATH)/SDL2/include
 
-LOCAL_CFLAGS := -DExternalSound -DANDROIDf
+LOCAL_CFLAGS := -DExternalSound -DANDROID
 LOCAL_CPPFLAGS := -std=c++11
 
 LOCAL_SHARED_LIBRARIES := SDL2
