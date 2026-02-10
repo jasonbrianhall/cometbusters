@@ -121,13 +121,12 @@ const char* wad_get_filename(WadArchive *wad, int index) {
     if (!wad || !wad->zip_archive) return NULL;
     
     mz_zip_archive *zip = (mz_zip_archive *)wad->zip_archive;
-    mz_zip_archive_file_stat file_stat;
+    static mz_zip_archive_file_stat file_stat;
     
     if (!mz_zip_reader_file_stat(zip, index, &file_stat)) {
         return NULL;
     }
-    
-    return file_stat.m_filename;
+    return file_stat.m_filename;    
 }
 
 // Check if file exists in WAD
@@ -138,4 +137,3 @@ bool wad_file_exists(WadArchive *wad, const char *internal_path) {
     int file_index = mz_zip_reader_locate_file(zip, internal_path, NULL, 0);
     return file_index >= 0;
 }
-

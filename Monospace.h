@@ -11839,7 +11839,7 @@ static const unsigned int MONOSPACE_FONT_ORIGINAL_SIZE = 708920;
 static inline int base64_decode(const char *src, size_t src_len, unsigned char **out_data, size_t *out_len) {
     // Allocate output buffer (base64 decodes to ~75% of input size)
     size_t max_out = (src_len * 3) / 4 + 10;
-    *out_data = malloc(max_out);
+    *out_data = (unsigned char *) malloc(max_out);
     if (!*out_data) return -1;
     
     static const char base64_chars[] = 
