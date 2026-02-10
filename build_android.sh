@@ -47,10 +47,10 @@ else
     echo -e "${YELLOW}Note: createwad.py not found, skipping WAD generation${NC}"
 fi
 
-echo ""
 echo -e "${YELLOW}Step 3: Setting up Android project structure...${NC}"
 
 mkdir -p android/app/src/main/java/org/cometbuster/game
+mkdir -p android/app/src/main/java/org/libsdl/app
 mkdir -p android/app/src/main/res/values
 mkdir -p android/app/src/main/res/layout
 mkdir -p android/app/src/main/res/drawable
@@ -61,6 +61,75 @@ mkdir -p build/android
 cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp android/app/src/jni/src/ 2>/dev/null || true
 cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/src/ 2>/dev/null || true
 cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
+
+# Copy SDL2 Java files (SDLActivity and support classes)
+if [ -d "android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app" ]; then
+    cp -f android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app/*.java android/app/src/main/java/org/libsdl/app/
+    echo -e "${GREEN}✓ SDL2 Java classes copied${NC}"
+else
+    # Fallback: Create a minimal SDLActivity if not found
+    echo -e "${YELLOW}Creating SDLActivity...${NC}"
+    cat > android/app/src/main/java/org/libsdl/app/SDLActivity.java << 'JAVAEOF'
+package org.libsdl.app;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.SurfaceView;
+
+public class SDLActivity extends Activity {
+    static {
+        // Load shared libraries
+        try {
+            System.loadLibrary("c++_shared");
+        } catch (UnsatisfiedLinkError e) {
+            android.util.Log.d("SDL", "c++_shared not found");
+        }
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        
+        // Extract WAD file from assets to app files directory
+        extractWad();
+        
+        // Load native libraries
+        System.loadLibrary("SDL2");
+        System.loadLibrary("SDL2_mixer");
+        System.loadLibrary("main");
+        
+        // Create and set surface view
+        SurfaceView surfaceView = new SurfaceView(this);
+        setContentView(surfaceView);
+    }
+
+    private void extractWad() {
+        try {
+            java.io.File wadFile = new java.io.File(getFilesDir(), "cometbuster.wad");
+            // Only extract if it doesn't exist
+            if (wadFile.exists()) {
+                return;
+            }
+            
+            java.io.InputStream in = getAssets().open("cometbuster.wad");
+            java.io.FileOutputStream out = new java.io.FileOutputStream(wadFile);
+            
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            in.close();
+            out.close();
+            
+            android.util.Log.i("SDLActivity", "Extracted cometbuster.wad to " + wadFile.getAbsolutePath());
+        } catch (Exception e) {
+            android.util.Log.e("SDLActivity", "Failed to extract WAD: " + e.getMessage());
+        }
+    }
+}
+JAVAEOF
+fi
 
 if [ -f cometbuster.wad ]; then
     cp -f cometbuster.wad android/app/src/main/assets/
@@ -159,11 +228,21 @@ android {
             minifyEnabled false
             debuggable false
         }
+        debug {
+            minifyEnabled false
+            debuggable true
+        }
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java']
+        }
     }
 
     externalNativeBuild {
@@ -461,7 +540,7 @@ docker run --rm \
     -e GRADLE_USER_HOME=/root/.gradle \
     -e JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8" \
     "$DOCKER_IMAGE_NAME" \
-    bash -c "cd /workspace/android && gradle assembleRelease --no-daemon -x lint"
+    bash -c "cd /workspace/android && gradle assembleDebug --no-daemon -x lint"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Docker build failed${NC}"
@@ -470,12 +549,12 @@ fi
 
 echo -e "${YELLOW}Step 11: Finalizing APK...${NC}"
 
-if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-    cp -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" "build/android/cometbuster-unsigned.apk"
+if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+    cp -f "android/app/build/outputs/apk/debug/app-debug.apk" "build/android/cometbuster.apk"
     
     # Verify WAD file is in APK
-    if unzip -t "build/android/cometbuster-unsigned.apk" | grep -q "assets/cometbuster.wad"; then
-        echo -e "${GREEN}✓ APK created with cometbuster.wad: build/android/cometbuster-unsigned.apk${NC}"
+    if unzip -t "build/android/cometbuster.apk" | grep -q "assets/cometbuster.wad"; then
+        echo -e "${GREEN}✓ Signed APK created with cometbuster.wad: build/android/cometbuster.apk${NC}"
     else
         echo -e "${YELLOW}⚠ Warning: cometbuster.wad not found in APK${NC}"
         echo -e "${YELLOW}   The game will not have audio/resources${NC}"
@@ -487,4 +566,57 @@ fi
 
 echo ""
 echo -e "${GREEN}=== Build Complete ===${NC}"
-echo "APK is ready at: build/android/cometbuster-unsigned.apk"
+echo "Your signed APK is ready at: build/android/cometbuster.apk"
+echo ""
+echo -e "${GREEN}✓ Pre-signed with Android debug key${NC}"
+echo "  This APK is ready to install on any Android device/emulator"
+echo "  No additional signing needed!"
+echo ""
+echo -e "${YELLOW}Important: Native Code Changes Required${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "The Java activity automatically extracts cometbuster.wad to:"
+echo "  <app-files-dir>/cometbuster.wad"
+echo ""
+echo "Your C++ code needs to load from there on Android."
+echo "Add this to your native code to get the app files directory:"
+echo ""
+echo "  // JNI helper to get app files directory"
+echo "  extern \"C\" {" 
+echo "    const char* get_app_files_dir();"
+echo "  }"
+echo ""
+echo "  // Then call from your native code:"
+echo "  std::string wad_path = std::string(get_app_files_dir()) + \"/cometbuster.wad\";"
+echo ""
+echo "Alternative: Modify your code to look in multiple locations:"
+echo "  1. cometbuster.wad (current directory - desktop)"
+echo "  2. ./cometbuster.wad"
+echo "  3. /data/data/org.cometbuster.game/files/cometbuster.wad (Android)"
+echo ""
+echo -e "${YELLOW}Testing on Waydroid (x86_64)${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  1. Start Waydroid:"
+echo "     waydroid show-full-ui &"
+echo ""
+echo "  2. Install the APK:"
+echo "     waydroid app install build/android/cometbuster.apk"
+echo ""
+echo "  Or use adb (if you have the server running):"
+echo "     adb install -r build/android/cometbuster.apk"
+echo ""
+echo -e "${YELLOW}Troubleshooting${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "If you get 'ClassNotFoundException: SDLActivity':"
+echo "  - The build is creating SDLActivity.java automatically"
+echo "  - Make sure Java compilation succeeded"
+echo "  - Check for errors in the gradle build output"
+echo ""
+echo "If the app crashes, check logcat:"
+echo "  waydroid logcat | grep -E '(CometBuster|libmain|SDLActivity)'"
+echo "  or"
+echo "  adb logcat | grep -E '(CometBuster|libmain|SDLActivity)'"
+echo ""
+echo "If WAD file not found:"
+echo "  - Check that cometbuster.wad exists in project root"
+echo "  - Run: unzip -l build/android/cometbuster.apk | grep cometbuster.wad"
+echo "  - Verify extraction in app files dir (via shell or logcat)"

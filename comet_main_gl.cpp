@@ -2154,11 +2154,21 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Load WAD file with sounds
     std::string wadPath;
+
 #ifdef _WIN32
+
     wadPath = getExecutableDir() + "\\cometbuster.wad";
+
+#elif defined(ANDROID)
+
+    wadPath = "/data/data/org.cometbuster.game/files/cometbuster.wad";
+
 #else
+
     wadPath = "cometbuster.wad";
+
 #endif
+
     
     if (audio_load_wad(&gui.audio, wadPath.c_str())) {
         printf("[AUDIO] WAD loaded: %s\n", wadPath.c_str());
