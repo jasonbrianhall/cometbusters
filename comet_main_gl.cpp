@@ -2154,27 +2154,60 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Load WAD file with sounds
     std::string wadPath;
+    bool wad_loaded = false;
 
-#ifdef _WIN32
+#ifdef ANDROID
+    // Android: Try multiple locations
+    // The Java SDLActivity extracts it to /data/data/org.cometbuster.game/files/cometbuster.wad
+    const char* android_wad_paths[] = {
+        "/data/data/org.cometbuster.game/files/cometbuster.wad",  // Primary location
+        "/sdcard/cometbuster.wad",                                 // SD card fallback
+        "/storage/emulated/0/cometbuster.wad",                    // Emulator fallback
+        "./cometbuster.wad",                                       // Current dir
+        "cometbuster.wad",                                         // Relative path
+        NULL
+    };
 
-    wadPath = getExecutableDir() + "\\cometbuster.wad";
+    printf("[AUDIO] Android: Searching for cometbuster.wad...\n");
+    for (int i = 0; android_wad_paths[i] != NULL; i++) {
+        FILE* test_file = fopen(android_wad_paths[i], "rb");
+        if (test_file != NULL) {
+            fclose(test_file);
+            wadPath = android_wad_paths[i];
+            printf("[AUDIO] Found WAD at: %s\n", wadPath.c_str());
+            wad_loaded = audio_load_wad(&gui.audio, wadPath.c_str());
+            if (wad_loaded) {
+                printf("[AUDIO] WAD loaded successfully from: %s\n", wadPath.c_str());
+                break;
+            }
+        } else {
+            printf("[AUDIO] WAD not found at: %s\n", android_wad_paths[i]);
+        }
+    }
 
-#elif defined(ANDROID)
-
-    wadPath = "/data/data/org.cometbuster.game/files/cometbuster.wad";
+    if (!wad_loaded) {
+        printf("[WARNING] Could not load WAD from any Android location\n");
+        printf("[HINT] Make sure cometbuster.wad exists in the project\n");
+        printf("[HINT] And that the APK includes it in assets/\n");
+    }
 
 #else
-
+    // Desktop platforms: Windows and Linux
+#ifdef _WIN32
+    wadPath = getExecutableDir() + "\\cometbuster.wad";
+#else
     wadPath = "cometbuster.wad";
-
 #endif
 
+    printf("[AUDIO] Desktop: Loading from: %s\n", wadPath.c_str());
+    wad_loaded = audio_load_wad(&gui.audio, wadPath.c_str());
     
-    if (audio_load_wad(&gui.audio, wadPath.c_str())) {
+    if (wad_loaded) {
         printf("[AUDIO] WAD loaded: %s\n", wadPath.c_str());
     } else {
         printf("[WARNING] Could not load WAD: %s\n", wadPath.c_str());
     }
+#endif
     
     // Copy audio to visualizer so game code can access it
     gui.visualizer.audio = gui.audio;
