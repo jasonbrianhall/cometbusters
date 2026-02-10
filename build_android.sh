@@ -210,6 +210,13 @@ if [ ! -d "android/app/src/jni/SDL2" ] || [ ! -f "android/app/src/jni/SDL2/src/S
     mv SDL2_mixer-2.6.3 SDL2_mixer
     rm SDL2_mixer-2.6.3.tar.gz
 
+    echo -e "${YELLOW}Downloading FreeType...${NC}"
+
+    wget -q https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.gz
+    tar xzf freetype-2.13.2.tar.gz
+    mv freetype-2.13.2 freetype
+    rm freetype-2.13.2.tar.gz
+
     cd ../../../../..
     echo -e "${GREEN}✓ SDL2 downloaded${NC}"
 else
