@@ -15,6 +15,12 @@
 #include "audio_wad.h"
 #endif
 
+#ifdef ANDROID
+    #define glGenVertexArrays(n, arrays) (void)0
+    #define glBindVertexArray(array) (void)0
+    #define glDeleteVertexArrays(n, arrays) (void)0
+#endif
+
 // FreeType includes for dynamic TTF rendering
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -510,7 +516,7 @@ void gl_draw_rect_outline(float x, float y, float width, float height, float lin
 }
 
 void gl_draw_circle(float cx, float cy, float radius, int segments) {
-    Vertex *verts = malloc((segments + 2) * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc((segments + 2) * sizeof(Vertex));
     verts[0] = (Vertex){cx, cy, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     
     for (int i = 0; i <= segments; i++) {
@@ -526,7 +532,7 @@ void gl_draw_circle(float cx, float cy, float radius, int segments) {
 
 void gl_draw_circle_outline(float cx, float cy, float radius, float line_width, int segments) {
     glLineWidth(line_width);
-    Vertex *verts = malloc((segments + 1) * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc((segments + 1) * sizeof(Vertex));
     
     for (int i = 0; i <= segments; i++) {
         float angle = 2.0f * M_PI * i / segments;
@@ -540,7 +546,7 @@ void gl_draw_circle_outline(float cx, float cy, float radius, float line_width, 
 }
 
 void gl_draw_polygon(float *points, int num_points, int filled) {
-    Vertex *verts = malloc(num_points * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc(num_points * sizeof(Vertex));
     for (int i = 0; i < num_points; i++) {
         verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
@@ -550,7 +556,7 @@ void gl_draw_polygon(float *points, int num_points, int filled) {
 
 void gl_draw_polyline(float *points, int num_points, float line_width) {
     glLineWidth(line_width);
-    Vertex *verts = malloc(num_points * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc(num_points * sizeof(Vertex));
     for (int i = 0; i < num_points; i++) {
         verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
@@ -586,7 +592,7 @@ static void draw_comet_polygon(Comet *c, double points[][2], int num_points, flo
     if (!c) return;
     
     // Allocate for points + closing point
-    Vertex *verts = malloc((num_points + 1) * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc((num_points + 1) * sizeof(Vertex));
     
     // PRIMARY rotation (main tumble)
     float angle = c->base_angle + c->rotation * M_PI / 180.0f;
@@ -1862,7 +1868,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
     }
     
     // Draw filled magenta body
-    draw_vertices(body_verts, segments, GL_POLYGON);
+    draw_vertices(body_verts, segments, GL_TRIANGLE_FAN);
     
     // Draw rotating darker oval pattern on the body (shows rotation)
     gl_set_color_alpha(0.4f, 0.1f, 0.5f, 0.6f);
@@ -1887,7 +1893,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
         
         pattern_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.4f, 0.1f, 0.5f, 0.6f};
     }
-    draw_vertices(pattern_verts, segments, GL_POLYGON);
+    draw_vertices(pattern_verts, segments, GL_TRIANGLE_FAN);
     
     // Draw cyan outline ring (elliptical, matching body rotation)
     gl_set_color_alpha(0.0f, 1.0f, 1.0f, 0.7f);
@@ -1937,7 +1943,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
         
         glow_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.0f, 0.8f, 1.0f, 0.2f};
     }
-    draw_vertices(glow_verts, segments, GL_POLYGON);
+    draw_vertices(glow_verts, segments, GL_TRIANGLE_FAN);
     
     // Spawn ports - 6 around equator with pulsing glow
     double port_radius = 6.0;
@@ -1992,7 +1998,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
             
             damage_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 1.0f, 0.5f, 0.5f, 0.4f};
         }
-        draw_vertices(damage_verts, segments, GL_POLYGON);
+        draw_vertices(damage_verts, segments, GL_TRIANGLE_FAN);
     }
     
     // Red pulsing core
@@ -2079,7 +2085,7 @@ void draw_void_nexus_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, in
             double y = sin(angle) * oct_radius;
             oct_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.3f, 0.7f, 1.0f, 1.0f};
         }
-        draw_vertices(oct_verts, oct_sides, GL_POLYGON);
+        draw_vertices(oct_verts, oct_sides, GL_TRIANGLE_FAN);
         
         // Draw octagon outline
         gl_set_color(0.3f, 0.7f, 1.0f);
@@ -2121,7 +2127,7 @@ void draw_void_nexus_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, in
                 double y = sin(angle) * hex_radius;
                 hex_verts[j] = {(float)(frag_x + x), (float)(frag_y + y), 0.2f, 0.9f, 1.0f, 1.0f};
             }
-            draw_vertices(hex_verts, hex_sides, GL_POLYGON);
+            draw_vertices(hex_verts, hex_sides, GL_TRIANGLE_FAN);
             
             // Draw hexagon outline
             gl_set_color(0.2f, 0.9f, 1.0f);
@@ -2193,7 +2199,7 @@ void draw_harbinger_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int
         hex_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.3f, 0.0f, 0.7f, 1.0f};
     }
     
-    draw_vertices(hex_verts, hex_points, GL_POLYGON);
+    draw_vertices(hex_verts, hex_points, GL_TRIANGLE_FAN);
     
     // Magenta outline
     gl_set_color(1.0f, 0.3f, 1.0f);
@@ -2300,7 +2306,7 @@ void draw_star_vortex_boss_gl(BossShip *boss, void *cr, int width, int height) {
     }
     
     // Fill star
-    draw_vertices(star_verts, star_vertices, GL_POLYGON);
+    draw_vertices(star_verts, star_vertices, GL_TRIANGLE_FAN);
     
     // Outline (darker shade)
     gl_set_color(r * 0.5f, g * 0.5f, b * 0.5f);

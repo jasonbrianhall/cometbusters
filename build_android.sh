@@ -252,7 +252,8 @@ LOCAL_DISABLE_FATAL_COMPILER_WARNINGS := true
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
                    $(LOCAL_PATH)/GL \
                    $(LOCAL_PATH)/SDL2/include \
-                   $(LOCAL_PATH)/SDL2_mixer/include
+                   $(LOCAL_PATH)/SDL2_mixer/include \
+                   $(LOCAL_PATH)/freetype2/include
 
 # Game source files
 LOCAL_SRC_FILES := src/comet_main_gl.cpp \
@@ -276,6 +277,29 @@ LOCAL_SRC_FILES := src/comet_main_gl.cpp \
                    src/miniz_tdef.c \
                    src/miniz_tinfl.c \
                    src/miniz_zip.c \
+                   freetype2/src/base/ftbase.c \
+                   freetype2/src/base/ftinit.c \
+                   freetype2/src/base/ftdebug.c \
+                   freetype2/src/base/ftgasp.c \
+                   freetype2/src/base/ftbbox.c \
+                   freetype2/src/base/ftglyph.c \
+                   freetype2/src/base/ftmm.c \
+                   freetype2/src/bdf/bdf.c \
+                   freetype2/src/cff/cff.c \
+                   freetype2/src/cid/type1cid.c \
+                   freetype2/src/gzip/ftgzip.c \
+                   freetype2/src/lzw/ftlzw.c \
+                   freetype2/src/pcf/pcf.c \
+                   freetype2/src/pfr/pfr.c \
+                   freetype2/src/psaux/psaux.c \
+                   freetype2/src/pshinter/pshinter.c \
+                   freetype2/src/psnames/psnames.c \
+                   freetype2/src/raster/raster.c \
+                   freetype2/src/smooth/smooth.c \
+                   freetype2/src/truetype/truetype.c \
+                   freetype2/src/type1/type1.c \
+                   freetype2/src/type42/type42.c \
+                   freetype2/src/winfonts/winfnt.c \
                    SDL2/src/SDL.c \
                    SDL2/src/SDL_error.c \
                    SDL2/src/SDL_hints.c \
@@ -319,8 +343,8 @@ LOCAL_SRC_FILES := src/comet_main_gl.cpp \
                    SDL2/src/video/android/SDL_androidtouch.c \
                    SDL2_mixer/src/mixer.c
 
-LOCAL_CFLAGS := -DExternalSound -DANDROID -std=c++11 -Wno-error
-LOCAL_CPPFLAGS := -std=c++11 -Wno-error
+LOCAL_CFLAGS := -DExternalSound -DANDROID -std=c++11 -DFT2_BUILD_LIBRARY
+LOCAL_CPPFLAGS := -std=c++11 -DFT2_BUILD_LIBRARY
 LOCAL_LDLIBS := -llog -lGLESv2 -lz -landroid
 
 include $(BUILD_SHARED_LIBRARY)
@@ -381,6 +405,30 @@ if [ ! -d "android/app/src/main/jni/SDL2_mixer" ] || [ ! -f "android/app/src/mai
     echo -e "${GREEN}✓ SDL2_mixer set up${NC}"
 else
     echo "SDL2_mixer already present"
+fi
+
+# Download FreeType2
+if [ ! -d "android/app/src/main/jni/freetype2" ] || [ ! -f "android/app/src/main/jni/freetype2/include/ft2build.h" ]; then
+    echo "Downloading FreeType2..."
+    cd android/app/src/main/jni
+    
+    if [ -d freetype2 ]; then
+        rm -rf freetype2
+    fi
+    
+    echo "  Cloning FreeType2 from GitHub..."
+    git clone --depth 1 https://github.com/freetype/freetype.git freetype2
+    
+    if [ ! -f freetype2/include/ft2build.h ]; then
+        echo -e "${RED}ERROR: FreeType2 include files not found after clone${NC}"
+        cd ../../../../..
+        exit 1
+    fi
+    
+    cd ../../../../..
+    echo -e "${GREEN}✓ FreeType2 set up${NC}"
+else
+    echo "FreeType2 already present"
 fi
 
 # Create minimal GLEW stub for Android (uses OpenGL ES)
