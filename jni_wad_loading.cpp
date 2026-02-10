@@ -46,13 +46,14 @@ Java_org_libsdl_app_SDLActivity_setAppFilesDir(
     jobject thiz,
     jstring path_jstr) {
     
-    const char *path = (*env)->GetStringUTFChars(env, path_jstr, NULL);
+    // FIXED: Use C++ JNI syntax - env is already a pointer
+    const char *path = env->GetStringUTFChars(path_jstr, NULL);
     
     if (path) {
         strncpy(g_app_files_dir, path, sizeof(g_app_files_dir) - 1);
         g_app_files_dir[sizeof(g_app_files_dir) - 1] = '\0';
         fprintf(stderr, "[JNI] App files directory: %s\n", g_app_files_dir);
-        (*env)->ReleaseStringUTFChars(env, path_jstr, path);
+        env->ReleaseStringUTFChars(path_jstr, path);
     } else {
         fprintf(stderr, "[JNI] ERROR: Failed to get app files directory path\n");
     }
