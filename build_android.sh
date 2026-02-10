@@ -221,66 +221,6 @@ APP_OPTIM := release
 NDK_TOOLCHAIN_VERSION := clang
 EOF
 
-# Create SDL2 module Android.mk
-mkdir -p android/app/src/jni/SDL2
-cat > android/app/src/jni/SDL2/Android.mk << 'EOF'
-LOCAL_PATH := $(call my-dir)
-
-include $(CLEAR_VARS)
-
-LOCAL_MODULE := SDL2
-
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/include
-
-LOCAL_SRC_FILES := \
-    src/SDL.c \
-    src/SDL_error.c \
-    src/SDL_hints.c \
-    src/SDL_log.c \
-    src/atomic/SDL_atomic.c \
-    src/audio/SDL_audio.c \
-    src/audio/SDL_audiocvt.c \
-    src/audio/SDL_mixer.c \
-    src/audio/SDL_wave.c \
-    src/audio/android/SDL_androidaudio.c \
-    src/core/android/SDL_android.c \
-    src/cpuinfo/SDL_cpuinfo.c \
-    src/events/SDL_events.c \
-    src/events/SDL_keyboard.c \
-    src/events/SDL_mouse.c \
-    src/events/SDL_touch.c \
-    src/file/SDL_rwops.c \
-    src/joystick/SDL_joystick.c \
-    src/render/SDL_render.c \
-    src/render/opengles2/SDL_render_gles2.c \
-    src/render/opengles2/SDL_shaders_gles2.c \
-    src/stdlib/SDL_stdlib.c \
-    src/stdlib/SDL_string.c \
-    src/thread/SDL_thread.c \
-    src/thread/pthread/SDL_syscond.c \
-    src/thread/pthread/SDL_sysmutex.c \
-    src/thread/pthread/SDL_systhread.c \
-    src/timer/SDL_timer.c \
-    src/timer/unix/SDL_systimer.c \
-    src/video/SDL_video.c \
-    src/video/SDL_blit.c \
-    src/video/SDL_fillrect.c \
-    src/video/SDL_pixels.c \
-    src/video/SDL_rect.c \
-    src/video/SDL_stretch.c \
-    src/video/SDL_surface.c \
-    src/video/android/SDL_androidvideo.c \
-    src/video/android/SDL_androidwindow.c \
-    src/video/android/SDL_androidevents.c \
-    src/video/android/SDL_androidkeyboard.c \
-    src/video/android/SDL_androidmouse.c \
-    src/video/android/SDL_androidtouch.c
-
-LOCAL_CFLAGS := -DANDROID
-LOCAL_LDLIBS := -llog -lGLESv2 -landroid
-
-include $(BUILD_SHARED_LIBRARY)
-EOF
 
 # Create main game Android.mk
 cat > android/app/src/jni/Android.mk << 'EOF'
@@ -299,27 +239,27 @@ LOCAL_MODULE := main
 
 # Use the saved path for game source files
 LOCAL_SRC_FILES := \
-    src/comet_main_gl.cpp \
-    src/wad.cpp \
-    src/audio_wad.cpp \
-    src/cometbuster_spawn.cpp \
-    src/cometbuster_init.cpp \
-    src/cometbuster_physics.cpp \
-    src/cometbuster_collision.cpp \
-    src/cometbuster_boss.cpp \
-    src/cometbuster_starboss.cpp \
-    src/cometbuster_render_gl.cpp \
-    src/cometbuster_util.cpp \
-    src/cometbuster_splashscreen.cpp \
-    src/joystick.cpp \
-    src/cometbuster_bombs.cpp \
-    src/cometbuster_bossexplosion.cpp \
-    src/comet_highscores.cpp \
-    src/comet_preferences.cpp \
-    src/miniz.c \
-    src/miniz_tdef.c \
-    src/miniz_tinfl.c \
-    src/miniz_zip.c
+    /workspace/android/app/src/jni/SDL2/src/comet_main_gl.cpp \
+    /workspace/android/app/src/jni/SDL2/src/wad.cpp \
+    /workspace/android/app/src/jni/SDL2/src/audio_wad.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_spawn.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_init.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_physics.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_collision.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_boss.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_starboss.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_render_gl.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_util.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_splashscreen.cpp \
+    /workspace/android/app/src/jni/SDL2/src/joystick.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_bombs.cpp \
+    /workspace/android/app/src/jni/SDL2/src/cometbuster_bossexplosion.cpp \
+    /workspace/android/app/src/jni/SDL2/src/comet_highscores.cpp \
+    /workspace/android/app/src/jni/SDL2/src/comet_preferences.cpp \
+    /workspace/android/app/src/jni/SDL2/src/miniz.c \
+    /workspace/android/app/src/jni/SDL2/src/miniz_tdef.c \
+    /workspace/android/app/src/jni/SDL2/src/miniz_tinfl.c \
+    /workspace/android/app/src/jni/SDL2/src/miniz_zip.c
 
 LOCAL_C_INCLUDES := \
     $(MAIN_MODULE_PATH) \
