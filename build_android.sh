@@ -343,7 +343,7 @@ LOCAL_SRC_FILES := src/comet_main_gl.cpp \
                    SDL2/src/video/android/SDL_androidtouch.c \
                    SDL2_mixer/src/mixer.c
 
-LOCAL_CFLAGS := -DExternalSound -DANDROID -std=c++11 -DFT2_BUILD_LIBRARY
+LOCAL_CFLAGS := -DExternalSound -DANDROID -DFT2_BUILD_LIBRARY
 LOCAL_CPPFLAGS := -std=c++11 -DFT2_BUILD_LIBRARY
 LOCAL_LDLIBS := -llog -lGLESv2 -lz -landroid
 
@@ -416,14 +416,11 @@ if [ ! -d "android/app/src/main/jni/freetype2" ] || [ ! -f "android/app/src/main
         rm -rf freetype2
     fi
     
-    echo "  Cloning FreeType2 from GitHub..."
-    git clone --depth 1 https://github.com/freetype/freetype.git freetype2
+    wget -q https://github.com/freetype/freetype/releases/download/VER-2-13-2/freetype-2.13.2.tar.gz
+    tar xzf freetype-2.13.2.tar.gz
+    mv freetype-2.13.2 freetype2
     
-    if [ ! -f freetype2/include/ft2build.h ]; then
-        echo -e "${RED}ERROR: FreeType2 include files not found after clone${NC}"
-        cd ../../../../..
-        exit 1
-    fi
+    rm freetype-2.13.2.tar.gz
     
     cd ../../../../..
     echo -e "${GREEN}✓ FreeType2 set up${NC}"
@@ -499,21 +496,6 @@ inline void glOrtho(double left, double right, double bottom, double top, double
 #endif /* __GL_H__ */
 EOF
 echo -e "${GREEN}✓ OpenGL stubs created${NC}"
-
-# Create Application.mk for NDK configuration  
-echo -e "${YELLOW}Creating Application.mk...${NC}"
-cat > android/app/src/main/jni/Application.mk << 'EOF'
-APP_ABI := arm64-v8a armeabi-v7a
-APP_PLATFORM := android-21
-APP_STL := c++_shared
-NDK_TOOLCHAIN_VERSION := clang
-
-# Disable fatal compiler warnings - treat all warnings as warnings, not errors
-APP_CFLAGS := -Wno-error
-APP_CXXFLAGS := -Wno-error -Wno-format-security
-
-EOF
-echo -e "${GREEN}✓ Application.mk created${NC}"
 
 # Step 6: Run Docker build
 echo -e "${YELLOW}Step 6: Building APK with Docker...${NC}"
