@@ -58,7 +58,7 @@ mkdir -p android/app/src/jni/src
 mkdir -p android/app/src/main/assets
 mkdir -p build/android
 
-cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp android/app/src/jni/src/ 2>/dev/null || true
+cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp jni_wad_loading.cpp android/app/src/jni/src/ 2>/dev/null || true
 cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/src/ 2>/dev/null || true
 cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
 
@@ -67,22 +67,31 @@ if [ -d "android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/a
     cp -f android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app/*.java android/app/src/main/java/org/libsdl/app/
     echo -e "${GREEN}✓ SDL2 Java classes copied${NC}"
 else
-    # Fallback: Create a minimal SDLActivity if not found
-    echo -e "${YELLOW}Creating SDLActivity...${NC}"
+    # Fallback: Create SDLActivity with JNI support
+    echo -e "${YELLOW}Creating SDLActivity with JNI support...${NC}"
     cat > android/app/src/main/java/org/libsdl/app/SDLActivity.java << 'JAVAEOF'
 package org.libsdl.app;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.SurfaceView;
+import android.content.res.AssetManager;
+import android.util.Log;
 
+/**
+ * SDL Activity for CometBuster with integrated JNI WAD loading
+ * Handles both direct asset loading and fallback extraction
+ */
 public class SDLActivity extends Activity {
+    
+    private static final String TAG = "CometBuster";
+    
     static {
-        // Load shared libraries
+        // Load shared libraries in order
         try {
             System.loadLibrary("c++_shared");
         } catch (UnsatisfiedLinkError e) {
-            android.util.Log.d("SDL", "c++_shared not found");
+            Log.d(TAG, "c++_shared not found (non-critical)");
         }
     }
 
@@ -90,42 +99,107 @@ public class SDLActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Extract WAD file from assets to app files directory
+        Log.i(TAG, "SDLActivity.onCreate() starting initialization");
+        
+        // Step 1: Initialize JNI asset manager for direct APK asset access
+        Log.i(TAG, "Initializing JNI asset manager...");
+        initAssetManager(getAssets());
+        
+        // Step 2: Set app files directory for JNI code to use
+        Log.i(TAG, "Setting app files directory...");
+        setAppFilesDir(getFilesDir().getAbsolutePath());
+        
+        // Step 3: Extract WAD file as fallback (in case JNI loading fails)
+        Log.i(TAG, "Extracting WAD file as fallback...");
         extractWad();
         
-        // Load native libraries
+        // Step 4: Load native libraries
+        Log.i(TAG, "Loading native libraries...");
         System.loadLibrary("SDL2");
         System.loadLibrary("SDL2_mixer");
         System.loadLibrary("main");
         
-        // Create and set surface view
+        Log.i(TAG, "All native libraries loaded successfully");
+        
+        // Step 5: Create and set surface view
+        Log.i(TAG, "Creating OpenGL surface view...");
         SurfaceView surfaceView = new SurfaceView(this);
         setContentView(surfaceView);
+        
+        Log.i(TAG, "SDLActivity initialization complete");
     }
 
+    /**
+     * JNI: Initialize the asset manager for native code
+     * This is called automatically during onCreate()
+     * Allows native code to access files directly from the APK
+     */
+    private native void initAssetManager(AssetManager assetManager);
+
+    /**
+     * JNI: Set the app files directory path
+     * Called automatically during onCreate()
+     * Path: /data/data/org.cometbuster.game/files/
+     */
+    private native void setAppFilesDir(String path);
+
+    /**
+     * Extract WAD file from APK assets to app files directory
+     * 
+     * This serves as a fallback if:
+     * - JNI asset loading fails
+     * - Native code wants direct file access
+     * 
+     * Only extracts once - subsequent calls check if file exists
+     */
     private void extractWad() {
         try {
-            java.io.File wadFile = new java.io.File(getFilesDir(), "cometbuster.wad");
-            // Only extract if it doesn't exist
+            String wadFileName = "cometbuster.wad";
+            java.io.File wadFile = new java.io.File(getFilesDir(), wadFileName);
+            
+            // Check if already extracted
             if (wadFile.exists()) {
+                Log.i(TAG, "WAD file already extracted: " + wadFile.getAbsolutePath() + 
+                      " (" + wadFile.length() + " bytes)");
                 return;
             }
             
-            java.io.InputStream in = getAssets().open("cometbuster.wad");
+            Log.i(TAG, "Extracting WAD file: " + wadFileName);
+            
+            // Open asset from APK
+            java.io.InputStream in = getAssets().open(wadFileName);
             java.io.FileOutputStream out = new java.io.FileOutputStream(wadFile);
             
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
+            // Copy file in 64KB chunks
+            byte[] buffer = new byte[65536];
+            int bytesRead;
+            long totalBytes = 0;
+            
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+                totalBytes += bytesRead;
             }
+            
             in.close();
             out.close();
             
-            android.util.Log.i("SDLActivity", "Extracted cometbuster.wad to " + wadFile.getAbsolutePath());
+            Log.i(TAG, "WAD extraction complete: " + wadFile.getAbsolutePath() + 
+                  " (" + totalBytes + " bytes)");
+            
+        } catch (java.io.FileNotFoundException e) {
+            Log.w(TAG, "WAD file not found in assets (non-critical): " + e.getMessage());
         } catch (Exception e) {
-            android.util.Log.e("SDLActivity", "Failed to extract WAD: " + e.getMessage());
+            Log.e(TAG, "Failed to extract WAD: " + e.getMessage());
+            Log.e(TAG, "Stack trace: " + Log.getStackTraceString(e));
         }
+    }
+
+    /**
+     * Get app files directory for potential Java-side use
+     * Path: /data/data/org.cometbuster.game/files/
+     */
+    public String getAppFilesDir() {
+        return getFilesDir().getAbsolutePath();
     }
 }
 JAVAEOF
@@ -456,6 +530,7 @@ LOCAL_SRC_FILES := \
     src/cometbuster_bossexplosion.cpp \
     src/comet_highscores.cpp \
     src/comet_preferences.cpp \
+    src/jni_wad_loading.cpp \
     src/miniz.c \
     src/miniz_tdef.c \
     src/miniz_tinfl.c \

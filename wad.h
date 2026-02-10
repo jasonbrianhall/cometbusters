@@ -15,9 +15,15 @@ typedef struct {
     void *zip_archive;   // mz_zip_archive pointer (opaque)
 } WadArchive;
 
-// WAD file operations
+// WAD file operations - FROM FILE
 bool wad_open(WadArchive *wad, const char *filename);
 void wad_close(WadArchive *wad);
+
+// ============================================================================
+// NEW: WAD file operations - FROM MEMORY BUFFER
+// Call this instead of wad_open() when you have WAD data in memory
+// ============================================================================
+bool wad_open_from_memory(WadArchive *wad, const unsigned char *wad_data, size_t wad_size);
 
 // Extract file from WAD
 bool wad_extract_file(WadArchive *wad, const char *internal_path, WadFile *out_file);

@@ -40,6 +40,51 @@ bool wad_open(WadArchive *wad, const char *filename) {
     return true;
 }
 
+// ============================================================================
+// NEW FUNCTION: Open WAD from memory buffer (for Android JNI loading)
+// ============================================================================
+// Call this when you have WAD data loaded into memory (e.g., from APK assets)
+// Parameters:
+//   wad       - pointer to WadArchive structure to initialize
+//   wad_data  - pointer to WAD file data in memory
+//   wad_size  - size of WAD data in bytes
+// Returns: true if successful, false otherwise
+bool wad_open_from_memory(WadArchive *wad, const unsigned char *wad_data, size_t wad_size) {
+    if (!wad || !wad_data || wad_size == 0) {
+        fprintf(stderr, "Error: Invalid WAD memory parameters\n");
+        return false;
+    }
+    
+    // Set filename to indicate memory-based loading
+    snprintf(wad->filename, sizeof(wad->filename), "<memory buffer: %zu bytes>", wad_size);
+    
+    // Allocate ZIP archive structure
+    mz_zip_archive *zip = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
+    if (!zip) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        return false;
+    }
+    
+    // Initialize archive
+    memset(zip, 0, sizeof(mz_zip_archive));
+    
+    // Open the ZIP file from memory buffer
+    // mz_zip_reader_init_mem() reads the archive from memory, not from disk
+    if (!mz_zip_reader_init_mem(zip, wad_data, wad_size, 0)) {
+        fprintf(stderr, "Error: Failed to open WAD from memory: %s\n", 
+                mz_zip_get_error_string(mz_zip_get_last_error(zip)));
+        free(zip);
+        return false;
+    }
+    
+    wad->zip_archive = (void *)zip;
+    
+    fprintf(stdout, "✓ WAD file opened from memory: %zu bytes\n", wad_size);
+    fprintf(stdout, "  Files in archive: %u\n", mz_zip_reader_get_num_files(zip));
+    
+    return true;
+}
+
 // Close WAD file
 void wad_close(WadArchive *wad) {
     if (!wad || !wad->zip_archive) return;
