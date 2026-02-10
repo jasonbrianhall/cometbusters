@@ -203,6 +203,13 @@ if [ ! -d "android/app/src/jni/SDL2" ] || [ ! -f "android/app/src/jni/SDL2/src/S
     mv SDL2-2.28.5 SDL2
     rm SDL2-2.28.5.tar.gz
     
+    echo -e "${YELLOW}Downloading SDL_mixer...${NC}"
+
+    wget -q https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.6.3/SDL2_mixer-2.6.3.tar.gz
+    tar xzf SDL2_mixer-2.6.3.tar.gz
+    mv SDL2_mixer-2.6.3 SDL2_mixer
+    rm SDL2_mixer-2.6.3.tar.gz
+
     cd ../../../../..
     echo -e "${GREEN}✓ SDL2 downloaded${NC}"
 else
@@ -231,6 +238,9 @@ PROJECT_PATH := $(LOCAL_PATH)
 
 # --- SDL2 library ---
 include $(PROJECT_PATH)/SDL2/Android.mk
+
+# --- SDL_mixer library ---
+include $(PROJECT_PATH)/SDL2_mixer/Android.mk
 
 # --- Game code ---
 include $(CLEAR_VARS)
@@ -265,12 +275,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
     $(PROJECT_PATH)/src \
-    $(PROJECT_PATH)/SDL2/include
+    $(PROJECT_PATH)/SDL2/include \
+    $(PROJECT_PATH)/SDL2_mixer/include
+
 
 LOCAL_CFLAGS := -DExternalSound -DANDROID
 LOCAL_CPPFLAGS := -std=c++11
 
-LOCAL_SHARED_LIBRARIES := SDL2
+LOCAL_SHARED_LIBRARIES := SDL2 SDL2_mixer
 LOCAL_LDLIBS := -llog -lGLESv2 -lz -landroid
 
 include $(BUILD_SHARED_LIBRARY)
