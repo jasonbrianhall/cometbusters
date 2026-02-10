@@ -170,7 +170,7 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntr
             default: {
                 if (hs_entry->cursor_pos < 31) {
                     SDL_Keycode key = event->key.keysym.sym;
-                    SDL_Keymod mod  = event->key.keysym.mod;
+                    SDL_Keymod mod  = (SDL_Keymod) event->key.keysym.mod;
 
                     bool shift = (mod & KMOD_SHIFT) != 0;
 
@@ -1887,7 +1887,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         // Score display - Dark brown
         gl_set_color(0.3f, 0.25f, 0.15f);
         char score_text[128];
-        sprintf(score_text, fmt_score_wave[gui->visualizer.comet_buster.current_language],  gui->visualizer.comet_buster.score, gui->visualizer.comet_buster.current_wave);
+        snprintf(score_text, sizeof(score_text), fmt_score_wave[gui->visualizer.comet_buster.current_language],  gui->visualizer.comet_buster.score, gui->visualizer.comet_buster.current_wave);
         gl_draw_text_simple(score_text, 620, 395, 14);
         
         // Name entry label - Dark brown
@@ -2054,7 +2054,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 4 ? 1.0f : 0.7f,
                      cheat_menu->selection == 4 ? 1.0f : 0.7f);
         char difficulty_text[128];
-        sprintf(difficulty_text, fmt_cheat_difficulty[gui->visualizer.comet_buster.current_language][cheat_menu->cheat_difficulty]);
+        snprintf(difficulty_text, sizeof(difficulty_text), "%s", fmt_cheat_difficulty[gui->visualizer.comet_buster.current_language][cheat_menu->cheat_difficulty]);
 
         gl_draw_text_simple(difficulty_text, 550, option_y, 16);
         
