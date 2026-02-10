@@ -2157,38 +2157,93 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     bool wad_loaded = false;
 
 #ifdef ANDROID
-    // Android: Try multiple locations
-    // The Java SDLActivity extracts it to /data/data/org.cometbuster.game/files/cometbuster.wad
-    const char* android_wad_paths[] = {
-        "/data/data/org.cometbuster.game/files/cometbuster.wad",  // Primary location
-        "/sdcard/cometbuster.wad",                                 // SD card fallback
-        "/storage/emulated/0/cometbuster.wad",                    // Emulator fallback
-        "./cometbuster.wad",                                       // Current dir
-        "cometbuster.wad",                                         // Relative path
-        NULL
-    };
-
-    printf("[AUDIO] Android: Searching for cometbuster.wad...\n");
-    for (int i = 0; android_wad_paths[i] != NULL; i++) {
-        FILE* test_file = fopen(android_wad_paths[i], "rb");
-        if (test_file != NULL) {
-            fclose(test_file);
-            wadPath = android_wad_paths[i];
-            printf("[AUDIO] Found WAD at: %s\n", wadPath.c_str());
-            wad_loaded = audio_load_wad(&gui.audio, wadPath.c_str());
-            if (wad_loaded) {
-                printf("[AUDIO] WAD loaded successfully from: %s\n", wadPath.c_str());
-                break;
+    // Android: Use JNI to load WAD directly from APK assets
+    // This is handled by jni_wad_loading.cpp which is initialized in SDLActivity.java
+    
+    printf("[AUDIO] Android: Loading WAD from APK assets via JNI...\n");
+    
+    // Declare the external JNI functions from jni_wad_loading.cpp
+    extern unsigned char* load_wad_android(const char *wad_filename, size_t *out_size);
+    extern const char* get_app_files_dir_android(void);
+    
+    size_t wad_size = 0;
+    unsigned char* wad_data = load_wad_android("cometbuster.wad", &wad_size);
+    
+    if (wad_data && wad_size > 0) {
+        printf("[AUDIO] [OK] WAD loaded into memory: %zu bytes\n", wad_size);
+        
+        // Try to save the WAD data to the app files directory for caching/backup
+        const char* app_files_dir = get_app_files_dir_android();
+        if (app_files_dir) {
+            char full_wad_path[512];
+            snprintf(full_wad_path, sizeof(full_wad_path), "%s/cometbuster.wad", app_files_dir);
+            
+            // Write the WAD data to the extracted location
+            FILE* wad_file = fopen(full_wad_path, "wb");
+            if (wad_file) {
+                size_t bytes_written = fwrite(wad_data, 1, wad_size, wad_file);
+                fclose(wad_file);
+                
+                if (bytes_written == wad_size) {
+                    printf("[AUDIO] [OK] WAD cached to: %s (%zu bytes)\n", full_wad_path, wad_size);
+                    wad_loaded = audio_load_wad(&gui.audio, full_wad_path);
+                    
+                    if (wad_loaded) {
+                        printf("[AUDIO] [OK] WAD loaded successfully from cached location\n");
+                    } else {
+                        printf("[WARNING] Failed to load WAD from cached file\n");
+                    }
+                } else {
+                    printf("[WARNING] Incomplete write: %zu of %zu bytes\n", bytes_written, wad_size);
+                }
+            } else {
+                printf("[WARNING] Could not open app files directory for writing\n");
             }
-        } else {
-            printf("[AUDIO] WAD not found at: %s\n", android_wad_paths[i]);
         }
-    }
-
-    if (!wad_loaded) {
-        printf("[WARNING] Could not load WAD from any Android location\n");
-        printf("[HINT] Make sure cometbuster.wad exists in the project\n");
-        printf("[HINT] And that the APK includes it in assets/\n");
+        
+        // Free the loaded WAD data
+        free(wad_data);
+        
+    } else {
+        printf("[WARNING] JNI WAD loading failed, attempting fallback methods...\n");
+        
+        // Fallback 1: Try extracted file location from previous run
+        const char* app_files_dir = get_app_files_dir_android();
+        if (app_files_dir) {
+            char full_path[512];
+            snprintf(full_path, sizeof(full_path), "%s/cometbuster.wad", app_files_dir);
+            
+            FILE* test_file = fopen(full_path, "rb");
+            if (test_file) {
+                fclose(test_file);
+                printf("[AUDIO] Found WAD at extracted location: %s\n", full_path);
+                wad_loaded = audio_load_wad(&gui.audio, full_path);
+                
+                if (wad_loaded) {
+                    printf("[AUDIO] [OK] WAD loaded successfully from extracted location\n");
+                }
+            }
+        }
+        
+        // Fallback 2: Try current directory
+        if (!wad_loaded) {
+            FILE* test_file = fopen("cometbuster.wad", "rb");
+            if (test_file) {
+                fclose(test_file);
+                printf("[AUDIO] Found WAD in current directory\n");
+                wad_loaded = audio_load_wad(&gui.audio, "cometbuster.wad");
+                
+                if (wad_loaded) {
+                    printf("[AUDIO] [OK] WAD loaded successfully\n");
+                }
+            }
+        }
+        
+        if (!wad_loaded) {
+            printf("[ERROR] Could not load WAD from any location\n");
+            printf("[HINT] Make sure cometbuster.wad exists in APK assets/\n");
+            printf("[HINT] Or place it in the app files directory\n");
+        }
     }
 
 #else
