@@ -44,9 +44,9 @@ mkdir -p android/app/src/jni/src
 mkdir -p android/app/src/main/assets
 mkdir -p build/android
 
-cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp android/app/src/jni/src/ 2>/dev/null || true
-cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/src/ 2>/dev/null || true
-cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
+cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp android/app/src/jni/SDL2/src/ 2>/dev/null || true
+cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/SDL2/src/ 2>/dev/null || true
+cp -f *.h android/app/src/jni/SDL2/src/ 2>/dev/null || true
 
 if [ -f cometbuster.wad ]; then
     cp -f cometbuster.wad android/app/src/main/assets/
@@ -299,27 +299,27 @@ LOCAL_MODULE := main
 
 # Use the saved path for game source files
 LOCAL_SRC_FILES := \
-    ../src/comet_main_gl.cpp \
-    ../src/wad.cpp \
-    ../src/audio_wad.cpp \
-    ../src/cometbuster_spawn.cpp \
-    ../src/cometbuster_init.cpp \
-    ../src/cometbuster_physics.cpp \
-    ../src/cometbuster_collision.cpp \
-    ../src/cometbuster_boss.cpp \
-    ../src/cometbuster_starboss.cpp \
-    ../src/cometbuster_render_gl.cpp \
-    ../src/cometbuster_util.cpp \
-    ../src/cometbuster_splashscreen.cpp \
-    ../src/joystick.cpp \
-    ../src/cometbuster_bombs.cpp \
-    ../src/cometbuster_bossexplosion.cpp \
-    ../src/comet_highscores.cpp \
-    ../src/comet_preferences.cpp \
-    ../src/miniz.c \
-    ../src/miniz_tdef.c \
-    ../src/miniz_tinfl.c \
-    ../src/miniz_zip.c
+    src/comet_main_gl.cpp \
+    src/wad.cpp \
+    src/audio_wad.cpp \
+    src/cometbuster_spawn.cpp \
+    src/cometbuster_init.cpp \
+    src/cometbuster_physics.cpp \
+    src/cometbuster_collision.cpp \
+    src/cometbuster_boss.cpp \
+    src/cometbuster_starboss.cpp \
+    src/cometbuster_render_gl.cpp \
+    src/cometbuster_util.cpp \
+    src/cometbuster_splashscreen.cpp \
+    src/joystick.cpp \
+    src/cometbuster_bombs.cpp \
+    src/cometbuster_bossexplosion.cpp \
+    src/comet_highscores.cpp \
+    src/comet_preferences.cpp \
+    src/miniz.c \
+    src/miniz_tdef.c \
+    src/miniz_tinfl.c \
+    src/miniz_zip.c
 
 LOCAL_C_INCLUDES := \
     $(MAIN_MODULE_PATH) \
