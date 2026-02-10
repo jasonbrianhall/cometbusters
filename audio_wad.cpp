@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
 
 // Helper function to load sound from WAD
 // Supports WAV, MP3, OGG, FLAC, etc. (depending on SDL_mixer compilation)
