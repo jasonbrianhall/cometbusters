@@ -34,7 +34,21 @@ else
     echo "Docker image already exists"
 fi
 
-echo -e "${YELLOW}Step 2: Setting up Android project structure...${NC}"
+echo -e "${YELLOW}Step 2: Creating WAD file...${NC}"
+
+if [ -f "createwad.py" ]; then
+    python3 createwad.py
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ cometbuster.wad created${NC}"
+    else
+        echo -e "${YELLOW}Warning: WAD creation failed, proceeding anyway${NC}"
+    fi
+else
+    echo -e "${YELLOW}Note: createwad.py not found, skipping WAD generation${NC}"
+fi
+
+echo ""
+echo -e "${YELLOW}Step 3: Setting up Android project structure...${NC}"
 
 mkdir -p android/app/src/main/java/org/cometbuster/game
 mkdir -p android/app/src/main/res/values
@@ -50,11 +64,14 @@ cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
 
 if [ -f cometbuster.wad ]; then
     cp -f cometbuster.wad android/app/src/main/assets/
+    echo -e "${GREEN}✓ cometbuster.wad copied to assets${NC}"
+else
+    echo -e "${YELLOW}⚠ Warning: cometbuster.wad not found - game won't have sound/data${NC}"
 fi
 
 echo -e "${GREEN}✓ Source files copied${NC}"
 
-echo -e "${YELLOW}Step 3: Creating Android configuration files...${NC}"
+echo -e "${YELLOW}Step 4: Creating Android configuration files...${NC}"
 
 mkdir -p android/gradle/wrapper
 cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
@@ -189,7 +206,7 @@ EOF
 
 echo -e "${GREEN}✓ Configuration files created${NC}"
 
-echo -e "${YELLOW}Step 4: Downloading SDL2...${NC}"
+echo -e "${YELLOW}Step 5: Downloading SDL2...${NC}"
 
 if [ ! -d "android/app/src/jni/SDL2" ] || [ ! -f "android/app/src/jni/SDL2/src/SDL.c" ]; then
     cd android/app/src/jni
@@ -223,7 +240,7 @@ else
     echo "SDL2 already present"
 fi
 
-echo -e "${YELLOW}Step 5: Downloading prebuilt FreeType libraries...${NC}"
+echo -e "${YELLOW}Step 6: Downloading prebuilt FreeType libraries...${NC}"
 
 mkdir -p android/app/src/jni/freetype/lib/arm64-v8a
 mkdir -p android/app/src/jni/freetype/lib/armeabi-v7a
@@ -304,13 +321,13 @@ MKEOF
     echo -e "${GREEN}✓ Prebuilt FreeType libraries configured${NC}"
 fi
 
-echo -e "${YELLOW}Step 6: Creating NDK build files...${NC}"
+echo -e "${YELLOW}Step 7: Creating NDK build files...${NC}"
 
 mkdir -p android/app/src/jni
 
 cat > android/app/src/jni/Application.mk << 'EOF'
 APP_PLATFORM := android-21
-APP_ABI := armeabi-v7a arm64-v8a
+APP_ABI := armeabi-v7a arm64-v8a x86 x86_64
 APP_STL := c++_shared
 APP_OPTIM := release
 NDK_TOOLCHAIN_VERSION := clang
@@ -385,7 +402,7 @@ EOF
 
 echo -e "${GREEN}✓ NDK build files created${NC}"
 
-echo -e "${YELLOW}Step 7: Creating OpenGL stubs...${NC}"
+echo -e "${YELLOW}Step 8: Creating OpenGL stubs...${NC}"
 
 mkdir -p android/app/src/jni/GL
 
@@ -427,11 +444,11 @@ EOF
 
 echo -e "${GREEN}✓ OpenGL stubs created${NC}"
 
-echo -e "${YELLOW}Step 8: Cleaning build cache...${NC}"
+echo -e "${YELLOW}Step 9: Cleaning build cache...${NC}"
 
 rm -rf android/app/build 2>/dev/null || true
 
-echo -e "${YELLOW}Step 9: Building APK with Docker...${NC}"
+echo -e "${YELLOW}Step 10: Building APK with Docker...${NC}"
 
 mkdir -p ~/.m2
 mkdir -p ~/.android/sdk-cache
@@ -451,11 +468,18 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}Step 10: Finalizing APK...${NC}"
+echo -e "${YELLOW}Step 11: Finalizing APK...${NC}"
 
 if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
     cp -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" "build/android/cometbuster-unsigned.apk"
-    echo -e "${GREEN}✓ APK created: build/android/cometbuster-unsigned.apk${NC}"
+    
+    # Verify WAD file is in APK
+    if unzip -t "build/android/cometbuster-unsigned.apk" | grep -q "assets/cometbuster.wad"; then
+        echo -e "${GREEN}✓ APK created with cometbuster.wad: build/android/cometbuster-unsigned.apk${NC}"
+    else
+        echo -e "${YELLOW}⚠ Warning: cometbuster.wad not found in APK${NC}"
+        echo -e "${YELLOW}   The game will not have audio/resources${NC}"
+    fi
 else
     echo -e "${RED}APK not found after build${NC}"
     exit 1
@@ -464,3 +488,33 @@ fi
 echo ""
 echo -e "${GREEN}=== Build Complete ===${NC}"
 echo "Your APK is ready at: build/android/cometbuster-unsigned.apk"
+echo ""
+echo -e "${YELLOW}Important: WAD File Access on Android${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "The cometbuster.wad file is included in the APK assets/"
+echo "However, Android apps cannot directly access APK assets as files."
+echo ""
+echo "Your native code must either:"
+echo "  1. Extract the WAD file to app cache/files on startup:"
+echo "     - Use Java/Kotlin to extract from assets"
+echo "     - Pass the path to native code via JNI"
+echo "  2. Use Android's AssetManager to read WAD from APK"
+echo ""
+echo "Example extraction in C++:"
+echo "  - Check getFilesDir() or getCacheDir() from Java"
+echo "  - Extract WAD there on first run"
+echo "  - Load from extracted path"
+echo ""
+echo -e "${YELLOW}Note about Signing${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "This APK is unsigned. To install on Waydroid or devices:"
+echo "  jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \\"
+echo "    -keystore ~/.android/debug.keystore \\"
+echo "    -storepass android -keypass android \\"
+echo "    build/android/cometbuster-unsigned.apk androiddebugkey"
+echo ""
+echo -e "${YELLOW}Testing on Waydroid (x86_64)${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  1. Ensure Waydroid is running: waydroid show-full-ui"
+echo "  2. Install the APK: waydroid app install build/android/cometbuster-unsigned.apk"
+echo "  3. Or use adb: adb install -r build/android/cometbuster-unsigned.apk"
