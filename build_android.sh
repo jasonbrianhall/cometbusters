@@ -235,8 +235,8 @@ mkdir -p android/app/src/jni/freetype/include
 echo "Downloading prebuilt FreeType for arm64-v8a..."
 wget -q -O android/app/src/jni/freetype/lib/arm64-v8a/libfreetype.a \
     "https://github.com/LibreSprite/freetype-android-build/releases/download/v2.13.2-android/libfreetype-arm64-v8a.a" 2>/dev/null || {
-    echo -e "${YELLOW}Note: Could not download prebuilt library, creating minimal build config...${NC}"
-    # Create a minimal static library config as fallback
+    echo -e "${YELLOW}Prebuilt not available, using minimal FreeType build...${NC}"
+    # Create a minimal static library config as fallback with ALL necessary modules
     mkdir -p android/app/src/jni/freetype
     cat > android/app/src/jni/freetype/Android.mk << 'MKEOF'
 LOCAL_PATH := $(call my-dir)
@@ -253,14 +253,27 @@ LOCAL_SRC_FILES := \
     src/base/ftglyph.c \
     src/base/ftinit.c \
     src/base/ftsystem.c \
+    src/base/ftmm.c \
     src/cff/cff.c \
+    src/cid/type1cid.c \
     src/psaux/psaux.c \
     src/pshinter/pshinter.c \
     src/psnames/psnames.c \
     src/raster/raster.c \
     src/sfnt/sfnt.c \
     src/smooth/smooth.c \
-    src/truetype/truetype.c
+    src/truetype/truetype.c \
+    src/type1/type1.c \
+    src/type42/type42.c \
+    src/bdf/bdf.c \
+    src/pcf/pcf.c \
+    src/pfr/pfr.c \
+    src/winfonts/winfnt.c \
+    src/autofit/autofit.c \
+    src/gzip/ftgzip.c \
+    src/lzw/ftlzw.c \
+    src/sdf/sdf.c \
+    src/svg/svg.c
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/include
 
@@ -329,6 +342,7 @@ LOCAL_MODULE := main
 LOCAL_PATH := $(PROJECT_PATH)
 
 LOCAL_SRC_FILES := \
+    GL/glew.cpp \
     src/comet_main_gl.cpp \
     src/wad.cpp \
     src/audio_wad.cpp \
@@ -353,13 +367,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
     $(PROJECT_PATH)/src \
+    $(PROJECT_PATH)/GL \
     $(PROJECT_PATH)/SDL2/include \
     $(PROJECT_PATH)/SDL2_mixer/include \
     $(PROJECT_PATH)/freetype/include \
     $(PROJECT_PATH)/GL
 
 LOCAL_CFLAGS := -DExternalSound -DANDROID
-LOCAL_CPPFLAGS := -std=c++11
+LOCAL_CPPFLAGS := -std=c++11 -fPIC
 
 LOCAL_STATIC_LIBRARIES := freetype
 LOCAL_SHARED_LIBRARIES := SDL2 SDL2_mixer
@@ -374,13 +389,18 @@ echo -e "${YELLOW}Step 7: Creating OpenGL stubs...${NC}"
 
 mkdir -p android/app/src/jni/GL
 
+cat > android/app/src/jni/GL/glew.cpp << 'EOF'
+// GLEW stub for Android
+int glewExperimental = 0;
+EOF
+
 cat > android/app/src/jni/GL/glew.h << 'EOF'
 #ifndef __GLEW_H__
 #define __GLEW_H__
 #include <GLES2/gl2.h>
 #define GLEW_OK 0
 inline GLenum glewInit(void) { return GLEW_OK; }
-int glewExperimental = 0;
+extern int glewExperimental;
 #define GLEW_ARB_vertex_array_object 1
 #define GLEW_ARB_framebuffer_object 1
 #define GLEW_ARB_texture_float 1
@@ -407,7 +427,11 @@ EOF
 
 echo -e "${GREEN}✓ OpenGL stubs created${NC}"
 
-echo -e "${YELLOW}Step 8: Building APK with Docker...${NC}"
+echo -e "${YELLOW}Step 8: Cleaning build cache...${NC}"
+
+rm -rf android/app/build 2>/dev/null || true
+
+echo -e "${YELLOW}Step 9: Building APK with Docker...${NC}"
 
 mkdir -p ~/.m2
 mkdir -p ~/.android/sdk-cache
@@ -427,7 +451,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-echo -e "${YELLOW}Step 9: Finalizing APK...${NC}"
+echo -e "${YELLOW}Step 10: Finalizing APK...${NC}"
 
 if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
     cp -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" "build/android/cometbuster-unsigned.apk"
