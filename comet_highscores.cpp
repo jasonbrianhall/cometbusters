@@ -15,6 +15,12 @@
     #include <signal.h>
 #endif
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 
 /**
  * Load high scores from disk (text format)
@@ -31,30 +37,30 @@ void high_scores_load(CometBusterGame *game) {
     }
     
     const char *path = high_scores_get_path();
-    fprintf(stdout, "[HIGH SCORES] Loading from: %s\n", path);
+    SDL_Log("[HIGH SCORES] Loading from: %s\n", path);
     
     FILE *fp = fopen(path, "r");
     
     if (!fp) {
-        fprintf(stdout, "[HIGH SCORES] No existing high scores file\n");
+        SDL_Log("[HIGH SCORES] No existing high scores file\n");
         return;
     }
     
-    fprintf(stdout, "[HIGH SCORES] File opened successfully\n");
+    SDL_Log("[HIGH SCORES] File opened successfully\n");
     
     // DEBUG: Read entire file first to see what's in it
-    fprintf(stdout, "[HIGH SCORES DEBUG] File contents:\n");
+    SDL_Log("[HIGH SCORES DEBUG] File contents:\n");
     rewind(fp);
     char debug_line[256];
     int line_num = 0;
     while (fgets(debug_line, sizeof(debug_line), fp) != NULL) {
         line_num++;
-        fprintf(stdout, "  Line %d: %s", line_num, debug_line);
+        SDL_Log("  Line %d: %s", line_num, debug_line);
     }
     
     // Now parse the file properly
     rewind(fp);
-    printf("[HIGH SCORES DEBUG] Now parsing file:\n");
+    SDL_Log("[HIGH SCORES DEBUG] Now parsing file:\n");
     
     char line[256];
     while (game->high_score_count < MAX_HIGH_SCORES && fgets(line, sizeof(line), fp) != NULL) {
@@ -66,11 +72,11 @@ void high_scores_load(CometBusterGame *game) {
         // Format: 38565 5 1765397762 John Doe
         int items_read = sscanf(line, "%d %d %ld", &score, &wave, &timestamp);
         
-        fprintf(stdout, "[HIGH SCORES DEBUG] Line %d: Read %d items - ", 
+        SDL_Log("[HIGH SCORES DEBUG] Line %d: Read %d items - ", 
                 game->high_score_count + 1, items_read);
         
         if (items_read != 3) {
-            fprintf(stdout, "PARSE FAILED (expected at least 3 items)\n");
+            SDL_Log("PARSE FAILED (expected at least 3 items)\n");
             continue;
         }
         
@@ -104,7 +110,7 @@ void high_scores_load(CometBusterGame *game) {
         strncpy(name, name_start, sizeof(name) - 1);
         name[sizeof(name) - 1] = '\0';
         
-        fprintf(stdout, "score=%d wave=%d ts=%ld name=%s\n", 
+        SDL_Log("score=%d wave=%d ts=%ld name=%s\n", 
                 score, wave, timestamp, name);
         
         HighScore *hs = &game->high_scores[game->high_score_count];
@@ -114,14 +120,14 @@ void high_scores_load(CometBusterGame *game) {
         strncpy(hs->player_name, name, sizeof(hs->player_name) - 1);
         hs->player_name[sizeof(hs->player_name) - 1] = '\0';
         
-        fprintf(stdout, "[HIGH SCORES DEBUG] Stored score: %s = %d (W%d)\n", 
+        SDL_Log("[HIGH SCORES DEBUG] Stored score: %s = %d (W%d)\n", 
                 hs->player_name, hs->score, hs->wave);
         
         game->high_score_count++;
     }
     
     fclose(fp);
-    fprintf(stdout, "[HIGH SCORES] Loaded %d high scores\n", game->high_score_count);
+    SDL_Log("[HIGH SCORES] Loaded %d high scores\n", game->high_score_count);
 }
 
 /**
@@ -131,11 +137,11 @@ void high_scores_save(CometBusterGame *game) {
     if (!game) return;
 
     const char *path = high_scores_get_path();
-    printf("[HIGH SCORES] Saving to: %s\n", path);
+    SDL_Log("[HIGH SCORES] Saving to: %s\n", path);
 
     FILE *fp = fopen(path, "w");
     if (!fp) {
-        fprintf(stderr, "[HIGH SCORES] Failed to open file for writing\n");
+        SDL_Log("[HIGH SCORES] Failed to open file for writing\n");
         return;
     }
 
@@ -147,7 +153,7 @@ void high_scores_save(CometBusterGame *game) {
                 hs->wave,
                 (long)hs->timestamp,
                 hs->player_name);
-        fprintf(stdout, "[HIGH SCORES DEBUG] Wrote: %s = %d (W%d, ts=%ld)\n",
+        SDL_Log("[HIGH SCORES DEBUG] Wrote: %s = %d (W%d, ts=%ld)\n",
                 hs->player_name,
                 hs->score,
                 hs->wave,
@@ -155,7 +161,7 @@ void high_scores_save(CometBusterGame *game) {
     }
     fflush(fp);   // force write to disk
     fclose(fp);
-    printf("[HIGH SCORES] Saved %d high scores\n", game->high_score_count);
+    SDL_Log("[HIGH SCORES] Saved %d high scores\n", game->high_score_count);
 }
 
 /**
@@ -166,19 +172,19 @@ bool comet_buster_is_high_score(CometBusterGame *game, int score) {
     
     // If we haven't filled the high score list yet, any score is a high score
     if (game->high_score_count < MAX_HIGH_SCORES) {
-        printf("List not full yet (%d/%d), score %d qualifies\n", 
+        SDL_Log("List not full yet (%d/%d), score %d qualifies\n", 
                game->high_score_count, MAX_HIGH_SCORES, score);
         return true;
     }
     
     // List is full - check if score beats the lowest (last) score
     if (score > game->high_scores[MAX_HIGH_SCORES - 1].score) {
-        printf("Is a High Score: %d (beats lowest of %d)\n", 
+        SDL_Log("Is a High Score: %d (beats lowest of %d)\n", 
                score, game->high_scores[MAX_HIGH_SCORES - 1].score);
         return true;
     }
     
-    printf("Not a high score: %d\n", score);
+    SDL_Log("Not a high score: %d\n", score);
     return false;
 }
 
@@ -188,7 +194,7 @@ bool comet_buster_is_high_score(CometBusterGame *game, int score) {
 void high_scores_add(CometBusterGame *game, int score, int wave, const char *name) {
     if (!game || !name) return;
 
-    printf("Adding high score: %d (wave %d, player %s)\n", score, wave, name);
+    SDL_Log("Adding high score: %d (wave %d, player %s)\n", score, wave, name);
     
     // If list is not full, append to the end
     if (game->high_score_count < MAX_HIGH_SCORES) {
@@ -216,9 +222,9 @@ void high_scores_add(CometBusterGame *game, int score, int wave, const char *nam
         }
     }
     
-    printf("High score count after add: %d\n", game->high_score_count);
+    SDL_Log("High score count after add: %d\n", game->high_score_count);
     for(int i = 0; i < game->high_score_count; i++) {
-        printf("  [%d] %s = %d (W%d)\n", i, 
+        SDL_Log("  [%d] %s = %d (W%d)\n", i, 
                game->high_scores[i].player_name,
                game->high_scores[i].score,
                game->high_scores[i].wave);

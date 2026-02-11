@@ -2035,7 +2035,7 @@ void draw_comet_buster_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, 
     (void)height;
     
     if (!boss) {
-        fprintf(stderr, "[DRAW BOSS] ERROR: boss pointer is NULL\n");
+       SDL_Log("[DRAW BOSS] ERROR: boss pointer is NULL\n");
         return;
     }
     

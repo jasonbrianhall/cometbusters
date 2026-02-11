@@ -7,6 +7,12 @@
 #include "visualization.h"
 #include "comet_lang.h"
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 #ifdef ExternalSound
 #include "audio_wad.h"
 #endif 
@@ -1862,7 +1868,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         // Check for input to start game
         if (comet_buster_splash_screen_input_detected(visualizer)) {
             comet_buster_exit_splash_screen(game);
-            fprintf(stdout, "[SPLASH] Splash screen exited, game starting\n");
+            SDL_Log("[SPLASH] Splash screen exited, game starting\n");
         }
         return;  // Don't update game yet
     }
@@ -2106,7 +2112,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check if Wave 30 Singularity explosion is done - if so, show finale splash
     if (game->current_wave == 30 && !game->boss_active && !boss_explosion_is_active(&game->boss_explosion_effect)) {
         if (!game->finale_splash_active && !game->game_won) {
-            fprintf(stdout, "[FINALE] Wave 30 Singularity explosion complete! Showing victory splash...\n");
+            SDL_Log("[FINALE] Wave 30 Singularity explosion complete! Showing victory splash...\n");
             game->finale_splash_active = true;
             game->finale_splash_boss_paused = true;
             game->finale_splash_timer = 0.0;
@@ -2119,7 +2125,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Spawn boss on waves 5, 10, 15, 20, etc. (every 5 waves starting at wave 5)
     // But only if the boss hasn't already been defeated this wave (game->wave_complete_timer == 0)
     /*if ((game->current_wave % 15 == 5) && !game->boss_active && game->comet_count == 0 && !game->boss.active && game->wave_complete_timer == 0) {
-        fprintf(stdout, "[UPDATE] Conditions met to spawn boss: Wave=%d, BossActive=%d, CometCount=%d\n",
+        SDL_Log("[UPDATE] Conditions met to spawn boss: Wave=%d, BossActive=%d, CometCount=%d\n",
                 game->current_wave, game->boss_active, game->comet_count);
         comet_buster_spawn_boss(game, width, height);
     }*/
@@ -2134,7 +2140,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
 #ifdef ExternalSound
             if (visualizer && visualizer->audio.sfx_wave_complete && !game->splash_screen_active) {
                 audio_play_sound(&visualizer->audio, visualizer->audio.sfx_wave_complete);
-                fprintf(stdout, "[AUDIO] Playing wave complete sound\n");
+                SDL_Log("[AUDIO] Playing wave complete sound\n");
             }
 #endif
         }
@@ -2415,7 +2421,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check enemy bullet-ship collisions
     for (int i = 0; i < game->enemy_bullet_count; i++) {
         if (comet_buster_check_enemy_bullet_ship(game, &game->enemy_bullets[i])) {
-            fprintf(stdout, "[COLLISION] Enemy bullet hit player ship! Bullet removed.\n");
+            SDL_Log("[COLLISION] Enemy bullet hit player ship! Bullet removed.\n");
             comet_buster_on_ship_hit(game, visualizer);
             // Bullet disappears on impact with player ship
             game->enemy_bullets[i].active = false;
@@ -2470,7 +2476,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         
         // Collision radius for player ship
         if (dist < 15.0) {
-            fprintf(stdout, "[COLLISION] Enemy missile hit player ship!\n");
+            SDL_Log("[COLLISION] Enemy missile hit player ship!\n");
             
             // Missiles do same damage as bullets (1 to shield/health)
             comet_buster_on_ship_hit(game, visualizer);
@@ -2687,7 +2693,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                         game->spawn_queen.health--;
                     }
                     
-                    fprintf(stdout, "[COLLISION] Spawn Queen hit! Health: %d, Shield: %d\n", 
+                    SDL_Log("[COLLISION] Spawn Queen hit! Health: %d, Shield: %d\n", 
                             game->spawn_queen.health, game->spawn_queen.shield_health);
                     
                     if (game->spawn_queen.health <= 0) {

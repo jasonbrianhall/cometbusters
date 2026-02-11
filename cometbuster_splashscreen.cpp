@@ -8,6 +8,13 @@
 #include "cometbuster_splashscreen.h"
 #include "comet_lang.h"
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
+
 const char **get_opening_crawl_for_language(int language) {
     switch(language) {
         case WLANG_SPANISH: return OPENING_CRAWL_LINES_ES;
@@ -76,12 +83,12 @@ void comet_buster_init_splash_screen(CometBusterGame *game, int width, int heigh
             double juggernaut_speed = 70.0;
             comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
         }
-        fprintf(stdout, "[SPLASH] %d JUGGERNAUT(S) SPAWNED for intro drama!\n", num_juggernauts);
+        SDL_Log("[SPLASH] %d JUGGERNAUT(S) SPAWNED for intro drama!\n", num_juggernauts);
     }
     
-    fprintf(stdout, "[SPLASH] Splash screen initialized:\n");
-    fprintf(stdout, "  - %d comets\n", game->comet_count);
-    fprintf(stdout, "  - %d enemy ships\n", game->enemy_ship_count);
+    SDL_Log("[SPLASH] Splash screen initialized:\n");
+    SDL_Log("  - %d comets\n", game->comet_count);
+    SDL_Log("  - %d enemy ships\n", game->enemy_ship_count);
 }
 
 // Update splash screen - now includes enemy ship and boss animation
@@ -118,7 +125,7 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
             int random_edge = rand() % 8;
             double juggernaut_speed = 70.0;
             comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
-            fprintf(stdout, "[SPLASH] JUGGERNAUT spawned!\n");
+            SDL_Log("[SPLASH] JUGGERNAUT spawned!\n");
         } else if (game->enemy_ship_count < MAX_ENEMY_SHIPS) {
             // Regular ship spawn
             comet_buster_spawn_enemy_ship(game, width, height);
@@ -299,7 +306,7 @@ bool comet_buster_splash_screen_input_detected(Visualizer *visualizer) {
 void comet_buster_exit_splash_screen(CometBusterGame *game) {
     if (!game) return;
     
-    fprintf(stdout, "[SPLASH] Exiting splash screen, starting game\n");
+    SDL_Log("[SPLASH] Exiting splash screen, starting game\n");
     
     game->splash_screen_active = false;
     game->splash_timer = 0.0;
@@ -391,7 +398,7 @@ void comet_buster_exit_splash_screen(CometBusterGame *game) {
 void comet_buster_show_victory_scroll(CometBusterGame *game) {
     if (!game) return;
     
-    fprintf(stdout, "[VICTORY] Showing victory scroll\n");
+    SDL_Log("[VICTORY] Showing victory scroll\n");
     
     game->splash_screen_active = true;  // Reuse splash screen rendering system
     game->splash_timer = 0.0;
@@ -438,7 +445,7 @@ bool comet_buster_victory_scroll_input_detected(CometBusterGame *game, Visualize
 void comet_buster_exit_victory_scroll(CometBusterGame *game) {
     if (!game) return;
     
-    fprintf(stdout, "[VICTORY] Exiting victory scroll\n");
+    SDL_Log("[VICTORY] Exiting victory scroll\n");
     
     game->splash_screen_active = false;
     game->game_won = false;
