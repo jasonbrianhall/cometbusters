@@ -196,7 +196,7 @@ void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int h
         
         game->comet_count++;
         
-        SDL_Log("[BOSS] Hurled asteroid from corner! (Total on screen: %d)\n", game->comet_count);
+        SDL_Log("[Comet Busters] [BOSS] Hurled asteroid from corner! (Total on screen: %d)\n", game->comet_count);
     }
     
     // PURPLE SENTINEL SHIP SUMMONING - Boss calls for backup occasionally!
@@ -214,11 +214,11 @@ void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int h
         int summon_formation_id = game->current_wave * 1000 + (int)(boss->phase_timer * 100);
         int ships_summoned = 0;
         
-        SDL_Log("[BOSS] SUMMONING PURPLE SENTINEL FLEET! 15 ships incoming!\n");
+        SDL_Log("[Comet Busters] [BOSS] SUMMONING PURPLE SENTINEL FLEET! 15 ships incoming!\n");
         
         for (int i = 0; i < ships_to_summon; i++) {
             if (game->enemy_ship_count >= MAX_ENEMY_SHIPS) {
-                SDL_Log("[BOSS] Hit MAX_ENEMY_SHIPS limit, summoning stopped at %d ships\n", ships_summoned);
+                SDL_Log("[Comet Busters] [BOSS] Hit MAX_ENEMY_SHIPS limit, summoning stopped at %d ships\n", ships_summoned);
                 break;
             }
             
@@ -238,7 +238,7 @@ void comet_buster_update_boss(CometBusterGame *game, double dt, int width, int h
             ships_summoned++;
         }
         
-        SDL_Log("[BOSS] Purple sentinel fleet summoned! (%d ships deployed)\n", ships_summoned);
+        SDL_Log("[Comet Busters] [BOSS] Purple sentinel fleet summoned! (%d ships deployed)\n", ships_summoned);
         
         // Visual effect - boss ports flash with energy
         for (int p = 0; p < 40; p++) {
@@ -343,7 +343,7 @@ bool comet_buster_check_missile_boss(Missile *m, BossShip *boss) {
 void comet_buster_spawn_spawn_queen(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game) return;
     
-    SDL_Log("[SPAWN QUEEN] Spawning Spawn Queen at Wave %d\n", game->current_wave);
+    SDL_Log("[Comet Busters] [SPAWN QUEEN] Spawning Spawn Queen at Wave %d\n", game->current_wave);
     
     SpawnQueenBoss *queen = &game->spawn_queen;
     memset(queen, 0, sizeof(SpawnQueenBoss));
@@ -388,7 +388,7 @@ void comet_buster_spawn_spawn_queen(CometBusterGame *game, int screen_width, int
     queen->is_spawn_queen = true;
     game->boss_active = true;
     
-    SDL_Log("[SPAWN QUEEN] Queen spawned! Health: %d\n", queen->health);
+    SDL_Log("[Comet Busters] [SPAWN QUEEN] Queen spawned! Health: %d\n", queen->health);
 }
 
 void comet_buster_spawn_queen_spawn_ships(CometBusterGame *game, int screen_width, int screen_height) {
@@ -410,7 +410,7 @@ void comet_buster_spawn_queen_spawn_ships(CometBusterGame *game, int screen_widt
     
     for (int i = 0; i < max_ships_to_spawn; i++) {
         if (game->enemy_ship_count >= MAX_ENEMY_SHIPS) {
-            SDL_Log("[SPAWN QUEEN] Hit MAX_ENEMY_SHIPS limit (%d), stopping spawn\n", MAX_ENEMY_SHIPS);
+            SDL_Log("[Comet Busters] [SPAWN QUEEN] Hit MAX_ENEMY_SHIPS limit (%d), stopping spawn\n", MAX_ENEMY_SHIPS);
             break;
         }
         
@@ -455,11 +455,11 @@ void comet_buster_spawn_queen_spawn_ships(CometBusterGame *game, int screen_widt
         else if (ship_type == 2) type_name = "Green";
         else if (ship_type == 3) type_name = "Purple";
         
-        SDL_Log("[SPAWN QUEEN] Spawned ship %d/10: %s (type %d) on edge %d\n", 
+        SDL_Log("[Comet Busters] [SPAWN QUEEN] Spawned ship %d/10: %s (type %d) on edge %d\n", 
                 i + 1, type_name, ship_type, edge);
     }
     
-    SDL_Log("[SPAWN QUEEN] Recruitment complete! Spawned %d ships\n", ships_spawned);
+    SDL_Log("[Comet Busters] [SPAWN QUEEN] Recruitment complete! Spawned %d ships\n", ships_spawned);
     
     // SPAWN LARGE ASTEROIDS as part of the recruitment wave!
     // The spawn queen hurls massive rocks at you along with her ships
@@ -467,7 +467,7 @@ void comet_buster_spawn_queen_spawn_ships(CometBusterGame *game, int screen_widt
     
     for (int a = 0; a < asteroids_to_spawn; a++) {
         if (game->comet_count >= MAX_COMETS) {
-            SDL_Log("[SPAWN QUEEN] Hit MAX_COMETS limit, can't spawn more asteroids\n");
+            SDL_Log("[Comet Busters] [SPAWN QUEEN] Hit MAX_COMETS limit, can't spawn more asteroids\n");
             break;
         }
         
@@ -542,10 +542,10 @@ void comet_buster_spawn_queen_spawn_ships(CometBusterGame *game, int screen_widt
         
         game->comet_count++;
         
-        SDL_Log("[SPAWN QUEEN] Hurled asteroid %d/%d at player!\n", a + 1, asteroids_to_spawn);
+        SDL_Log("[Comet Busters] [SPAWN QUEEN] Hurled asteroid %d/%d at player!\n", a + 1, asteroids_to_spawn);
     }
     
-    SDL_Log("[SPAWN QUEEN] Recruitment wave complete! 10 ships + %d asteroids incoming!\n", asteroids_to_spawn);
+    SDL_Log("[Comet Busters] [SPAWN QUEEN] Recruitment wave complete! 10 ships + %d asteroids incoming!\n", asteroids_to_spawn);
     
     // Visual particle effect from queen's ports - EVEN MORE particles for epic recruitment!
     for (int p = 0; p < 30; p++) {
@@ -578,7 +578,7 @@ void comet_buster_update_spawn_queen(CometBusterGame *game, double dt, int width
     
     // Log phase changes
     if (queen->phase != old_phase) {
-        SDL_Log("[SPAWN QUEEN] Phase changed to %d (health: %.1f%%)\n", 
+        SDL_Log("[Comet Busters] [SPAWN QUEEN] Phase changed to %d (health: %.1f%%)\n", 
                 queen->phase, 100.0 * queen->health / queen->max_health);
     }
     
@@ -710,7 +710,7 @@ void comet_buster_destroy_spawn_queen(CometBusterGame *game, int width, int heig
     
     SpawnQueenBoss *queen = &game->spawn_queen;
     
-    SDL_Log("[SPAWN QUEEN] Destroyed at wave %d!\n", game->current_wave);
+    SDL_Log("[Comet Busters] [SPAWN QUEEN] Destroyed at wave %d!\n", game->current_wave);
     
     // Large explosion (80 particles)
     comet_buster_spawn_explosion(game, queen->x, queen->y, 0, 80);
@@ -737,13 +737,13 @@ void comet_buster_destroy_spawn_queen(CometBusterGame *game, int width, int heig
     queen->active = false;
     game->boss_active = false;
     
-    SDL_Log("[SPAWN QUEEN] Score awarded: %d\n", total_score);
+    SDL_Log("[Comet Busters] [SPAWN QUEEN] Score awarded: %d\n", total_score);
 }
 
 void comet_buster_spawn_void_nexus(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game) return;
     
-    SDL_Log("[VOID NEXUS] Spawning Void Nexus at Wave %d\n", game->current_wave);
+    SDL_Log("[Comet Busters] [VOID NEXUS] Spawning Void Nexus at Wave %d\n", game->current_wave);
     
     BossShip *boss = &game->boss;
     memset(boss, 0, sizeof(BossShip));
@@ -789,7 +789,7 @@ void comet_buster_spawn_void_nexus(CometBusterGame *game, int screen_width, int 
     boss->active = true;
     game->boss_active = true;
     
-    SDL_Log("[VOID NEXUS] Boss spawned! Health: %d, Shield: %d, Position: (%.1f, %.1f)\n", 
+    SDL_Log("[Comet Busters] [VOID NEXUS] Boss spawned! Health: %d, Shield: %d, Position: (%.1f, %.1f)\n", 
             boss->health, boss->shield_health, boss->x, boss->y);
 }
 
@@ -811,7 +811,7 @@ void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width,
     if (boss->phase_timer >= boss->phase_duration) {
         boss->phase_timer = 0;
         boss->phase = (boss->phase + 1) % 3;  // Cycle: 0 (square) -> 1 (hexagon) -> 2 (omnidirectional) -> 0
-        SDL_Log("[VOID NEXUS] Phase changed to %d\n", boss->phase);
+        SDL_Log("[Comet Busters] [VOID NEXUS] Phase changed to %d\n", boss->phase);
     }
     
     // ========== MOVEMENT - GEOMETRIC PATTERNS ==========
@@ -920,7 +920,7 @@ void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width,
     
     // ========== CHECK IF BOSS IS DEFEATED ==========
     if (boss->health <= 0) {
-        SDL_Log("[VOID NEXUS] Void Nexus destroyed!\n");
+        SDL_Log("[Comet Busters] [VOID NEXUS] Void Nexus destroyed!\n");
         
         // Spectacular crystalline explosion
         comet_buster_spawn_explosion(game, boss->x, boss->y, 2, 100);  // Treble frequency, lots of particles
@@ -986,7 +986,7 @@ void comet_buster_update_void_nexus(CometBusterGame *game, double dt, int width,
         }
         if (!game->game_over) {
             game->score += total_score;
-            SDL_Log("[VOID NEXUS] Score awarded: %d\n", total_score);
+            SDL_Log("[Comet Busters] [VOID NEXUS] Score awarded: %d\n", total_score);
         }
         
         boss->active = false;
@@ -1025,7 +1025,7 @@ void void_nexus_fire(CometBusterGame *game) {
         comet_buster_spawn_enemy_bullet_from_ship(game, boss->x, boss->y, vx, vy, -3);
     }
     
-    SDL_Log("[VOID NEXUS] 3-way burst fired!\n");
+    SDL_Log("[Comet Busters] [VOID NEXUS] 3-way burst fired!\n");
 }
 
 void void_nexus_fragment_fire(CometBusterGame *game, int fragment_id) {
@@ -1061,7 +1061,7 @@ void void_nexus_split_into_fragments(CometBusterGame *game, int num_fragments) {
     
     BossShip *boss = &game->boss;
     
-    SDL_Log("[VOID NEXUS] Splitting into %d fragments!\n", num_fragments);
+    SDL_Log("[Comet Busters] [VOID NEXUS] Splitting into %d fragments!\n", num_fragments);
     
     boss->fragment_count = num_fragments;
     
@@ -1105,7 +1105,7 @@ void void_nexus_split_into_fragments(CometBusterGame *game, int num_fragments) {
 void void_nexus_spawn_ship_wave(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game || game->enemy_ship_count >= MAX_ENEMY_SHIPS) return;
     
-    SDL_Log("[VOID NEXUS] Spawning ship wave with BROWN COAT ELITE!\n");
+    SDL_Log("[Comet Busters] [VOID NEXUS] Spawning ship wave with BROWN COAT ELITE!\n");
     
     // Void Nexus spawns 8 ships per wave including elite brown coats
     // Mix: 25% Red (aggressive), 25% Green (hunters), 20% Purple (sentinels), 30% BROWN COAT (elite)
@@ -1114,7 +1114,7 @@ void void_nexus_spawn_ship_wave(CometBusterGame *game, int screen_width, int scr
     
     for (int i = 0; i < ships_to_spawn; i++) {
         if (game->enemy_ship_count >= MAX_ENEMY_SHIPS) {
-            SDL_Log("[VOID NEXUS] Hit MAX_ENEMY_SHIPS limit, stopping spawn\n");
+            SDL_Log("[Comet Busters] [VOID NEXUS] Hit MAX_ENEMY_SHIPS limit, stopping spawn\n");
             break;
         }
         
@@ -1153,7 +1153,7 @@ void void_nexus_spawn_ship_wave(CometBusterGame *game, int screen_width, int scr
         ships_spawned++;
     }
     
-    SDL_Log("[VOID NEXUS] Spawned %d ships in wave (%d brown coats)\n", ships_spawned,
+    SDL_Log("[Comet Busters] [VOID NEXUS] Spawned %d ships in wave (%d brown coats)\n", ships_spawned,
             (ships_spawned >= 2) ? 2 : ships_spawned);
 }
 
@@ -1223,14 +1223,14 @@ void comet_buster_damage_void_nexus(CometBusterGame *game, int damage, int fragm
         boss->damage_flash_timer = 0.1;
         boss->last_damage_time = 0;
         
-        SDL_Log("[VOID NEXUS] Main body hit! Health: %d/%d\n", 
+        SDL_Log("[Comet Busters] [VOID NEXUS] Main body hit! Health: %d/%d\n", 
                 boss->health, boss->max_health);
     } else if (fragment_id >= 0 && fragment_id < boss->fragment_count) {
         // Damage specific fragment
         boss->fragment_health[fragment_id] -= damage;
         boss->damage_flash_timer = 0.1;
         
-        SDL_Log("[VOID NEXUS] Fragment %d hit! Health: %d\n", 
+        SDL_Log("[Comet Busters] [VOID NEXUS] Fragment %d hit! Health: %d\n", 
                 fragment_id, boss->fragment_health[fragment_id]);
         
         // If fragment destroyed, spawn particles and award bonus
@@ -1253,7 +1253,7 @@ void comet_buster_damage_void_nexus(CometBusterGame *game, int damage, int fragm
             // If all fragments destroyed, defeat boss
             if (boss->fragment_count == 0) {
                 boss->health = 0;
-                SDL_Log("[VOID NEXUS] All fragments destroyed! Boss defeated!\n");
+                SDL_Log("[Comet Busters] [VOID NEXUS] All fragments destroyed! Boss defeated!\n");
             }
         }
     }
@@ -1262,7 +1262,7 @@ void comet_buster_damage_void_nexus(CometBusterGame *game, int damage, int fragm
 void comet_buster_spawn_harbinger(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game) return;
     
-    SDL_Log("[HARBINGER] Spawning Harbinger at Wave %d\n", game->current_wave);
+    SDL_Log("[Comet Busters] [HARBINGER] Spawning Harbinger at Wave %d\n", game->current_wave);
     
     BossShip *boss = &game->boss;
     memset(boss, 0, sizeof(BossShip));  // ✓ MEMSET FIRST
@@ -1304,7 +1304,7 @@ void comet_buster_spawn_harbinger(CometBusterGame *game, int screen_width, int s
     boss->active = true;  // ✓ ACTIVE SET LAST (after memset)
     game->boss_active = true;
     
-    SDL_Log("[HARBINGER] The Harbinger boss spawned! Health: %d, Shield: %d\n", 
+    SDL_Log("[Comet Busters] [HARBINGER] The Harbinger boss spawned! Health: %d, Shield: %d\n", 
             boss->health, boss->shield_health);
 }
 
@@ -1343,7 +1343,7 @@ void comet_buster_update_harbinger(CometBusterGame *game, double dt, int width, 
         boss->bomb_spawned_this_phase = 0;  // Reset bomb counter
         boss->beam_angle_offset = (rand() % 360) * (M_PI / 180.0);  // Random beam offset
         
-        SDL_Log("[HARBINGER] Phase changed to %d\n", boss->phase);
+        SDL_Log("[Comet Busters] [HARBINGER] Phase changed to %d\n", boss->phase);
     }
     
     // ===== GRAVITY WELL =====
@@ -1414,7 +1414,7 @@ void comet_buster_update_harbinger(CometBusterGame *game, double dt, int width, 
                 }
                 boss->bomb_spawned_this_phase++;
                 boss->shoot_cooldown = 1.0;
-                SDL_Log("[HARBINGER] Phase 0: Comet spray! (Total: %d)\n", game->comet_count);
+                SDL_Log("[Comet Busters] [HARBINGER] Phase 0: Comet spray! (Total: %d)\n", game->comet_count);
             } else {
                 // Transition to next phase sooner if attacks are done
                 boss->phase_timer = boss->phase_duration;
@@ -1443,7 +1443,7 @@ void comet_buster_update_harbinger(CometBusterGame *game, double dt, int width, 
                 comet_buster_spawn_enemy_ship_internal(game, width, height, 
                                                        ship_type, edge, speed, -1, 1);
                 boss->bomb_spawned_this_phase++;
-                SDL_Log("[HARBINGER] Phase 1: Enemy ship type %d spawned!\n", ship_type);
+                SDL_Log("[Comet Busters] [HARBINGER] Phase 1: Enemy ship type %d spawned!\n", ship_type);
             }
         }
         
@@ -1505,7 +1505,7 @@ void comet_buster_update_harbinger(CometBusterGame *game, double dt, int width, 
             }
             
             boss->laser_charge_timer = 0;
-            SDL_Log("[HARBINGER] Phase 1: Orbital laser + comet spray fired!\n");
+            SDL_Log("[Comet Busters] [HARBINGER] Phase 1: Orbital laser + comet spray fired!\n");
         }
         
     } else if (boss->phase == 2) {
@@ -1587,14 +1587,14 @@ void comet_buster_update_harbinger(CometBusterGame *game, double dt, int width, 
                     
                     comet_buster_spawn_enemy_ship_internal(game, width, height,
                                                            ship_type, edge, speed, -1, 1);
-                    SDL_Log("[HARBINGER] Phase 2: Frenzy enemy spawn! Type %d\n", ship_type);
+                    SDL_Log("[Comet Busters] [HARBINGER] Phase 2: Frenzy enemy spawn! Type %d\n", ship_type);
                 }
                 
-                SDL_Log("[HARBINGER] Phase 2: Comet spray + enemies!\n");
+                SDL_Log("[Comet Busters] [HARBINGER] Phase 2: Comet spray + enemies!\n");
             }
             
             boss->shoot_cooldown = 0.35;  // Faster firing in frenzy
-            SDL_Log("[HARBINGER] Frenzy attack! Bombs: %d\n", boss->bomb_spawned_this_phase);
+            SDL_Log("[Comet Busters] [HARBINGER] Frenzy attack! Bombs: %d\n", boss->bomb_spawned_this_phase);
         }
     }
 }
@@ -1631,7 +1631,7 @@ void harbinger_spawn_bomb(CometBusterGame *game, double x, double y) {
     bomb->color[2] = 0.9;
     
     game->comet_count++;
-    SDL_Log("[HARBINGER] Spawned bouncing bomb! (Total: %d)\n", 
+    SDL_Log("[Comet Busters] [HARBINGER] Spawned bouncing bomb! (Total: %d)\n", 
             game->comet_count);
 }
 
@@ -1669,7 +1669,7 @@ typedef struct {
 void comet_buster_spawn_singularity(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game) return;
     
-    SDL_Log("[SINGULARITY] THE ULTIMATE BOSS AWAKENS at Wave %d\n", game->current_wave);
+    SDL_Log("[Comet Busters] [SINGULARITY] THE ULTIMATE BOSS AWAKENS at Wave %d\n", game->current_wave);
     
     BossShip *boss = &game->boss;
     memset(boss, 0, sizeof(BossShip));
@@ -1717,7 +1717,7 @@ void comet_buster_spawn_singularity(CometBusterGame *game, int screen_width, int
     boss->active = true;
     game->boss_active = true;
     
-    SDL_Log("[SINGULARITY] Boss spawned at (%.1f, %.1f) with %d HP\n", 
+    SDL_Log("[Comet Busters] [SINGULARITY] Boss spawned at (%.1f, %.1f) with %d HP\n", 
             boss->x, boss->y, boss->health);
 }
 
@@ -1738,7 +1738,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
     
     // Phase transition
     if (new_phase != boss->phase) {
-        SDL_Log("[SINGULARITY] Phase transition: %d -> %d\n", boss->phase, new_phase);
+        SDL_Log("[Comet Busters] [SINGULARITY] Phase transition: %d -> %d\n", boss->phase, new_phase);
         boss->phase = new_phase;
         boss->phase_timer = 0;
         
@@ -2159,7 +2159,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
     
     if (boss->laser_angle >= spawn_interval) {
         // Time to spawn asteroids!
-        SDL_Log("[SINGULARITY] Spawning %d asteroids!\n", asteroids_per_spawn);
+        SDL_Log("[Comet Busters] [SINGULARITY] Spawning %d asteroids!\n", asteroids_per_spawn);
         
         for (int i = 0; i < asteroids_per_spawn; i++) {
             if (game->comet_count >= MAX_COMETS) break;  // Respect comet limit
@@ -2213,7 +2213,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
         // Create the radial explosion effect
         boss_explosion_create(&game->boss_explosion_effect, boss->x, boss->y, "singularity");
         
-        SDL_Log("[SINGULARITY] THE SINGULARITY HAS BEEN DESTROYED!\n");
+        SDL_Log("[Comet Busters] [SINGULARITY] THE SINGULARITY HAS BEEN DESTROYED!\n");
         
         // MASSIVE EXPLOSION
         // Main implosion
@@ -2285,7 +2285,7 @@ void comet_buster_update_singularity(CometBusterGame *game, double dt, int width
         }
         if (!game->game_over) {
             game->score += total_score;
-            SDL_Log("[SINGULARITY] Score awarded: %d\n", total_score);
+            SDL_Log("[Comet Busters] [SINGULARITY] Score awarded: %d\n", total_score);
         }    
         boss->active = false;
         game->boss_active = false;

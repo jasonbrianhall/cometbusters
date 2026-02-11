@@ -114,7 +114,7 @@ static GLuint compile_shader(const char *src, GLenum type) {
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(shader, 512, NULL, log);
-        SDL_Log("[GL] Shader compile error: %s\n", log);
+        SDL_Log("[Comet Busters] [GL] Shader compile error: %s\n", log);
     }
     return shader;
 }
@@ -132,7 +132,7 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
     glGetProgramiv(prog, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(prog, 512, NULL, log);
-        SDL_Log("[GL] Program link error: %s\n", log);
+        SDL_Log("[Comet Busters] [GL] Program link error: %s\n", log);
     }
     
     glDeleteShader(vs);
@@ -143,7 +143,7 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
 void gl_init(void) {
     if (gl_state.program) return;
     
-    SDL_Log("[GL] Initializing modern GL 3.3+ renderer\n");
+    SDL_Log("[Comet Busters] [GL] Initializing modern GL 3.3+ renderer\n");
     glGenVertexArrays(1, &global_vao);
     
     gl_state.program = create_program(vertex_shader, fragment_shader);
@@ -173,7 +173,7 @@ void gl_init(void) {
     // Initialize FreeType font system with base64-encoded TTF
     ft_init_from_base64();
     
-    SDL_Log("[GL] GL 3.3+ renderer initialized\n");
+    SDL_Log("[Comet Busters] [GL] GL 3.3+ renderer initialized\n");
 }
 
 static void draw_vertices(Vertex *verts, int count, GLenum mode) {
@@ -227,39 +227,39 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 // Initialize FreeType library and load base64-encoded TTF font
 static void ft_init_from_base64(void) {
     if (ft_library) {
-        SDL_Log("[FONT] FreeType already initialized\n");
+        SDL_Log("[Comet Busters] [FONT] FreeType already initialized\n");
         return;
     }
     
     // Initialize FreeType library
     FT_Error error = FT_Init_FreeType(&ft_library);
     if (error) {
-        SDL_Log("[FONT] ERROR: Failed to initialize FreeType: %d\n", error);
+        SDL_Log("[Comet Busters] [FONT] ERROR: Failed to initialize FreeType: %d\n", error);
         return;
     }
     
-    SDL_Log("[FONT] FreeType initialized\n");
+    SDL_Log("[Comet Busters] [FONT] FreeType initialized\n");
     
     // Decode base64 font data
-    SDL_Log("[FONT] Decoding base64 TTF font data (%zu bytes)...\n", MONOSPACE_FONT_B64_SIZE);
+    SDL_Log("[Comet Busters] [FONT] Decoding base64 TTF font data (%zu bytes)...\n", MONOSPACE_FONT_B64_SIZE);
     
     // Use the base64_decode function from Monospace.h
     size_t decoded_size = 0;
     int decode_result = base64_decode(MONOSPACE_FONT_B64, MONOSPACE_FONT_B64_SIZE, &ft_font_buffer, &decoded_size);
     
     if (decode_result != 0 || !ft_font_buffer) {
-        SDL_Log("[FONT] ERROR: Failed to decode base64 font data\n");
+        SDL_Log("[Comet Busters] [FONT] ERROR: Failed to decode base64 font data\n");
         FT_Done_FreeType(ft_library);
         ft_library = NULL;
         return;
     }
     
-    SDL_Log("[FONT] Base64 decoded: %zu bytes -> %zu bytes\n", MONOSPACE_FONT_B64_SIZE, decoded_size);
+    SDL_Log("[Comet Busters] [FONT] Base64 decoded: %zu bytes -> %zu bytes\n", MONOSPACE_FONT_B64_SIZE, decoded_size);
     
     // Load the font face from memory
     error = FT_New_Memory_Face(ft_library, ft_font_buffer, (FT_Long)decoded_size, 0, &ft_face);
     if (error) {
-        SDL_Log("[FONT] ERROR: Failed to load TTF face: %d\n", error);
+        SDL_Log("[Comet Busters] [FONT] ERROR: Failed to load TTF face: %d\n", error);
         free(ft_font_buffer);
         ft_font_buffer = NULL;
         FT_Done_FreeType(ft_library);
@@ -267,8 +267,8 @@ static void ft_init_from_base64(void) {
         return;
     }
     
-    SDL_Log("[FONT] TTF font loaded successfully\n");
-    SDL_Log("[FONT] Font family: %s, style: %s\n", ft_face->family_name, ft_face->style_name);
+    SDL_Log("[Comet Busters] [FONT] TTF font loaded successfully\n");
+    SDL_Log("[Comet Busters] [FONT] Font family: %s, style: %s\n", ft_face->family_name, ft_face->style_name);
 }
 
 // Cleanup FreeType resources
@@ -355,7 +355,7 @@ static float gl_calculate_text_width(const char *text, int font_size) {
     // Set font size (in 1/64th of a point, so multiply by 64)
     FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
     if (error) {
-        SDL_Log("[FONT] Warning: Failed to set font size\n");
+        SDL_Log("[Comet Busters] [FONT] Warning: Failed to set font size\n");
         return 0.0f;
     }
     
@@ -392,7 +392,7 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     // Set font size
     FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
     if (error) {
-        SDL_Log("[FONT] Warning: Failed to set font size\n");
+        SDL_Log("[Comet Busters] [FONT] Warning: Failed to set font size\n");
         return;
     }
     
@@ -698,7 +698,7 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     if (!visualizer) return;
 
     if (!gl_state.program) {
-        SDL_Log("[Comet Busters] Initializing GL Init (should only happen once)");
+        SDL_Log("[Comet Busters] [Comet Busters] Initializing GL Init (should only happen once)");
         gl_init();
     }
     CometBusterGame *game = &visualizer->comet_buster;

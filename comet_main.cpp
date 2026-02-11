@@ -155,7 +155,7 @@ static bool settings_ensure_dir(void) {
 #ifdef _WIN32
     const char *dir = settings_get_dir();
     if (CreateDirectoryA(dir, NULL)) {
-        SDL_Log("[SETTINGS] Created directory: %s\n", dir);
+        SDL_Log("[Comet Busters] [SETTINGS] Created directory: %s\n", dir);
         return true;
     }
     
@@ -164,12 +164,12 @@ static bool settings_ensure_dir(void) {
         return true;
     }
     
-    SDL_Log("[SETTINGS] Failed to create directory: %s\n", dir);
+    SDL_Log("[Comet Busters] [SETTINGS] Failed to create directory: %s\n", dir);
     return false;
 #else
     const char *dir = settings_get_dir();
     if (mkdir(dir, 0755) == 0) {
-        SDL_Log("[SETTINGS] Created directory: %s\n", dir);
+        SDL_Log("[Comet Busters] [SETTINGS] Created directory: %s\n", dir);
         return true;
     }
     
@@ -178,7 +178,7 @@ static bool settings_ensure_dir(void) {
         return true;
     }
     
-    SDL_Log("[SETTINGS] Failed to create directory: %s\n", dir);
+    SDL_Log("[Comet Busters] [SETTINGS] Failed to create directory: %s\n", dir);
     return false;
 #endif
 }
@@ -193,7 +193,7 @@ static bool settings_load_volumes(int *music_volume, int *sfx_volume) {
     FILE *fp = fopen(path, "r");
     
     if (!fp) {
-        SDL_Log("[SETTINGS] No existing settings file found: %s\n", path);
+        SDL_Log("[Comet Busters] [SETTINGS] No existing settings file found: %s\n", path);
         return false;
     }
     
@@ -203,19 +203,19 @@ static bool settings_load_volumes(int *music_volume, int *sfx_volume) {
     fclose(fp);
     
     if (result != 2) {
-        SDL_Log("[SETTINGS] Invalid settings file format\n");
+        SDL_Log("[Comet Busters] [SETTINGS] Invalid settings file format\n");
         return false;
     }
     
     if (music_vol < 0 || music_vol > 128 || sfx_vol < 0 || sfx_vol > 128) {
-        SDL_Log("[SETTINGS] Invalid volume values in settings\n");
+        SDL_Log("[Comet Busters] [SETTINGS] Invalid volume values in settings\n");
         return false;
     }
     
     *music_volume = music_vol;
     *sfx_volume = sfx_vol;
     
-    SDL_Log("[SETTINGS] Loaded volumes: Music=%d, SFX=%d\n", music_vol, sfx_vol);
+    SDL_Log("[Comet Busters] [SETTINGS] Loaded volumes: Music=%d, SFX=%d\n", music_vol, sfx_vol);
     return true;
 }
 
@@ -224,7 +224,7 @@ static bool settings_load_volumes(int *music_volume, int *sfx_volume) {
  */
 static bool settings_save_volumes(int music_volume, int sfx_volume) {
     if (!settings_ensure_dir()) {
-        SDL_Log("[SETTINGS] Failed to ensure settings directory exists\n");
+        SDL_Log("[Comet Busters] [SETTINGS] Failed to ensure settings directory exists\n");
         return false;
     }
     
@@ -232,14 +232,14 @@ static bool settings_save_volumes(int music_volume, int sfx_volume) {
     FILE *fp = fopen(path, "w");
     
     if (!fp) {
-        SDL_Log("[SETTINGS] Failed to open settings file for writing: %s\n", path);
+        SDL_Log("[Comet Busters] [SETTINGS] Failed to open settings file for writing: %s\n", path);
         return false;
     }
     
     fprintf(fp, "%d %d\n", music_volume, sfx_volume);
     fclose(fp);
     
-    SDL_Log("[SETTINGS] Saved volumes: Music=%d, SFX=%d to %s\n", 
+    SDL_Log("[Comet Busters] [SETTINGS] Saved volumes: Music=%d, SFX=%d to %s\n", 
             music_volume, sfx_volume, path);
     return true;
 }
@@ -309,7 +309,7 @@ void on_high_score_dialog_submit(GtkWidget *widget, gpointer data) {
                         gui->visualizer.comet_buster.current_wave,
                         player_name);
         high_scores_save(&gui->visualizer.comet_buster);
-        SDL_Log("[HIGH SCORE] Added score for %s: %d (Wave %d)\n", 
+        SDL_Log("[Comet Busters] [HIGH SCORE] Added score for %s: %d (Wave %d)\n", 
                 player_name, gui->visualizer.comet_buster.score, gui->visualizer.comet_buster.current_wave);
     }
     
@@ -624,7 +624,7 @@ gboolean on_volume_dialog_delete(GtkWidget *widget, GdkEvent *event, gpointer da
         gui->volume_dialog = NULL;
         // Resume the game
         gui->game_paused = false;
-        SDL_Log("[*] Game Resumed\n");
+        SDL_Log("[Comet Busters] [*] Game Resumed\n");
     }
     return FALSE;  // Allow window to close
 }
@@ -641,7 +641,7 @@ void on_volume_dialog_open(GtkWidget *widget, gpointer data) {
     
     // Pause the game
     gui->game_paused = true;
-    SDL_Log("[*] Game Paused (Volume Dialog Open)\n");
+    SDL_Log("[Comet Busters] [*] Game Paused (Volume Dialog Open)\n");
     
     // Create volume control dialog window
     gui->volume_dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -966,7 +966,7 @@ gboolean on_joystick_dialog_delete(GtkWidget *widget, GdkEvent *event, gpointer 
     
     // Resume game
     gui->game_paused = false;
-    SDL_Log("[*] Game Resumed (Joystick Dialog Closed)\n");
+    SDL_Log("[Comet Busters] [*] Game Resumed (Joystick Dialog Closed)\n");
     
     gtk_widget_destroy(widget);
     return TRUE;
@@ -990,7 +990,7 @@ void on_joystick_test(GtkWidget *widget, gpointer data) {
     
     // Pause the game
     gui->game_paused = true;
-    SDL_Log("[*] Game Paused (Joystick Test Dialog Open)\n");
+    SDL_Log("[Comet Busters] [*] Game Paused (Joystick Test Dialog Open)\n");
     
     // Create joystick test dialog window
     gui->joystick_dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1090,7 +1090,7 @@ void on_new_game_easy(GtkWidget *widget, gpointer data) {
     audio_play_intro_music(&gui->audio, "music/intro.mp3");
 #endif
     
-    SDL_Log("[GAME] New Game Started - Difficulty: EASY (with splash screen)\n");
+    SDL_Log("[Comet Busters] [GAME] New Game Started - Difficulty: EASY (with splash screen)\n");
 }
 
 void on_new_game_medium(GtkWidget *widget, gpointer data) {
@@ -1139,7 +1139,7 @@ void on_new_game_medium(GtkWidget *widget, gpointer data) {
     audio_play_intro_music(&gui->audio, "music/intro.mp3");
 #endif
     
-    SDL_Log("[GAME] New Game Started - Difficulty: MEDIUM (with splash screen)\n");
+    SDL_Log("[Comet Busters] [GAME] New Game Started - Difficulty: MEDIUM (with splash screen)\n");
 }
 
 void on_new_game_hard(GtkWidget *widget, gpointer data) {
@@ -1188,7 +1188,7 @@ void on_new_game_hard(GtkWidget *widget, gpointer data) {
     audio_play_intro_music(&gui->audio, "music/intro.mp3");
 #endif
     
-    SDL_Log("[GAME] New Game Started - Difficulty: HARD (with splash screen)\n");
+    SDL_Log("[Comet Busters] [GAME] New Game Started - Difficulty: HARD (with splash screen)\n");
 }
 
 void on_new_game(GtkWidget *widget, gpointer data) {
@@ -1208,9 +1208,9 @@ void on_toggle_pause(GtkWidget *widget, gpointer data) {
         // Stop music immediately when pausing
         if (gui->game_paused) {
             audio_stop_music(&gui->audio);
-            SDL_Log("%s\n", "[*] Game Paused");
+            SDL_Log("[Comet Busters] %s\n", "[*] Game Paused");
         } else {
-            SDL_Log("%s\n", "[*] Game Resumed");
+            SDL_Log("[Comet Busters] %s\n", "[*] Game Resumed");
         }
     }
 }
@@ -1257,7 +1257,7 @@ void on_debug_wave_selected(GtkComboBox *widget, gpointer data) {
     // Spawn wave comets
     comet_buster_spawn_wave(game, gui->visualizer.width, gui->visualizer.height);
     
-    SDL_Log("[DEBUG] Jumped to Wave %d! Score: %d, Multiplier: %.2fx\n", 
+    SDL_Log("[Comet Busters] [DEBUG] Jumped to Wave %d! Score: %d, Multiplier: %.2fx\n", 
             selected_wave, game->score, game->score_multiplier);
 }
 
@@ -1322,7 +1322,7 @@ void on_debug_wave_selector(GtkWidget *widget, gpointer data) {
     // Resume game if cancelled
     if (response != GTK_RESPONSE_OK) {
         gui->game_paused = false;
-        SDL_Log("[DEBUG] Wave selection cancelled\n");
+        SDL_Log("[Comet Busters] [DEBUG] Wave selection cancelled\n");
     }
     
     gtk_widget_destroy(dialog);
@@ -1354,7 +1354,7 @@ void on_debug_jump_to_wave_5(GtkWidget *widget, gpointer data) {
     // Spawn Wave 5 comets
     comet_buster_spawn_wave(game, gui->visualizer.width, gui->visualizer.height);
     
-    SDL_Log("[DEBUG] Jumped to Wave 5! Score: %d, Multiplier: %.1fx\n", 
+    SDL_Log("[Comet Busters] [DEBUG] Jumped to Wave 5! Score: %d, Multiplier: %.1fx\n", 
             game->score, game->score_multiplier);
 }
 
@@ -1375,7 +1375,7 @@ void on_debug_spawn_boss(GtkWidget *widget, gpointer data) {
     // Spawn the boss directly
     comet_buster_spawn_boss(game, gui->visualizer.width, gui->visualizer.height);
     
-    SDL_Log("[DEBUG] Boss spawned directly! Wave: %d\n", game->current_wave);
+    SDL_Log("[Comet Busters] [DEBUG] Boss spawned directly! Wave: %d\n", game->current_wave);
 }
 
 void on_debug_skip_to_boss_phase(GtkWidget *widget, gpointer data) {
@@ -1393,7 +1393,7 @@ void on_debug_skip_to_boss_phase(GtkWidget *widget, gpointer data) {
     // Spawn boss directly
     comet_buster_spawn_boss(game, gui->visualizer.width, gui->visualizer.height);
     
-    SDL_Log("[DEBUG] Boss fight ready! Score: %d, Multiplier: %.1fx\n", 
+    SDL_Log("[Comet Busters] [DEBUG] Boss fight ready! Score: %d, Multiplier: %.1fx\n", 
             game->score, game->score_multiplier);
 }
 
@@ -1440,7 +1440,7 @@ void on_cheat_boss_level_selected(GtkComboBox *widget, gpointer data) {
     // Spawn wave comets
     comet_buster_spawn_wave(game, gui->visualizer.width, gui->visualizer.height);
     
-    SDL_Log("[CHEAT] Jumped to Boss Level %d! Score: %d, Multiplier: %.2fx\n", 
+    SDL_Log("[Comet Busters] [CHEAT] Jumped to Boss Level %d! Score: %d, Multiplier: %.2fx\n", 
             selected_level, game->score, game->score_multiplier);
 }
 
@@ -1508,7 +1508,7 @@ void on_cheat_boss_level_selector(GtkWidget *widget, gpointer data) {
     // Resume game if cancelled
     if (response != GTK_RESPONSE_OK) {
         gui->game_paused = false;
-        SDL_Log("[CHEAT] Boss level selection cancelled\n");
+        SDL_Log("[Comet Busters] [CHEAT] Boss level selection cancelled\n");
     }
     
     gtk_widget_destroy(dialog);
@@ -1561,13 +1561,13 @@ void on_cheat_set_lives(GtkWidget *widget, gpointer data) {
     if (response == GTK_RESPONSE_OK) {
         int new_lives = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(lives_spin));
         gui->visualizer.comet_buster.ship_lives = new_lives;
-        SDL_Log("[CHEAT] Lives set to: %d\n", new_lives);
+        SDL_Log("[Comet Busters] [CHEAT] Lives set to: %d\n", new_lives);
     }
     
     // Resume game if cancelled
     if (response != GTK_RESPONSE_OK) {
         gui->game_paused = false;
-        SDL_Log("[CHEAT] Lives adjustment cancelled\n");
+        SDL_Log("[Comet Busters] [CHEAT] Lives adjustment cancelled\n");
     } else {
         gui->game_paused = false;
     }
@@ -1619,13 +1619,13 @@ void on_cheat_set_bombs(GtkWidget *widget, gpointer data) {
     if (response == GTK_RESPONSE_OK) {
         int new_bombs = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(bombs_spin));
         gui->visualizer.comet_buster.bomb_ammo = new_bombs;
-        SDL_Log("[CHEAT] Bombs set to: %d\n", new_bombs);
+        SDL_Log("[Comet Busters] [CHEAT] Bombs set to: %d\n", new_bombs);
     }
     
     // Resume game if cancelled
     if (response != GTK_RESPONSE_OK) {
         gui->game_paused = false;
-        SDL_Log("[CHEAT] Bombs adjustment cancelled\n");
+        SDL_Log("[Comet Busters] [CHEAT] Bombs adjustment cancelled\n");
     } else {
         gui->game_paused = false;
     }
@@ -1642,11 +1642,11 @@ void on_toggle_fullscreen(GtkWidget *widget, gpointer data) {
     if (gui->is_fullscreen) {
         gtk_window_fullscreen(GTK_WINDOW(gui->window));
         gtk_widget_hide(gui->menu_bar);
-        SDL_Log("[UI] Fullscreen ON\n");
+        SDL_Log("[Comet Busters] [UI] Fullscreen ON\n");
     } else {
         gtk_window_unfullscreen(GTK_WINDOW(gui->window));
         gtk_widget_show(gui->menu_bar);
-        SDL_Log("[UI] Fullscreen OFF\n");
+        SDL_Log("[Comet Busters] [UI] Fullscreen OFF\n");
     }
 }
 
@@ -1685,7 +1685,7 @@ gboolean game_update_timer(gpointer data) {
         
         // Check if user wants to exit splash screen
         if (comet_buster_splash_screen_input_detected(&gui->visualizer)) {
-            SDL_Log("[SPLASH] User pressed key - exiting splash screen\n");
+            SDL_Log("[Comet Busters] [SPLASH] User pressed key - exiting splash screen\n");
             
             // Stop the intro music
             audio_stop_music(&gui->audio);
@@ -1695,7 +1695,7 @@ gboolean game_update_timer(gpointer data) {
             
             // Auto-switch to OpenGL if appropriate
             if (gui->auto_switch_to_opengl && gui->rendering_engine == 0) {
-                SDL_Log("[SPLASH] Auto-switching to OpenGL for gameplay\n");
+                SDL_Log("[Comet Busters] [SPLASH] Auto-switching to OpenGL for gameplay\n");
                 if (gui->rendering_stack) {
                     gtk_stack_set_visible_child_name(GTK_STACK(gui->rendering_stack), "opengl");
                 }
@@ -1707,7 +1707,7 @@ gboolean game_update_timer(gpointer data) {
             // Start gameplay music rotation
 #ifdef ExternalSound
             audio_play_random_music(&gui->audio);
-            SDL_Log("[SPLASH] Started gameplay music\n");
+            SDL_Log("[Comet Busters] [SPLASH] Started gameplay music\n");
 #endif
         }
         
@@ -1736,7 +1736,7 @@ gboolean game_update_timer(gpointer data) {
         
         // Check if user wants to exit victory scroll
         if (comet_buster_victory_scroll_input_detected(&gui->visualizer.comet_buster, &gui->visualizer)) {
-            SDL_Log("[VICTORY] User pressed key - exiting victory scroll\n");
+            SDL_Log("[Comet Busters] [VICTORY] User pressed key - exiting victory scroll\n");
             
             // Stop the finale music
             audio_stop_music(&gui->audio);
@@ -1772,7 +1772,7 @@ gboolean game_update_timer(gpointer data) {
     if (gui->visualizer.comet_buster.finale_splash_active) {
         // Start finale music on first frame of finale splash
         if (!gui->finale_music_started) {
-            SDL_Log("[FINALE] Starting finale music...\n");
+            SDL_Log("[Comet Busters] [FINALE] Starting finale music...\n");
             audio_stop_music(&gui->audio);
 #ifdef ExternalSound
             audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
@@ -1785,7 +1785,7 @@ gboolean game_update_timer(gpointer data) {
         
         // Check if user wants to continue to next wave (can right-click anytime to skip)
         if (gui->visualizer.mouse_right_pressed) {
-            SDL_Log("[FINALE] Player skipping to Wave 31\n");
+            SDL_Log("[Comet Busters] [FINALE] Player skipping to Wave 31\n");
             
             // If scroll isn't done yet, fast-forward to the end
             if (!gui->visualizer.comet_buster.finale_waiting_for_input) {
@@ -1847,7 +1847,7 @@ gboolean game_update_timer(gpointer data) {
             if (comet_buster_is_high_score(&gui->visualizer.comet_buster, 
                                            gui->visualizer.comet_buster.score) && !gui->high_score_dialog_shown) {
                 gui->high_score_dialog_shown = true;
-                SDL_Log("[HIGH SCORE] New high score detected: %d\n", 
+                SDL_Log("[Comet Busters] [HIGH SCORE] New high score detected: %d\n", 
                         gui->visualizer.comet_buster.score);
                 // Pause game and show high score dialog
                 gui->game_paused = true;
@@ -1858,7 +1858,7 @@ gboolean game_update_timer(gpointer data) {
         // Check if current music track has finished and queue the next one
 #ifdef ExternalSound
         if (!gui->game_paused && !audio_is_music_playing(&gui->audio)) {
-            SDL_Log("[AUDIO] Current track finished, queuing next track...\n");
+            SDL_Log("[Comet Busters] [AUDIO] Current track finished, queuing next track...\n");
             audio_play_random_music(&gui->audio);
         }
 #endif
@@ -1973,7 +1973,7 @@ gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpointer data
         
         // Right-click to restart game if game is over
         if (gui->visualizer.comet_buster.game_over) {
-            SDL_Log("[GAME] Restarting game via right-click...\n");
+            SDL_Log("[Comet Busters] [GAME] Restarting game via right-click...\n");
             
             // Reset the game
             comet_buster_reset_game(&gui->visualizer.comet_buster);
@@ -2005,32 +2005,32 @@ gboolean on_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui || !event) return FALSE;
     
-    SDL_Log("[SCROLL] Event received - type: %d, direction: %d\n", event->type, event->direction);
+    SDL_Log("[Comet Busters] [SCROLL] Event received - type: %d, direction: %d\n", event->type, event->direction);
     
     // Handle scroll wheel events for weapon switching
     if (event->direction == GDK_SCROLL_UP) {
         gui->visualizer.scroll_direction = 1;
-        SDL_Log("[SCROLL] UP detected - setting scroll_direction to 1\n");
+        SDL_Log("[Comet Busters] [SCROLL] UP detected - setting scroll_direction to 1\n");
         return TRUE;
     } else if (event->direction == GDK_SCROLL_DOWN) {
         gui->visualizer.scroll_direction = -1;
-        SDL_Log("[SCROLL] DOWN detected - setting scroll_direction to -1\n");
+        SDL_Log("[Comet Busters] [SCROLL] DOWN detected - setting scroll_direction to -1\n");
         return TRUE;
     } else if (event->direction == GDK_SCROLL_SMOOTH) {
         // Handle smooth scrolling (modern mice/trackpads)
-        SDL_Log("[SCROLL] SMOOTH scroll - delta_y: %.2f\n", event->delta_y);
+        SDL_Log("[Comet Busters] [SCROLL] SMOOTH scroll - delta_y: %.2f\n", event->delta_y);
         if (event->delta_y < 0) {
             gui->visualizer.scroll_direction = 1;
-            SDL_Log("[SCROLL] SMOOTH UP - setting scroll_direction to 1\n");
+            SDL_Log("[Comet Busters] [SCROLL] SMOOTH UP - setting scroll_direction to 1\n");
             return TRUE;
         } else if (event->delta_y > 0) {
             gui->visualizer.scroll_direction = -1;
-            SDL_Log("[SCROLL] SMOOTH DOWN - setting scroll_direction to -1\n");
+            SDL_Log("[Comet Busters] [SCROLL] SMOOTH DOWN - setting scroll_direction to -1\n");
             return TRUE;
         }
     }
     
-    SDL_Log("[SCROLL] Unknown scroll direction: %d\n", event->direction);
+    SDL_Log("[Comet Busters] [SCROLL] Unknown scroll direction: %d\n", event->direction);
     return FALSE;
 }
 
@@ -2161,9 +2161,9 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
                 gui->game_paused = !gui->game_paused;
                 if (gui->game_paused) {
                     audio_stop_music(&gui->audio);
-                    SDL_Log("%s\n", "[*] Game Paused");
+                    SDL_Log("[Comet Busters] %s\n", "[*] Game Paused");
                 } else {
-                    SDL_Log("%s\n", "[*] Game Resumed");
+                    SDL_Log("[Comet Busters] %s\n", "[*] Game Resumed");
                 }
             }
             return TRUE;
@@ -2172,7 +2172,7 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
         case GDK_KEY_C:
             // CTRL+C to quit
             if ((event->state & GDK_CONTROL_MASK)) {
-                SDL_Log("[*] CTRL+C pressed - exiting\n");
+                SDL_Log("[Comet Busters] [*] CTRL+C pressed - exiting\n");
                 gtk_main_quit();
                 return TRUE;
             }
@@ -2184,10 +2184,10 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
                 gui->cheat_menu_visible = !gui->cheat_menu_visible;
                 if (gui->cheat_menu_visible) {
                     gtk_widget_show(gui->cheat_menu_item);
-                    SDL_Log("[*] Cheat menu shown (CTRL+K to hide)\n");
+                    SDL_Log("[Comet Busters] [*] Cheat menu shown (CTRL+K to hide)\n");
                 } else {
                     gtk_widget_hide(gui->cheat_menu_item);
-                    SDL_Log("[*] Cheat menu hidden\n");
+                    SDL_Log("[Comet Busters] [*] Cheat menu hidden\n");
                 }
                 return TRUE;
             }
@@ -2249,7 +2249,7 @@ gboolean on_key_release(GtkWidget *widget, GdkEventKey *event, gpointer data) {
 // Signal handler for CTRL+C from terminal
 #ifndef _WIN32
 static void sigint_handler(int sig) {
-    SDL_Log("\n[*] SIGINT received - exiting cleanly\n");
+    SDL_Log("[Comet Busters] \n[*] SIGINT received - exiting cleanly\n");
     gtk_main_quit();
 }
 #endif
@@ -2264,10 +2264,10 @@ static int parse_command_line_args(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--gl") == 0 || strcmp(argv[i], "--opengl") == 0) {
             rendering_engine = 1;
-            SDL_Log("[MAIN] Using OpenGL rendering engine\n");
+            SDL_Log("[Comet Busters] [MAIN] Using OpenGL rendering engine\n");
         } else if (strcmp(argv[i], "--cairo") == 0) {
             rendering_engine = 0;
-            SDL_Log("[MAIN] Using Cairo rendering engine\n");
+            SDL_Log("[Comet Busters] [MAIN] Using Cairo rendering engine\n");
         } else if (strcmp(argv[i], "--help") == 0) {
             printf("Usage: cometbuster [OPTIONS]\n");
             printf("Options:\n");
@@ -2294,7 +2294,7 @@ void on_rendering_cairo(GtkWidget *widget, gpointer data) {
     // If already using Cairo, do nothing
     if (gui->rendering_engine == 0) return;
     
-    SDL_Log("[RENDERING] Switched to Cairo rendering\n");
+    SDL_Log("[Comet Busters] [RENDERING] Switched to Cairo rendering\n");
     
     // Use GtkStack to switch widgets (preserves GL context)
     if (gui->rendering_stack) {
@@ -2316,7 +2316,7 @@ void on_rendering_opengl(GtkWidget *widget, gpointer data) {
     // If already using OpenGL, do nothing
     if (gui->rendering_engine == 1) return;
     
-    SDL_Log("[RENDERING] Switched to OpenGL rendering\n");
+    SDL_Log("[Comet Busters] [RENDERING] Switched to OpenGL rendering\n");
     
     // Use GtkStack to switch widgets (preserves GL context)
     if (gui->rendering_stack) {
@@ -2338,7 +2338,7 @@ int main(int argc, char *argv[]) {
     
     // Parse command line arguments to select rendering engine
     int rendering_engine = parse_command_line_args(argc, argv);
-    SDL_Log("[MAIN] Selected rendering engine: %s\n", 
+    SDL_Log("[Comet Busters] [MAIN] Selected rendering engine: %s\n", 
             rendering_engine ? "OpenGL" : "Cairo");
     
     // Set up signal handler for CTRL+C from terminal
@@ -2405,9 +2405,9 @@ int main(int argc, char *argv[]) {
     
     // Detect connected joysticks
     int num_joysticks = joystick_manager_detect(&gui.visualizer.joystick_manager);
-    SDL_Log("[INIT] Joystick detection complete - found %d device(s)\n", num_joysticks);
+    SDL_Log("[Comet Busters] [INIT] Joystick detection complete - found %d device(s)\n", num_joysticks);
     if (num_joysticks > 0) {
-        SDL_Log("[INIT] Using joystick 0 as primary input device\n");
+        SDL_Log("[Comet Busters] [INIT] Using joystick 0 as primary input device\n");
         gui.visualizer.joystick_manager.active_joystick = 0;
     }
     
@@ -2420,7 +2420,7 @@ int main(int argc, char *argv[]) {
     // Initialize audio system
     memset(&gui.audio, 0, sizeof(AudioManager));
     if (!audio_init(&gui.audio)) {
-        SDL_Log("Warning: Audio initialization failed, continuing without sound\n");
+        SDL_Log("[Comet Busters] Warning: Audio initialization failed, continuing without sound\n");
     }
     
     // Try to load WAD file with sounds
@@ -2428,12 +2428,12 @@ int main(int argc, char *argv[]) {
     {
         std::string wadPath = getExecutableDir() + "\\cometbuster.wad";
         if (!audio_load_wad(&gui.audio, wadPath.c_str())) {
-            SDL_Log("Warning: Could not load cometbuster.wad, sounds will be silent\n");
+            SDL_Log("[Comet Busters] Warning: Could not load cometbuster.wad, sounds will be silent\n");
         }
     }
 #else
     if (!audio_load_wad(&gui.audio, "cometbuster.wad")) {
-        SDL_Log("Warning: Could not load cometbuster.wad, sounds will be silent\n");
+        SDL_Log("[Comet Busters] Warning: Could not load cometbuster.wad, sounds will be silent\n");
     }
 #endif
 
@@ -2443,9 +2443,9 @@ int main(int argc, char *argv[]) {
     
     // Load saved volume settings from file
     if (settings_load_volumes(&gui.music_volume, &gui.sfx_volume)) {
-        SDL_Log("[AUDIO] Loaded saved volume settings\n");
+        SDL_Log("[Comet Busters] [AUDIO] Loaded saved volume settings\n");
     } else {
-        SDL_Log("[AUDIO] Using default volume settings\n");
+        SDL_Log("[Comet Busters] [AUDIO] Using default volume settings\n");
     }
     
     // Apply loaded settings to audio system
@@ -2668,7 +2668,7 @@ int main(int argc, char *argv[]) {
     update_status_text(&gui);
     
     // Create BOTH rendering surfaces for switching capability
-    SDL_Log("[MAIN] Creating both Cairo and OpenGL rendering surfaces\n");
+    SDL_Log("[Comet Busters] [MAIN] Creating both Cairo and OpenGL rendering surfaces\n");
     
     // Create Cairo drawing area
     gui.drawing_area = gtk_drawing_area_new();
@@ -2721,10 +2721,10 @@ int main(int argc, char *argv[]) {
     
     // Show the appropriate rendering surface
     if (gui.rendering_engine == 1) {
-        SDL_Log("[MAIN] Starting with OpenGL rendering\n");
+        SDL_Log("[Comet Busters] [MAIN] Starting with OpenGL rendering\n");
         gtk_stack_set_visible_child_name(GTK_STACK(rendering_stack), "opengl");
     } else {
-        SDL_Log("[MAIN] Starting with Cairo rendering\n");
+        SDL_Log("[Comet Busters] [MAIN] Starting with Cairo rendering\n");
         gtk_stack_set_visible_child_name(GTK_STACK(rendering_stack), "cairo");
     }
     
@@ -2734,7 +2734,7 @@ int main(int argc, char *argv[]) {
     // Save stack reference for use in callbacks
     gui.rendering_stack = rendering_stack;
     
-    SDL_Log("[MAIN] Using GtkStack for safe widget switching\n");
+    SDL_Log("[Comet Busters] [MAIN] Using GtkStack for safe widget switching\n");
     
     gtk_widget_show_all(gui.window);
     gtk_widget_hide(gui.cheat_menu_item);  // Hide the cheat menu by default (after show_all)

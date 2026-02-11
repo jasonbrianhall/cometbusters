@@ -22,7 +22,7 @@ gboolean on_realize(GtkGLArea *area, gpointer data) {
     if (!glew_initialized) {
         glewExperimental = GL_TRUE;
         GLenum err = glewInit();
-        SDL_Log("[GL] glewInit: %s\n", glewGetErrorString(err));
+        SDL_Log("[Comet Busters] [GL] glewInit: %s\n", glewGetErrorString(err));
         glew_initialized = TRUE;
     }
     
@@ -33,7 +33,7 @@ gboolean on_realize(GtkGLArea *area, gpointer data) {
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_MULTISAMPLE);
     
-    SDL_Log("[GL] GL Context initialized\n");
+    SDL_Log("[Comet Busters] [GL] GL Context initialized\n");
     return TRUE;
 }
 

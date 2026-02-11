@@ -17,14 +17,14 @@ static Mix_Chunk* load_sound_from_wad(WadArchive *wad, const char *filename) {
     // Extract file from WAD
     WadFile wad_file;
     if (!wad_extract_file(wad, filename, &wad_file)) {
-        SDL_Log("Failed to load sound from WAD: %s\n", filename);
+        SDL_Log("[Comet Busters] Failed to load sound from WAD: %s\n", filename);
         return NULL;
     }
     
     // Create SDL_RWops from memory buffer
     SDL_RWops *rw = SDL_RWFromMem(wad_file.data, wad_file.size);
     if (!rw) {
-        SDL_Log("Failed to create SDL_RWops for %s\n", filename);
+        SDL_Log("[Comet Busters] Failed to create SDL_RWops for %s\n", filename);
         wad_free_file(&wad_file);
         return NULL;
     }
@@ -33,8 +33,8 @@ static Mix_Chunk* load_sound_from_wad(WadArchive *wad, const char *filename) {
     Mix_Chunk *chunk = Mix_LoadWAV_RW(rw, 1);
     
     if (!chunk) {
-        SDL_Log("Failed to decode audio from WAD: %s - %s\n", filename, Mix_GetError());
-        SDL_Log("Note: Check if SDL_mixer supports this format. Install SDL2_mixer-devel.\n");
+        SDL_Log("[Comet Busters] Failed to decode audio from WAD: %s - %s\n", filename, Mix_GetError());
+        SDL_Log("[Comet Busters] Note: Check if SDL_mixer supports this format. Install SDL2_mixer-devel.\n");
         wad_free_file(&wad_file);
         return NULL;
     }
@@ -69,17 +69,17 @@ static void init_shuffle_order(AudioManager *audio) {
 // Initialize audio system
 bool audio_init(AudioManager *audio) {
     if (!audio) {
-        SDL_Log("Error: AudioManager is NULL\n");
+        SDL_Log("[Comet Busters] Error: AudioManager is NULL\n");
         return false;
     }
     
     if (SDL_Init(SDL_INIT_AUDIO) < 0) {
-        SDL_Log("SDL audio initialization failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] SDL audio initialization failed: %s\n", SDL_GetError());
         return false;
     }
     
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-        SDL_Log("Mixer initialization failed: %s\n", Mix_GetError());
+        SDL_Log("[Comet Busters] Mixer initialization failed: %s\n", Mix_GetError());
         SDL_Quit();
         return false;
     }
@@ -126,13 +126,13 @@ bool audio_init(AudioManager *audio) {
 // Load all sounds from WAD file
 bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
     if (!audio || !wad_filename) {
-        SDL_Log("Error: Invalid parameters for audio_load_wad\n");
+        SDL_Log("[Comet Busters] Error: Invalid parameters for audio_load_wad\n");
         return false;
     }
     
     // Open WAD file
     if (!wad_open(&audio->wad, wad_filename)) {
-        SDL_Log("Error: Failed to open WAD file: %s\n", wad_filename);
+        SDL_Log("[Comet Busters] Error: Failed to open WAD file: %s\n", wad_filename);
         return false;
     }
     
@@ -268,14 +268,14 @@ void audio_play_music(AudioManager *audio, const char *internal_path, bool loop)
     
     WadFile music_file;
     if (!wad_extract_file(&audio->wad, internal_path, &music_file)) {
-        SDL_Log("Failed to load music from WAD: %s\n", internal_path);
+        SDL_Log("[Comet Busters] Failed to load music from WAD: %s\n", internal_path);
         return;
     }
     
     // Create SDL_RWops from memory
     SDL_RWops *rw = SDL_RWFromMem(music_file.data, music_file.size);
     if (!rw) {
-        SDL_Log("Failed to create SDL_RWops for music\n");
+        SDL_Log("[Comet Busters] Failed to create SDL_RWops for music\n");
         wad_free_file(&music_file);
         return;
     }
@@ -283,7 +283,7 @@ void audio_play_music(AudioManager *audio, const char *internal_path, bool loop)
     // Load music
     Mix_Music *music = Mix_LoadMUS_RW(rw, 1);
     if (!music) {
-        SDL_Log("Failed to load music: %s\n", Mix_GetError());
+        SDL_Log("[Comet Busters] Failed to load music: %s\n", Mix_GetError());
         free(music_file.data);
         return;
     }
@@ -296,7 +296,7 @@ void audio_play_music(AudioManager *audio, const char *internal_path, bool loop)
     
     int loops = loop ? -1 : 0;
     if (Mix_PlayMusic(music, loops) < 0) {
-        SDL_Log("Failed to play music: %s\n", Mix_GetError());
+        SDL_Log("[Comet Busters] Failed to play music: %s\n", Mix_GetError());
     } else {
         fprintf(stdout, "[*] Playing: %s\n", internal_path);
     }
@@ -308,14 +308,14 @@ void audio_play_intro_music(AudioManager *audio, const char *internal_path) {
     
     WadFile music_file;
     if (!wad_extract_file(&audio->wad, internal_path, &music_file)) {
-        SDL_Log("Failed to load intro music from WAD: %s\n", internal_path);
+        SDL_Log("[Comet Busters] Failed to load intro music from WAD: %s\n", internal_path);
         return;
     }
     
     // Create SDL_RWops from memory
     SDL_RWops *rw = SDL_RWFromMem(music_file.data, music_file.size);
     if (!rw) {
-        SDL_Log("Failed to create SDL_RWops for intro music\n");
+        SDL_Log("[Comet Busters] Failed to create SDL_RWops for intro music\n");
         wad_free_file(&music_file);
         return;
     }
@@ -323,7 +323,7 @@ void audio_play_intro_music(AudioManager *audio, const char *internal_path) {
     // Load music
     Mix_Music *music = Mix_LoadMUS_RW(rw, 1);
     if (!music) {
-        SDL_Log("Failed to load intro music: %s\n", Mix_GetError());
+        SDL_Log("[Comet Busters] Failed to load intro music: %s\n", Mix_GetError());
         free(music_file.data);
         return;
     }
@@ -331,7 +331,7 @@ void audio_play_intro_music(AudioManager *audio, const char *internal_path) {
     // NOTE: Do NOT add to music_tracks array - this keeps it separate from gameplay rotation
     // Play once (no loop) - the music_finished callback will be set up by the caller
     if (Mix_PlayMusic(music, 0) < 0) {
-        SDL_Log("Failed to play intro music: %s\n", Mix_GetError());
+        SDL_Log("[Comet Busters] Failed to play intro music: %s\n", Mix_GetError());
         Mix_FreeMusic(music);
     } else {
         fprintf(stdout, "[*] Playing intro: %s\n", internal_path);
@@ -360,7 +360,7 @@ void audio_play_random_music(AudioManager *audio) {
     if (!music) return;
     
     if (Mix_PlayMusic(music, 0) < 0) {  // Play once (0 loops), music_finished callback will trigger next
-        SDL_Log("Failed to play music: %s\n", Mix_GetError());
+        SDL_Log("[Comet Busters] Failed to play music: %s\n", Mix_GetError());
     } else {
         fprintf(stdout, "[*] Playing track %d (position %d/%d in shuffle)\n", 
                 track_index + 1, audio->shuffle_position, audio->music_track_count);

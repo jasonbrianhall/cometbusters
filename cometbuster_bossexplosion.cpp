@@ -118,7 +118,7 @@ void boss_explosion_create(BossExplosion *explosion, double x, double y, const c
                            r * color_var, g * color_var, b * color_var);
     }
     
-    SDL_Log("[*] Boss explosion created at (%.0f, %.0f)\n", x, y);
+    SDL_Log("[Comet Busters] [*] Boss explosion created at (%.0f, %.0f)\n", x, y);
 }
 
 // Update explosion particles

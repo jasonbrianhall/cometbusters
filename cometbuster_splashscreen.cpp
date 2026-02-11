@@ -83,12 +83,12 @@ void comet_buster_init_splash_screen(CometBusterGame *game, int width, int heigh
             double juggernaut_speed = 70.0;
             comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
         }
-        SDL_Log("[SPLASH] %d JUGGERNAUT(S) SPAWNED for intro drama!\n", num_juggernauts);
+        SDL_Log("[Comet Busters] [SPLASH] %d JUGGERNAUT(S) SPAWNED for intro drama!\n", num_juggernauts);
     }
     
-    SDL_Log("[SPLASH] Splash screen initialized:\n");
-    SDL_Log("  - %d comets\n", game->comet_count);
-    SDL_Log("  - %d enemy ships\n", game->enemy_ship_count);
+    SDL_Log("[Comet Busters] [SPLASH] Splash screen initialized:\n");
+    SDL_Log("[Comet Busters]   - %d comets\n", game->comet_count);
+    SDL_Log("[Comet Busters]   - %d enemy ships\n", game->enemy_ship_count);
 }
 
 // Update splash screen - now includes enemy ship and boss animation
@@ -125,7 +125,7 @@ void comet_buster_update_splash_screen(CometBusterGame *game, double dt, int wid
             int random_edge = rand() % 8;
             double juggernaut_speed = 70.0;
             comet_buster_spawn_enemy_ship_internal(game, width, height, 5, random_edge, juggernaut_speed, 0, 1);
-            SDL_Log("[SPLASH] JUGGERNAUT spawned!\n");
+            SDL_Log("[Comet Busters] [SPLASH] JUGGERNAUT spawned!\n");
         } else if (game->enemy_ship_count < MAX_ENEMY_SHIPS) {
             // Regular ship spawn
             comet_buster_spawn_enemy_ship(game, width, height);
@@ -306,7 +306,7 @@ bool comet_buster_splash_screen_input_detected(Visualizer *visualizer) {
 void comet_buster_exit_splash_screen(CometBusterGame *game) {
     if (!game) return;
     
-    SDL_Log("[SPLASH] Exiting splash screen, starting game\n");
+    SDL_Log("[Comet Busters] [SPLASH] Exiting splash screen, starting game\n");
     
     game->splash_screen_active = false;
     game->splash_timer = 0.0;
@@ -398,7 +398,7 @@ void comet_buster_exit_splash_screen(CometBusterGame *game) {
 void comet_buster_show_victory_scroll(CometBusterGame *game) {
     if (!game) return;
     
-    SDL_Log("[VICTORY] Showing victory scroll\n");
+    SDL_Log("[Comet Busters] [VICTORY] Showing victory scroll\n");
     
     game->splash_screen_active = true;  // Reuse splash screen rendering system
     game->splash_timer = 0.0;
@@ -445,7 +445,7 @@ bool comet_buster_victory_scroll_input_detected(CometBusterGame *game, Visualize
 void comet_buster_exit_victory_scroll(CometBusterGame *game) {
     if (!game) return;
     
-    SDL_Log("[VICTORY] Exiting victory scroll\n");
+    SDL_Log("[Comet Busters] [VICTORY] Exiting victory scroll\n");
     
     game->splash_screen_active = false;
     game->game_won = false;
