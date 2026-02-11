@@ -2,11 +2,16 @@
 #include "miniz.h"
 #include <stdio.h>
 #include <string.h>
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
 
 // Open WAD file (which is a ZIP archive)
 bool wad_open(WadArchive *wad, const char *filename) {
     if (!wad || !filename) {
-        fprintf(stderr, "Error: Invalid WAD parameters\n");
+        SDL_Log("Error: Invalid WAD parameters\n");
         return false;
     }
     
@@ -17,7 +22,7 @@ bool wad_open(WadArchive *wad, const char *filename) {
     // Allocate ZIP archive structure
     mz_zip_archive *zip = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
     if (!zip) {
-        fprintf(stderr, "Error: Memory allocation failed\n");
+        SDL_Log("Error: Memory allocation failed\n");
         return false;
     }
     
@@ -26,7 +31,7 @@ bool wad_open(WadArchive *wad, const char *filename) {
     
     // Open the ZIP file
     if (!mz_zip_reader_init_file(zip, filename, 0)) {
-        fprintf(stderr, "Error: Failed to open WAD file '%s': %s\n", 
+        SDL_Log("Error: Failed to open WAD file '%s': %s\n", 
                 filename, mz_zip_get_error_string(mz_zip_get_last_error(zip)));
         free(zip);
         return false;
@@ -51,7 +56,7 @@ bool wad_open(WadArchive *wad, const char *filename) {
 // Returns: true if successful, false otherwise
 bool wad_open_from_memory(WadArchive *wad, const unsigned char *wad_data, size_t wad_size) {
     if (!wad || !wad_data || wad_size == 0) {
-        fprintf(stderr, "Error: Invalid WAD memory parameters\n");
+        SDL_Log("Error: Invalid WAD memory parameters\n");
         return false;
     }
     
@@ -61,7 +66,7 @@ bool wad_open_from_memory(WadArchive *wad, const unsigned char *wad_data, size_t
     // Allocate ZIP archive structure
     mz_zip_archive *zip = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
     if (!zip) {
-        fprintf(stderr, "Error: Memory allocation failed\n");
+        SDL_Log("Error: Memory allocation failed\n");
         return false;
     }
     
@@ -71,7 +76,7 @@ bool wad_open_from_memory(WadArchive *wad, const unsigned char *wad_data, size_t
     // Open the ZIP file from memory buffer
     // mz_zip_reader_init_mem() reads the archive from memory, not from disk
     if (!mz_zip_reader_init_mem(zip, wad_data, wad_size, 0)) {
-        fprintf(stderr, "Error: Failed to open WAD from memory: %s\n", 
+        SDL_Log("Error: Failed to open WAD from memory: %s\n", 
                 mz_zip_get_error_string(mz_zip_get_last_error(zip)));
         free(zip);
         return false;
@@ -100,7 +105,7 @@ void wad_close(WadArchive *wad) {
 // Extract file from WAD
 bool wad_extract_file(WadArchive *wad, const char *internal_path, WadFile *out_file) {
     if (!wad || !wad->zip_archive || !internal_path || !out_file) {
-        fprintf(stderr, "Error: Invalid extract parameters\n");
+        SDL_Log("Error: Invalid extract parameters\n");
         return false;
     }
     
@@ -109,14 +114,14 @@ bool wad_extract_file(WadArchive *wad, const char *internal_path, WadFile *out_f
     // Find file index
     int file_index = mz_zip_reader_locate_file(zip, internal_path, NULL, 0);
     if (file_index < 0) {
-        fprintf(stderr, "Error: File '%s' not found in WAD\n", internal_path);
+        SDL_Log("Error: File '%s' not found in WAD\n", internal_path);
         return false;
     }
     
     // Get file info
     mz_zip_archive_file_stat file_stat;
     if (!mz_zip_reader_file_stat(zip, file_index, &file_stat)) {
-        fprintf(stderr, "Error: Failed to read file stats for '%s'\n", internal_path);
+        SDL_Log("Error: Failed to read file stats for '%s'\n", internal_path);
         return false;
     }
     
@@ -124,7 +129,7 @@ bool wad_extract_file(WadArchive *wad, const char *internal_path, WadFile *out_f
     out_file->size = file_stat.m_uncomp_size;
     out_file->data = (char *)malloc(out_file->size);
     if (!out_file->data) {
-        fprintf(stderr, "Error: Memory allocation failed for file '%s' (%zu bytes)\n", 
+        SDL_Log("Error: Memory allocation failed for file '%s' (%zu bytes)\n", 
                 internal_path, out_file->size);
         out_file->size = 0;
         return false;
@@ -133,7 +138,7 @@ bool wad_extract_file(WadArchive *wad, const char *internal_path, WadFile *out_f
     // Extract file
     if (!mz_zip_reader_extract_to_mem(zip, file_index, out_file->data, 
                                        out_file->size, 0)) {
-        fprintf(stderr, "Error: Failed to extract file '%s' from WAD\n", internal_path);
+        SDL_Log("Error: Failed to extract file '%s' from WAD\n", internal_path);
         free(out_file->data);
         out_file->data = NULL;
         out_file->size = 0;
