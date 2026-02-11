@@ -2119,40 +2119,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.music_volume = gui.preferences.music_volume;
     gui.sfx_volume = gui.preferences.sfx_volume;
     
-    SDL_Log("[INIT] Loaded preferences: music_volume=%d, sfx_volume=%d, language=%d\n",
-           gui.music_volume, gui.sfx_volume, gui.preferences.language);
+    SDL_Log("[INIT] Loaded preferences: music_volume=%d, sfx_volume=%d, language=%d\n", gui.music_volume, gui.sfx_volume, gui.preferences.language);
     
-    if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
-        return 1;
-    }
-    
-    // Window is now maximized, get the actual size
-    SDL_GetWindowSize(gui.window, &gui.window_width, &gui.window_height);
-    SDL_Log("[INIT] Window maximized size: %dx%d\n", gui.window_width, gui.window_height);
-    
-    // Initialize visualizer with GAME space (1920x1080), not window size
-    memset(&gui.visualizer, 0, sizeof(Visualizer));
-    gui.visualizer.width = 1920;
-    gui.visualizer.height = 1080;
-    gui.visualizer.mouse_x = 960;
-    gui.visualizer.mouse_y = 540;
-    gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
-    
-    SDL_Log("[INIT] Game initialized\n");
-    
-    // Load high scores
-    high_scores_load(&gui.visualizer.comet_buster);
-    SDL_Log("[INIT] High scores loaded\n");
-    
-    // Initialize audio system
-    memset(&gui.audio, 0, sizeof(AudioManager));
-    if (audio_init(&gui.audio)) {
-        SDL_Log("[AUDIO] System initialized\n");
-    } else {
-        SDL_Log("[WARNING] Audio init failed\n");
-    }
-    
-    // Load WAD file with sounds
+        // Load WAD file with sounds
     std::string wadPath;
     bool wad_loaded = false;
 
@@ -2253,6 +2222,36 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 #else
     wadPath = "cometbuster.wad";
 #endif
+
+    if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
+        return 1;
+    }
+    
+    // Window is now maximized, get the actual size
+    SDL_GetWindowSize(gui.window, &gui.window_width, &gui.window_height);
+    SDL_Log("[INIT] Window maximized size: %dx%d\n", gui.window_width, gui.window_height);
+    
+    // Initialize visualizer with GAME space (1920x1080), not window size
+    memset(&gui.visualizer, 0, sizeof(Visualizer));
+    gui.visualizer.width = 1920;
+    gui.visualizer.height = 1080;
+    gui.visualizer.mouse_x = 960;
+    gui.visualizer.mouse_y = 540;
+    gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
+    
+    SDL_Log("[INIT] Game initialized\n");
+    
+    // Load high scores
+    high_scores_load(&gui.visualizer.comet_buster);
+    SDL_Log("[INIT] High scores loaded\n");
+    
+    // Initialize audio system
+    memset(&gui.audio, 0, sizeof(AudioManager));
+    if (audio_init(&gui.audio)) {
+        SDL_Log("[AUDIO] System initialized\n");
+    } else {
+        SDL_Log("[WARNING] Audio init failed\n");
+    }
 
     SDL_Log("[AUDIO] Desktop: Loading from: %s\n", wadPath.c_str());
     wad_loaded = audio_load_wad(&gui.audio, wadPath.c_str());
