@@ -140,7 +140,7 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
     return prog;
 }
 
-static void gl_init(void) {
+void gl_init(void) {
     if (gl_state.program) return;
     
     SDL_Log("[GL] Initializing modern GL 3.3+ renderer\n");
