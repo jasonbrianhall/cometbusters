@@ -696,9 +696,11 @@ void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int
 
 void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     if (!visualizer) return;
-    
-    gl_init();
-    
+
+    if (!gl_state.program) {
+        SDL_Log("[Comet Busters] Initializing GL Init (should only happen once)");
+        gl_init();
+    }
     CometBusterGame *game = &visualizer->comet_buster;
     int width = visualizer->width;
     int height = visualizer->height;
