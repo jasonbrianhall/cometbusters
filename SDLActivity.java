@@ -422,6 +422,9 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
         // Extract WAD file if needed
         ensureWADExtracted();
+        
+        // Tell C++ code where the app files directory is
+        nativeSetAppFilesDir(getFilesDir().getAbsolutePath());
 
         // Set up JNI
         SDL.setupJNI();
@@ -945,6 +948,9 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
     // C functions we call
     public static native String nativeGetVersion();
+    
+    // Custom native method to set app files directory
+    private native void nativeSetAppFilesDir(String path);
     public static native int nativeSetupJNI();
     public static native int nativeRunMain(String library, String function, Object arguments);
     public static native void nativeLowMemory();
