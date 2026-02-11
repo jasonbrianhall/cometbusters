@@ -441,7 +441,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 
                 // Check for splash screen exit on any key
                 if (gui->visualizer.comet_buster.splash_screen_active) {
-                    fprintf(stdout, "[SPLASH] User pressed key - exiting splash screen\n");
+                    printf("[SPLASH] User pressed key - exiting splash screen\n");
                     
                     // Stop the intro music
                     audio_stop_music(&gui->audio);
@@ -472,7 +472,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     audio_play_random_music(&gui->audio);
-                    fprintf(stdout, "[SPLASH] Started gameplay music\n");
+                    printf("[SPLASH] Started gameplay music\n");
 #endif
                     break;  // Skip other input processing when exiting splash
                 }
@@ -801,7 +801,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
                 if (gui->visualizer.comet_buster.splash_screen_active) {
-                    fprintf(stdout, "[SPLASH] User clicked - exiting splash screen\n");
+                    printf("[SPLASH] User clicked - exiting splash screen\n");
                     
                     // Stop the intro music
                     audio_stop_music(&gui->audio);
@@ -832,7 +832,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     audio_play_random_music(&gui->audio);
-                    fprintf(stdout, "[SPLASH] Started gameplay music\n");
+                    printf("[SPLASH] Started gameplay music\n");
 #endif
                     break;
                 }
@@ -1399,7 +1399,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     if (gui->visualizer.comet_buster.finale_splash_active) {
         // Start finale music on first frame of finale splash
         if (!gui->finale_music_started) {
-            fprintf(stdout, "[FINALE] Starting finale music...\n");
+            printf("[FINALE] Starting finale music...\n");
             audio_stop_music(&gui->audio);
 #ifdef ExternalSound
             //audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
@@ -1413,7 +1413,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
         
         // Check if user wants to continue to next wave (can right-click anytime to skip)
         if (gui->visualizer.mouse_right_pressed) {
-            fprintf(stdout, "[FINALE] Player skipping to Wave 31\n");
+            printf("[FINALE] Player skipping to Wave 31\n");
             
             // If scroll isn't done yet, fast-forward to the end
             if (!gui->visualizer.comet_buster.finale_waiting_for_input) {
@@ -1456,7 +1456,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     // Check if current music track has finished and queue the next one
 #ifdef ExternalSound
     if (!gui->game_paused && !audio_is_music_playing(&gui->audio)) {
-        fprintf(stdout, "[AUDIO] Current track finished, queuing next track...\n");
+        printf("[AUDIO] Current track finished, queuing next track...\n");
         audio_play_random_music(&gui->audio);
     }
 #endif
@@ -2101,7 +2101,7 @@ static void cleanup(CometGUI *gui) {
 // ============================================================
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused))) {
-    printf("=== Comet Busters ===\n");
+    SDL_Log("=== Comet Busters ===\n");
     
     CometGUI gui;
     memset(&gui, 0, sizeof(CometGUI));
