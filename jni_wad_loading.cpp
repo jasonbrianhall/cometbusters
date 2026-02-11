@@ -10,6 +10,7 @@
 static char g_app_files_dir[512] = {0};  // Store the path Java tells us
 static volatile int g_jni_initialized = 0;  // Flag to track JNI initialization
 
+extern "C" {
 /**
  * JNI: Called from Java to set the app files directory path
  * Java passes getFilesDir().getAbsolutePath() here
@@ -138,5 +139,8 @@ const char* get_app_files_dir_android(void) {
 int is_jni_initialized_android(void) {
     return g_jni_initialized;
 }
+
+} // Extern C
+
 
 #endif // ANDROID
