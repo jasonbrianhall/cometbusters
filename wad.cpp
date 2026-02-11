@@ -39,8 +39,8 @@ bool wad_open(WadArchive *wad, const char *filename) {
     
     wad->zip_archive = (void *)zip;
     
-    fprintf(stdout, "✓ WAD file opened: %s\n", filename);
-    fprintf(stdout, "  Files in archive: %u\n", mz_zip_reader_get_num_files(zip));
+    SDL_Log("[Comet Busters] ✓ WAD file opened: %s\n", filename);
+    SDL_Log("[Comet Busters]   Files in archive: %u\n", mz_zip_reader_get_num_files(zip));
     
     return true;
 }
@@ -84,8 +84,8 @@ bool wad_open_from_memory(WadArchive *wad, const unsigned char *wad_data, size_t
     
     wad->zip_archive = (void *)zip;
     
-    fprintf(stdout, "✓ WAD file opened from memory: %zu bytes\n", wad_size);
-    fprintf(stdout, "  Files in archive: %u\n", mz_zip_reader_get_num_files(zip));
+    SDL_Log("[Comet Busters] ✓ WAD file opened from memory: %zu bytes\n", wad_size);
+    SDL_Log("[Comet Busters]   Files in archive: %u\n", mz_zip_reader_get_num_files(zip));
     
     return true;
 }
@@ -99,7 +99,7 @@ void wad_close(WadArchive *wad) {
     free(zip);
     wad->zip_archive = NULL;
     
-    fprintf(stdout, "✓ WAD file closed: %s\n", wad->filename);
+    SDL_Log("[Comet Busters] ✓ WAD file closed: %s\n", wad->filename);
 }
 
 // Extract file from WAD
@@ -145,7 +145,7 @@ bool wad_extract_file(WadArchive *wad, const char *internal_path, WadFile *out_f
         return false;
     }
     
-    fprintf(stdout, "  Extracted: %s (%zu bytes)\n", internal_path, out_file->size);
+    SDL_Log("[Comet Busters]   Extracted: %s (%zu bytes)\n", internal_path, out_file->size);
     return true;
 }
 

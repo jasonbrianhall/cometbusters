@@ -63,7 +63,7 @@ static void init_shuffle_order(AudioManager *audio) {
     audio->shuffle_position = 0;
     audio->shuffle_initialized = true;
     
-    fprintf(stdout, "[OK] Shuffle order initialized\n");
+    SDL_Log("[Comet Busters] [OK] Shuffle order initialized\n");
 }
 
 // Initialize audio system
@@ -119,7 +119,7 @@ bool audio_init(AudioManager *audio) {
     Mix_VolumeMusic(100);        // Music volume
     Mix_Volume(-1, 100);         // SFX volume (all channels)
     
-    fprintf(stdout, "[OK] Audio system initialized\n");
+    SDL_Log("[Comet Busters] [OK] Audio system initialized\n");
     return true;
 }
 
@@ -136,7 +136,7 @@ bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
         return false;
     }
     
-    fprintf(stdout, "Loading sounds from WAD: %s\n", wad_filename);
+    SDL_Log("[Comet Busters] Loading sounds from WAD: %s\n", wad_filename);
     
     // Load individual sounds
     audio->sfx_fire = load_sound_from_wad(&audio->wad, "sounds/fire.mp3");
@@ -166,7 +166,7 @@ bool audio_load_wad(AudioManager *audio, const char *wad_filename) {
     if (audio->sfx_bossexplosion) loaded++;
     if (audio->sfx_ufo) loaded++;
     
-    fprintf(stdout, "[OK] Loaded %d/%d sounds from WAD\n", loaded, 11);
+    SDL_Log("[Comet Busters] [OK] Loaded %d/%d sounds from WAD\n", loaded, 11);
     
     return loaded > 0;
 }
@@ -298,7 +298,7 @@ void audio_play_music(AudioManager *audio, const char *internal_path, bool loop)
     if (Mix_PlayMusic(music, loops) < 0) {
         SDL_Log("[Comet Busters] Failed to play music: %s\n", Mix_GetError());
     } else {
-        fprintf(stdout, "[*] Playing: %s\n", internal_path);
+        SDL_Log("[Comet Busters] [*] Playing: %s\n", internal_path);
     }
 }
 
@@ -334,7 +334,7 @@ void audio_play_intro_music(AudioManager *audio, const char *internal_path) {
         SDL_Log("[Comet Busters] Failed to play intro music: %s\n", Mix_GetError());
         Mix_FreeMusic(music);
     } else {
-        fprintf(stdout, "[*] Playing intro: %s\n", internal_path);
+        SDL_Log("[Comet Busters] [*] Playing intro: %s\n", internal_path);
     }
 }
 
@@ -362,7 +362,7 @@ void audio_play_random_music(AudioManager *audio) {
     if (Mix_PlayMusic(music, 0) < 0) {  // Play once (0 loops), music_finished callback will trigger next
         SDL_Log("[Comet Busters] Failed to play music: %s\n", Mix_GetError());
     } else {
-        fprintf(stdout, "[*] Playing track %d (position %d/%d in shuffle)\n", 
+        SDL_Log("[Comet Busters] [*] Playing track %d (position %d/%d in shuffle)\n", 
                 track_index + 1, audio->shuffle_position, audio->music_track_count);
     }
 }
@@ -373,7 +373,7 @@ void audio_stop_music(AudioManager *audio) {
     
     if (Mix_PlayingMusic()) {
         Mix_HaltMusic();
-        fprintf(stdout, "[*] Music stopped\n");
+        SDL_Log("[Comet Busters] [*] Music stopped\n");
     }
 }
 
@@ -383,7 +383,7 @@ void audio_pause_music(AudioManager *audio) {
     
     if (Mix_PlayingMusic()) {
         Mix_PauseMusic();
-        fprintf(stdout, "[*] Music paused\n");
+        SDL_Log("[Comet Busters] [*] Music paused\n");
     }
 }
 
@@ -393,7 +393,7 @@ void audio_resume_music(AudioManager *audio) {
     
     if (Mix_PausedMusic()) {
         Mix_ResumeMusic();
-        fprintf(stdout, "[*] Music resumed\n");
+        SDL_Log("[Comet Busters] [*] Music resumed\n");
     }
 }
 
