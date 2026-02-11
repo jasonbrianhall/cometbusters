@@ -2228,6 +2228,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 #endif
 
     if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
+        SDL_Log("[Comet Busters] Failed to initialize video\n");
         return 1;
     }
     
