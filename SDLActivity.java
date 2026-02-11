@@ -1,33 +1,74 @@
 package org.libsdl.app;
 
 import android.app.Activity;
-import android.os.Bundle;
-import android.view.SurfaceView;
+import android.content.Context;
 import android.content.res.AssetManager;
+import android.os.Build;
+import android.os.Bundle;
 import android.util.Log;
+import android.view.SurfaceView;
 
 /**
- * SDL Activity for CometBuster with integrated JNI WAD loading
- * Handles both direct asset loading and fallback extraction
+ * SDL Activity for CometBuster
+ * Full SDL2 integration + Custom JNI WAD loading
  */
 public class SDLActivity extends Activity {
     
     private static final String TAG = "CometBuster";
     
+    // SDL2 required static variables
+    public static SDLActivity mSingleton;
+    public static SurfaceView mSurface;
+    protected static final int SDL_ORIENTATION_PORTRAIT = 0;
+    protected static final int SDL_ORIENTATION_LANDSCAPE = 1;
+    protected static final int SDL_ORIENTATION_PORTRAIT_FLIPPED = 2;
+    protected static final int SDL_ORIENTATION_LANDSCAPE_FLIPPED = 3;
+    protected static int mCurrentOrientation = SDL_ORIENTATION_PORTRAIT;
+    
+    // Native state enum for SDL2
+    public enum NativeState {
+        INIT, RESUMED, PAUSED
+    }
+    public static NativeState mNextNativeState = NativeState.INIT;
+    
+    // Native methods required by SDL2
+    public native static void nativeSetupJNI();
+    public native static void initialize();
+    public native static void onNativeResize();
+    public native static void onNativeSurfaceCreated();
+    public native static void onNativeSurfaceDestroyed();
+    public native static void onNativeSurfaceChanged();
+    public native static void onNativeAccel(float x, float y, float z);
+    public native static void onNativeOrientationChanged(int orientation);
+    public native static void onNativeMouse(int button, int action, float x, float y, boolean relative_mode);
+    public native static void onNativeTouch(int touchDevId, int pointerFingerId, int action, float x, float y, float p);
+    public native static void nativeSetScreenResolution(int surfaceWidth, int surfaceHeight, int nDeviceWidth, int nDeviceHeight, float density);
+    public native static void handleNativeState();
+    public native static boolean handleKeyEvent(android.view.View v, int keyCode, android.view.KeyEvent event, java.lang.Object unused);
+    
+    // Custom WAD loading JNI methods
+    private native void initAssetManager(AssetManager assetManager);
+    private native void setAppFilesDir(String path);
+    
+    // SDL motion listener
+    private static SDLGenericMotionListener_API12 mMotionListener;
+    
     static {
-        // Load shared libraries in order
         try {
             System.loadLibrary("c++_shared");
         } catch (UnsatisfiedLinkError e) {
             Log.d(TAG, "c++_shared not found (non-critical)");
         }
     }
-
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        Log.i(TAG, "SDLActivity.onCreate() starting initialization");
+        Log.i(TAG, "=== SDLActivity.onCreate() ===");
+        
+        // Set singleton reference
+        mSingleton = this;
         
         // Step 1: Initialize JNI asset manager for direct APK asset access
         Log.i(TAG, "Initializing JNI asset manager...");
@@ -37,55 +78,42 @@ public class SDLActivity extends Activity {
         Log.i(TAG, "Setting app files directory...");
         setAppFilesDir(getFilesDir().getAbsolutePath());
         
-        // Step 3: Extract WAD file as fallback (in case JNI loading fails)
+        // Step 3: Extract WAD file as fallback
         Log.i(TAG, "Extracting WAD file as fallback...");
         extractWad();
         
-        // Step 4: Load native libraries
+        // Step 4: Setup SDL JNI
+        Log.i(TAG, "Setting up SDL JNI...");
+        nativeSetupJNI();
+        
+        // Step 5: Load native libraries
         Log.i(TAG, "Loading native libraries...");
         System.loadLibrary("SDL2");
         System.loadLibrary("SDL2_mixer");
         System.loadLibrary("main");
         
-        Log.i(TAG, "All native libraries loaded successfully");
+        Log.i(TAG, "All native libraries loaded");
         
-        // Step 5: Create and set surface view
-        Log.i(TAG, "Creating OpenGL surface view...");
-        SurfaceView surfaceView = new SurfaceView(this);
-        setContentView(surfaceView);
+        // Step 6: Create SDL surface
+        Log.i(TAG, "Creating SDL surface...");
+        mSurface = new SDLSurface(getApplication());
+        setContentView(mSurface);
         
-        Log.i(TAG, "SDLActivity initialization complete");
+        // Step 7: Initialize SDL
+        Log.i(TAG, "Initializing SDL...");
+        initialize();
+        
+        Log.i(TAG, "=== SDLActivity.onCreate() complete ===");
     }
-
-    /**
-     * JNI: Initialize the asset manager for native code
-     * This is called automatically during onCreate()
-     * Allows native code to access files directly from the APK
-     */
-    private native void initAssetManager(AssetManager assetManager);
-
-    /**
-     * JNI: Set the app files directory path
-     * Called automatically during onCreate()
-     * Path: /data/data/org.cometbuster.game/files/
-     */
-    private native void setAppFilesDir(String path);
-
+    
     /**
      * Extract WAD file from APK assets to app files directory
-     * 
-     * This serves as a fallback if:
-     * - JNI asset loading fails
-     * - Native code wants direct file access
-     * 
-     * Only extracts once - subsequent calls check if file exists
      */
     private void extractWad() {
         try {
             String wadFileName = "cometbuster.wad";
             java.io.File wadFile = new java.io.File(getFilesDir(), wadFileName);
             
-            // Check if already extracted
             if (wadFile.exists()) {
                 Log.i(TAG, "WAD file already extracted: " + wadFile.getAbsolutePath() + 
                       " (" + wadFile.length() + " bytes)");
@@ -94,11 +122,9 @@ public class SDLActivity extends Activity {
             
             Log.i(TAG, "Extracting WAD file: " + wadFileName);
             
-            // Open asset from APK
             java.io.InputStream in = getAssets().open(wadFileName);
             java.io.FileOutputStream out = new java.io.FileOutputStream(wadFile);
             
-            // Copy file in 64KB chunks
             byte[] buffer = new byte[65536];
             int bytesRead;
             long totalBytes = 0;
@@ -118,15 +144,26 @@ public class SDLActivity extends Activity {
             Log.w(TAG, "WAD file not found in assets (non-critical): " + e.getMessage());
         } catch (Exception e) {
             Log.e(TAG, "Failed to extract WAD: " + e.getMessage());
-            Log.e(TAG, "Stack trace: " + Log.getStackTraceString(e));
         }
     }
-
-    /**
-     * Get app files directory for potential Java-side use
-     * Path: /data/data/org.cometbuster.game/files/
-     */
-    public String getAppFilesDir() {
-        return getFilesDir().getAbsolutePath();
+    
+    // Getters required by SDL2
+    public static Context getContext() {
+        return mSingleton;
+    }
+    
+    public static SDLGenericMotionListener_API12 getMotionListener() {
+        if (mMotionListener == null) {
+            mMotionListener = new SDLGenericMotionListener_API12();
+        }
+        return mMotionListener;
+    }
+    
+    public static SurfaceView getContentView() {
+        return mSurface;
+    }
+    
+    public static boolean isDeXMode() {
+        return false;  // Not in DeX mode (Samsung DeX) - safe default
     }
 }
