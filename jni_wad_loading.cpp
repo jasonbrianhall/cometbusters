@@ -3,18 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <jni.h>
 #include <SDL.h>
 
 static char g_app_files_dir[512] = {0};  // Store the path Java tells us
 static volatile int g_jni_initialized = 0;  // Flag to track JNI initialization
 
-extern "C" {
 /**
  * JNI: Called from Java to set the app files directory path
  * Java passes getFilesDir().getAbsolutePath() here
+ * MUST be extern "C" for JNI to find it
  */
+extern "C" {
 JNIEXPORT void JNICALL 
 Java_org_libsdl_app_SDLActivity_nativeSetAppFilesDir(JNIEnv *env, jobject obj, jstring path_jstr) {
     const char *path = env->GetStringUTFChars(path_jstr, NULL);
@@ -30,9 +30,11 @@ Java_org_libsdl_app_SDLActivity_nativeSetAppFilesDir(JNIEnv *env, jobject obj, j
         SDL_Log("[JNI] ERROR: Failed to get string from Java!\n");
     }
 }
+} // extern "C" - end JNI block
 
 /**
  * Load WAD file from the path Java set via nativeSetAppFilesDir()
+ * Called from C++ code (comet_main_gl.cpp), so NOT extern "C"
  */
 unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
     
@@ -117,6 +119,7 @@ unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
 /**
  * Get app files directory (returns what Java set via nativeSetAppFilesDir)
  * Returns NULL if not yet set, allowing callers to use fallbacks
+ * Called from C++ code, so NOT extern "C"
  */
 const char* get_app_files_dir_android(void) {
     if (!g_jni_initialized) {
@@ -135,12 +138,10 @@ const char* get_app_files_dir_android(void) {
 
 /**
  * Check if JNI initialization is complete
+ * Called from C++ code, so NOT extern "C"
  */
 int is_jni_initialized_android(void) {
     return g_jni_initialized;
 }
-
-} // Extern C
-
 
 #endif // ANDROID
