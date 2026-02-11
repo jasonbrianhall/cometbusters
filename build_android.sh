@@ -61,7 +61,7 @@ mkdir -p build/android
 cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp jni_wad_loading.cpp android/app/src/jni/src/ 2>/dev/null || true
 cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/src/ 2>/dev/null || true
 cp -f SDLActivity.java android/app/src/main/java/org/libsdl/app/SDLActivity.java
-#cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
+cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
 
 # Copy SDL2 Java files (SDLActivity and support classes)
 if [ -d "android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app" ]; then
