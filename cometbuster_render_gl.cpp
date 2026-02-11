@@ -27,6 +27,8 @@
     #define glDeleteVertexArrays(n, arrays) (void)0
 #endif
 
+static int isGLInitialized = 0;
+
 // FreeType includes for dynamic TTF rendering
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -697,10 +699,12 @@ void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int
 void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     if (!visualizer) return;
 
-    if (!gl_state.program) {
-        SDL_Log("[Comet Busters] [Comet Busters] Initializing GL Init (should only happen once)");
+    if (!isGLInitialized) {
         gl_init();
+        SDL_Log("[Comet Busters] [Comet Busters] Initializing GL Init (should only happen once)");
+        isGLInitialized = 1;
     }
+
     CometBusterGame *game = &visualizer->comet_buster;
     int width = visualizer->width;
     int height = visualizer->height;
