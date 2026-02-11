@@ -65,7 +65,7 @@ cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
 
 # Copy SDL2 Java files (SDLActivity and support classes)
 if [ -d "android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app" ]; then
-    cp -f android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app/*.java android/app/src/main/java/org/libsdl/app/
+    cp -n android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app/*.java android/app/src/main/java/org/libsdl/app/
     echo -e "${GREEN}✓ SDL2 Java classes copied${NC}"
 else
     # Fallback: Create SDLActivity with JNI support
