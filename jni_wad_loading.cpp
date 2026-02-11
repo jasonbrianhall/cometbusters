@@ -45,7 +45,6 @@ Java_org_libsdl_app_SDLActivity_nativeSetAppFilesDir(JNIEnv *env, jobject obj, j
     if (path) {
         strncpy(g_app_files_dir, path, sizeof(g_app_files_dir) - 1);
         g_app_files_dir[sizeof(g_app_files_dir) - 1] = '\0';
-        debug_log_write("[JNI] App files dir set to: %s", g_app_files_dir);
         SDL_Log("[JNI] App files dir set to: %s\n", g_app_files_dir);
         env->ReleaseStringUTFChars(path_jstr, path);
     }
@@ -60,7 +59,6 @@ unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
     debug_log_write("[WAD] load_wad_android() called with filename: %s", wad_filename);
     
     if (!wad_filename || !out_size) {
-        debug_log_write("[WAD] ERROR: Invalid parameters");
         SDL_Log("[WAD] ERROR: Invalid parameters\n");
         return NULL;
     }
@@ -68,7 +66,6 @@ unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
     *out_size = 0;
     
     if (g_app_files_dir[0] == '\0') {
-        debug_log_write("[WAD] ERROR: App files dir not set by Java!");
         SDL_Log("[WAD] ERROR: App files dir not set by Java!\n");
         return NULL;
     }
@@ -77,33 +74,23 @@ unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
     SDL_Log("[WAD] Attempting to load: %s\n", wad_filename);
     SDL_Log("[WAD] ========================================\n");
     
-    debug_log_write("[WAD] ========================================");
-    debug_log_write("[WAD] Attempting to load: %s", wad_filename);
-    debug_log_write("[WAD] App files dir: %s", g_app_files_dir);
-    debug_log_write("[WAD] ========================================");
-    
     // Build full path using Java-provided directory
     char full_path[512];
     snprintf(full_path, sizeof(full_path), "%s/%s", g_app_files_dir, wad_filename);
     
-    debug_log_write("[WAD] Trying: %s", full_path);
     SDL_Log("[WAD] Trying: %s\n", full_path);
     FILE *f = fopen(full_path, "rb");
     
     if (!f) {
-        debug_log_write("[WAD] Failed, trying current directory: %s", wad_filename);
         SDL_Log("[WAD] Failed to open, trying current directory\n");
         f = fopen(wad_filename, "rb");
     }
     
     if (!f) {
-        debug_log_write("[WAD] FAILED: Could not open %s from any location", wad_filename);
         SDL_Log("[WAD] FAILED: Could not load %s\n", wad_filename);
         SDL_Log("[WAD] ========================================\n");
         return NULL;
     }
-    
-    debug_log_write("[WAD] File opened successfully");
     
     // Get file size
     fseek(f, 0, SEEK_END);
@@ -111,18 +98,14 @@ unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
     fseek(f, 0, SEEK_SET);
     
     if (file_size <= 0) {
-        debug_log_write("[WAD] ERROR: Invalid file size: %ld bytes", file_size);
         SDL_Log("[WAD] ERROR: Invalid file size (%ld bytes)\n", file_size);
         fclose(f);
         return NULL;
     }
-    
-    debug_log_write("[WAD] File size: %ld bytes", file_size);
-    
+
     // Allocate memory
     unsigned char *buffer = (unsigned char *)malloc(file_size);
     if (!buffer) {
-        debug_log_write("[WAD] ERROR: Out of memory allocating %ld bytes", file_size);
         SDL_Log("[WAD] ERROR: Out of memory allocating %ld bytes\n", file_size);
         fclose(f);
         return NULL;
@@ -135,14 +118,12 @@ unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
     fclose(f);
     
     if (bytes_read != (size_t)file_size) {
-        debug_log_write("[WAD] ERROR: Read only %zu of %ld bytes", bytes_read, file_size);
         SDL_Log("[WAD] ERROR: Read only %zu of %ld bytes\n", bytes_read, file_size);
         free(buffer);
         return NULL;
     }
     
     *out_size = file_size;
-    debug_log_write("[WAD] SUCCESS: Loaded %s (%ld bytes)", wad_filename, file_size);
     SDL_Log("[WAD] SUCCESS: Loaded %s (%ld bytes)\n", wad_filename, file_size);
     SDL_Log("[WAD] ========================================\n");
     
@@ -153,7 +134,7 @@ unsigned char* load_wad_android(const char *wad_filename, size_t *out_size) {
  * Get app files directory (returns what Java set via nativeSetAppFilesDir)
  */
 const char* get_app_files_dir_android(void) {
-    debug_log_write("[WAD] get_app_files_dir_android() called, returning: %s", g_app_files_dir);
+    SDL_Log("[WAD] get_app_files_dir_android() called, returning: %s", g_app_files_dir);
     return g_app_files_dir[0] != '\0' ? g_app_files_dir : NULL;
 }
 

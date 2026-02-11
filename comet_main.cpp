@@ -164,7 +164,7 @@ static bool settings_ensure_dir(void) {
         return true;
     }
     
-    fprintf(stderr, "[SETTINGS] Failed to create directory: %s\n", dir);
+    SDL_Log("[SETTINGS] Failed to create directory: %s\n", dir);
     return false;
 #else
     const char *dir = settings_get_dir();
@@ -178,7 +178,7 @@ static bool settings_ensure_dir(void) {
         return true;
     }
     
-    fprintf(stderr, "[SETTINGS] Failed to create directory: %s\n", dir);
+    SDL_Log("[SETTINGS] Failed to create directory: %s\n", dir);
     return false;
 #endif
 }
@@ -203,12 +203,12 @@ static bool settings_load_volumes(int *music_volume, int *sfx_volume) {
     fclose(fp);
     
     if (result != 2) {
-        fprintf(stderr, "[SETTINGS] Invalid settings file format\n");
+        SDL_Log("[SETTINGS] Invalid settings file format\n");
         return false;
     }
     
     if (music_vol < 0 || music_vol > 128 || sfx_vol < 0 || sfx_vol > 128) {
-        fprintf(stderr, "[SETTINGS] Invalid volume values in settings\n");
+        SDL_Log("[SETTINGS] Invalid volume values in settings\n");
         return false;
     }
     
@@ -224,7 +224,7 @@ static bool settings_load_volumes(int *music_volume, int *sfx_volume) {
  */
 static bool settings_save_volumes(int music_volume, int sfx_volume) {
     if (!settings_ensure_dir()) {
-        fprintf(stderr, "[SETTINGS] Failed to ensure settings directory exists\n");
+        SDL_Log("[SETTINGS] Failed to ensure settings directory exists\n");
         return false;
     }
     
@@ -232,7 +232,7 @@ static bool settings_save_volumes(int music_volume, int sfx_volume) {
     FILE *fp = fopen(path, "w");
     
     if (!fp) {
-        fprintf(stderr, "[SETTINGS] Failed to open settings file for writing: %s\n", path);
+        SDL_Log("[SETTINGS] Failed to open settings file for writing: %s\n", path);
         return false;
     }
     
@@ -2420,7 +2420,7 @@ int main(int argc, char *argv[]) {
     // Initialize audio system
     memset(&gui.audio, 0, sizeof(AudioManager));
     if (!audio_init(&gui.audio)) {
-        fprintf(stderr, "Warning: Audio initialization failed, continuing without sound\n");
+        SDL_Log("Warning: Audio initialization failed, continuing without sound\n");
     }
     
     // Try to load WAD file with sounds
@@ -2428,12 +2428,12 @@ int main(int argc, char *argv[]) {
     {
         std::string wadPath = getExecutableDir() + "\\cometbuster.wad";
         if (!audio_load_wad(&gui.audio, wadPath.c_str())) {
-            fprintf(stderr, "Warning: Could not load cometbuster.wad, sounds will be silent\n");
+            SDL_Log("Warning: Could not load cometbuster.wad, sounds will be silent\n");
         }
     }
 #else
     if (!audio_load_wad(&gui.audio, "cometbuster.wad")) {
-        fprintf(stderr, "Warning: Could not load cometbuster.wad, sounds will be silent\n");
+        SDL_Log("Warning: Could not load cometbuster.wad, sounds will be silent\n");
     }
 #endif
 

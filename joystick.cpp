@@ -44,13 +44,13 @@ void joystick_manager_init(JoystickManager *manager) {
     if (!sdl_initialized) {
         if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0) {
             sdl_initialized = SDL_TRUE;
-            fprintf(stdout, "[JOYSTICK] SDL initialized\n");
+            SDL_Log("[JOYSTICK] SDL initialized\n");
         } else {
-            fprintf(stderr, "[JOYSTICK] SDL initialization failed: %s\n", SDL_GetError());
+            SDL_Log("[JOYSTICK] SDL initialization failed: %s\n", SDL_GetError());
         }
     }
     
-    fprintf(stdout, "[JOYSTICK] Manager initialized\n");
+    SDL_Log("[JOYSTICK] Manager initialized\n");
 }
 
 void joystick_manager_cleanup(JoystickManager *manager) {
@@ -68,7 +68,7 @@ void joystick_manager_cleanup(JoystickManager *manager) {
         }
     }
     
-    fprintf(stdout, "[JOYSTICK] Manager cleaned up\n");
+    SDL_Log("[JOYSTICK] Manager cleaned up\n");
 }
 
 // ============================================================
@@ -79,7 +79,7 @@ int joystick_manager_detect(JoystickManager *manager) {
     if (!manager) return 0;
     
     if (!sdl_initialized) {
-        fprintf(stderr, "[JOYSTICK] SDL not initialized\n");
+        SDL_Log("[JOYSTICK] SDL not initialized\n");
         return 0;
     }
     
@@ -91,7 +91,7 @@ int joystick_manager_detect(JoystickManager *manager) {
         num_joysticks = 4;  // Limit to 4
     }
     
-    fprintf(stdout, "[JOYSTICK] Detecting joysticks... found %d devices\n", num_joysticks);
+    SDL_Log("[JOYSTICK] Detecting joysticks... found %d devices\n", num_joysticks);
     
     // Open each joystick
     for (int i = 0; i < 4; i++) {
@@ -110,7 +110,7 @@ int joystick_manager_detect(JoystickManager *manager) {
                 manager->num_joysticks++;
                 snprintf(joy->name, sizeof(joy->name), "%s", 
                         SDL_GameControllerName(controller));
-                fprintf(stdout, "[JOYSTICK] Device %d: %s (GameController)\n", i, joy->name);
+                SDL_Log("[JOYSTICK] Device %d: %s (GameController)\n", i, joy->name);
             } else {
                 // Fall back to raw joystick
                 SDL_Joystick *joystick = SDL_JoystickOpen(i);
@@ -121,13 +121,13 @@ int joystick_manager_detect(JoystickManager *manager) {
                     manager->num_joysticks++;
                     snprintf(joy->name, sizeof(joy->name), "%s", 
                             SDL_JoystickName(joystick));
-                    fprintf(stdout, "[JOYSTICK] Device %d: %s (Raw Joystick)\n", i, joy->name);
+                    SDL_Log("[JOYSTICK] Device %d: %s (Raw Joystick)\n", i, joy->name);
                 }
             }
         }
     }
     
-    fprintf(stdout, "[JOYSTICK] Detection complete - found %d joysticks\n", 
+    SDL_Log("[JOYSTICK] Detection complete - found %d joysticks\n", 
             manager->num_joysticks);
     
     return manager->num_joysticks;
@@ -184,10 +184,10 @@ void joystick_manager_update(JoystickManager *manager) {
         // Events are processed but we mainly rely on direct state queries below
         switch (event.type) {
             case SDL_JOYDEVICEADDED:
-                fprintf(stdout, "[JOYSTICK] Device connected: %d\n", event.jdevice.which);
+                SDL_Log("[JOYSTICK] Device connected: %d\n", event.jdevice.which);
                 break;
             case SDL_JOYDEVICEREMOVED:
-                fprintf(stdout, "[JOYSTICK] Device disconnected: %d\n", event.jdevice.which);
+                SDL_Log("[JOYSTICK] Device disconnected: %d\n", event.jdevice.which);
                 break;
         }
     }
@@ -312,7 +312,7 @@ void joystick_manager_set_stick_deadzone(JoystickManager *manager, double deadzo
     if (deadzone > 1.0) deadzone = 1.0;
     
     manager->stick_deadzone = deadzone;
-    fprintf(stdout, "[JOYSTICK] Stick deadzone set to %.2f\n", deadzone);
+    SDL_Log("[JOYSTICK] Stick deadzone set to %.2f\n", deadzone);
 }
 
 void joystick_manager_set_trigger_deadzone(JoystickManager *manager, double deadzone) {
@@ -322,7 +322,7 @@ void joystick_manager_set_trigger_deadzone(JoystickManager *manager, double dead
     if (deadzone > 1.0) deadzone = 1.0;
     
     manager->trigger_deadzone = deadzone;
-    fprintf(stdout, "[JOYSTICK] Trigger deadzone set to %.2f\n", deadzone);
+    SDL_Log("[JOYSTICK] Trigger deadzone set to %.2f\n", deadzone);
 }
 
 // ============================================================
@@ -332,14 +332,14 @@ void joystick_manager_set_trigger_deadzone(JoystickManager *manager, double dead
 bool game_options_load(GameOptions *options) {
     if (!options) return false;
     
-    fprintf(stdout, "[OPTIONS] No saved options found, using defaults\n");
+    SDL_Log("[OPTIONS] No saved options found, using defaults\n");
     return false;
 }
 
 bool game_options_save(const GameOptions *options) {
     if (!options) return false;
     
-    fprintf(stdout, "[OPTIONS] Game options saved\n");
+    SDL_Log("[OPTIONS] Game options saved\n");
     return true;
 }
 
@@ -372,7 +372,7 @@ GameOptions game_options_default(void) {
 
 void update_visualizer_joystick(Visualizer *vis) {
     if (!vis) {
-        fprintf(stderr, "[JOYSTICK] ERROR: vis pointer is NULL\n");
+        SDL_Log("[JOYSTICK] ERROR: vis pointer is NULL\n");
         return;
     }
     
