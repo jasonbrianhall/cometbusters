@@ -70,29 +70,28 @@ public class SDLActivity extends Activity {
         // Set singleton reference
         mSingleton = this;
         
-        // Step 1: Initialize JNI asset manager for direct APK asset access
-        Log.i(TAG, "Initializing JNI asset manager...");
-        initAssetManager(getAssets());
-        
-        // Step 2: Set app files directory for JNI code to use
-        Log.i(TAG, "Setting app files directory...");
-        setAppFilesDir(getFilesDir().getAbsolutePath());
-        
-        // Step 3: Extract WAD file as fallback
-        Log.i(TAG, "Extracting WAD file as fallback...");
-        extractWad();
-        
-        // Step 4: Setup SDL JNI
-        Log.i(TAG, "Setting up SDL JNI...");
-        nativeSetupJNI();
-        
-        // Step 5: Load native libraries
+        // Step 1: Load native libraries FIRST (before calling any native methods)
         Log.i(TAG, "Loading native libraries...");
         System.loadLibrary("SDL2");
         System.loadLibrary("SDL2_mixer");
         System.loadLibrary("main");
-        
         Log.i(TAG, "All native libraries loaded");
+        
+        // Step 2: Initialize JNI asset manager for direct APK asset access
+        Log.i(TAG, "Initializing JNI asset manager...");
+        initAssetManager(getAssets());
+        
+        // Step 3: Set app files directory for JNI code to use
+        Log.i(TAG, "Setting app files directory...");
+        setAppFilesDir(getFilesDir().getAbsolutePath());
+        
+        // Step 4: Extract WAD file as fallback
+        Log.i(TAG, "Extracting WAD file as fallback...");
+        extractWad();
+        
+        // Step 5: Setup SDL JNI
+        Log.i(TAG, "Setting up SDL JNI...");
+        nativeSetupJNI();
         
         // Step 6: Create SDL surface
         Log.i(TAG, "Creating SDL surface...");
