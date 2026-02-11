@@ -2155,6 +2155,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
                 
                 if (bytes_written == wad_size) {
                     SDL_Log("[AUDIO] [OK] WAD cached to: %s (%zu bytes)\n", full_wad_path, wad_size);
+                    if (audio_init(&gui.audio)) {
+                        SDL_Log("[AUDIO] System initialized\n");
+                    }
+
                     wad_loaded = audio_load_wad(&gui.audio, full_wad_path);
                     
                     if (wad_loaded) {
