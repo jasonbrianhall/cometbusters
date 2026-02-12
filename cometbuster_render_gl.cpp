@@ -11,9 +11,23 @@
 #include "cometbuster_splashscreen.h"
 #include "comet_lang.h"
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 #ifdef ExternalSound
 #include "audio_wad.h"
 #endif
+
+#ifdef ANDROID
+    #define glGenVertexArrays(n, arrays) (void)0
+    #define glBindVertexArray(array) (void)0
+    #define glDeleteVertexArrays(n, arrays) (void)0
+#endif
+
+static int isGLInitialized = 0;
 
 // FreeType includes for dynamic TTF rendering
 #include <ft2build.h>
@@ -102,7 +116,7 @@ static GLuint compile_shader(const char *src, GLenum type) {
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(shader, 512, NULL, log);
-        fprintf(stderr, "[GL] Shader compile error: %s\n", log);
+        SDL_Log("[Comet Busters] [GL] Shader compile error: %s\n", log);
     }
     return shader;
 }
@@ -120,7 +134,7 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
     glGetProgramiv(prog, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(prog, 512, NULL, log);
-        fprintf(stderr, "[GL] Program link error: %s\n", log);
+        SDL_Log("[Comet Busters] [GL] Program link error: %s\n", log);
     }
     
     glDeleteShader(vs);
@@ -128,10 +142,10 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
     return prog;
 }
 
-static void gl_init(void) {
+void gl_init(void) {
     if (gl_state.program) return;
     
-    fprintf(stderr, "[GL] Initializing modern GL 3.3+ renderer\n");
+    SDL_Log("[Comet Busters] [GL] Initializing modern GL 3.3+ renderer\n");
     glGenVertexArrays(1, &global_vao);
     
     gl_state.program = create_program(vertex_shader, fragment_shader);
@@ -161,7 +175,7 @@ static void gl_init(void) {
     // Initialize FreeType font system with base64-encoded TTF
     ft_init_from_base64();
     
-    fprintf(stderr, "[GL] GL 3.3+ renderer initialized\n");
+    SDL_Log("[Comet Busters] [GL] GL 3.3+ renderer initialized\n");
 }
 
 static void draw_vertices(Vertex *verts, int count, GLenum mode) {
@@ -215,39 +229,39 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 // Initialize FreeType library and load base64-encoded TTF font
 static void ft_init_from_base64(void) {
     if (ft_library) {
-        fprintf(stderr, "[FONT] FreeType already initialized\n");
+        SDL_Log("[Comet Busters] [FONT] FreeType already initialized\n");
         return;
     }
     
     // Initialize FreeType library
     FT_Error error = FT_Init_FreeType(&ft_library);
     if (error) {
-        fprintf(stderr, "[FONT] ERROR: Failed to initialize FreeType: %d\n", error);
+        SDL_Log("[Comet Busters] [FONT] ERROR: Failed to initialize FreeType: %d\n", error);
         return;
     }
     
-    fprintf(stderr, "[FONT] FreeType initialized\n");
+    SDL_Log("[Comet Busters] [FONT] FreeType initialized\n");
     
     // Decode base64 font data
-    fprintf(stderr, "[FONT] Decoding base64 TTF font data (%zu bytes)...\n", MONOSPACE_FONT_B64_SIZE);
+    SDL_Log("[Comet Busters] [FONT] Decoding base64 TTF font data (%zu bytes)...\n", MONOSPACE_FONT_B64_SIZE);
     
     // Use the base64_decode function from Monospace.h
     size_t decoded_size = 0;
     int decode_result = base64_decode(MONOSPACE_FONT_B64, MONOSPACE_FONT_B64_SIZE, &ft_font_buffer, &decoded_size);
     
     if (decode_result != 0 || !ft_font_buffer) {
-        fprintf(stderr, "[FONT] ERROR: Failed to decode base64 font data\n");
+        SDL_Log("[Comet Busters] [FONT] ERROR: Failed to decode base64 font data\n");
         FT_Done_FreeType(ft_library);
         ft_library = NULL;
         return;
     }
     
-    fprintf(stderr, "[FONT] Base64 decoded: %zu bytes -> %zu bytes\n", MONOSPACE_FONT_B64_SIZE, decoded_size);
+    SDL_Log("[Comet Busters] [FONT] Base64 decoded: %zu bytes -> %zu bytes\n", MONOSPACE_FONT_B64_SIZE, decoded_size);
     
     // Load the font face from memory
     error = FT_New_Memory_Face(ft_library, ft_font_buffer, (FT_Long)decoded_size, 0, &ft_face);
     if (error) {
-        fprintf(stderr, "[FONT] ERROR: Failed to load TTF face: %d\n", error);
+        SDL_Log("[Comet Busters] [FONT] ERROR: Failed to load TTF face: %d\n", error);
         free(ft_font_buffer);
         ft_font_buffer = NULL;
         FT_Done_FreeType(ft_library);
@@ -255,8 +269,8 @@ static void ft_init_from_base64(void) {
         return;
     }
     
-    fprintf(stderr, "[FONT] TTF font loaded successfully\n");
-    fprintf(stderr, "[FONT] Font family: %s, style: %s\n", ft_face->family_name, ft_face->style_name);
+    SDL_Log("[Comet Busters] [FONT] TTF font loaded successfully\n");
+    SDL_Log("[Comet Busters] [FONT] Font family: %s, style: %s\n", ft_face->family_name, ft_face->style_name);
 }
 
 // Cleanup FreeType resources
@@ -343,7 +357,7 @@ static float gl_calculate_text_width(const char *text, int font_size) {
     // Set font size (in 1/64th of a point, so multiply by 64)
     FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
     if (error) {
-        fprintf(stderr, "[FONT] Warning: Failed to set font size\n");
+        SDL_Log("[Comet Busters] [FONT] Warning: Failed to set font size\n");
         return 0.0f;
     }
     
@@ -380,7 +394,7 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     // Set font size
     FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
     if (error) {
-        fprintf(stderr, "[FONT] Warning: Failed to set font size\n");
+        SDL_Log("[Comet Busters] [FONT] Warning: Failed to set font size\n");
         return;
     }
     
@@ -510,7 +524,7 @@ void gl_draw_rect_outline(float x, float y, float width, float height, float lin
 }
 
 void gl_draw_circle(float cx, float cy, float radius, int segments) {
-    Vertex *verts = malloc((segments + 2) * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc((segments + 2) * sizeof(Vertex));
     verts[0] = (Vertex){cx, cy, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     
     for (int i = 0; i <= segments; i++) {
@@ -526,7 +540,7 @@ void gl_draw_circle(float cx, float cy, float radius, int segments) {
 
 void gl_draw_circle_outline(float cx, float cy, float radius, float line_width, int segments) {
     glLineWidth(line_width);
-    Vertex *verts = malloc((segments + 1) * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc((segments + 1) * sizeof(Vertex));
     
     for (int i = 0; i <= segments; i++) {
         float angle = 2.0f * M_PI * i / segments;
@@ -540,7 +554,7 @@ void gl_draw_circle_outline(float cx, float cy, float radius, float line_width, 
 }
 
 void gl_draw_polygon(float *points, int num_points, int filled) {
-    Vertex *verts = malloc(num_points * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc(num_points * sizeof(Vertex));
     for (int i = 0; i < num_points; i++) {
         verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
@@ -550,7 +564,7 @@ void gl_draw_polygon(float *points, int num_points, int filled) {
 
 void gl_draw_polyline(float *points, int num_points, float line_width) {
     glLineWidth(line_width);
-    Vertex *verts = malloc(num_points * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc(num_points * sizeof(Vertex));
     for (int i = 0; i < num_points; i++) {
         verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
@@ -586,7 +600,7 @@ static void draw_comet_polygon(Comet *c, double points[][2], int num_points, flo
     if (!c) return;
     
     // Allocate for points + closing point
-    Vertex *verts = malloc((num_points + 1) * sizeof(Vertex));
+    Vertex *verts = (Vertex *)malloc((num_points + 1) * sizeof(Vertex));
     
     // PRIMARY rotation (main tumble)
     float angle = c->base_angle + c->rotation * M_PI / 180.0f;
@@ -684,9 +698,13 @@ void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int
 
 void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     if (!visualizer) return;
-    
-    gl_init();
-    
+
+    if (!isGLInitialized) {
+        gl_init();
+        SDL_Log("[Comet Busters] [Comet Busters] Initializing GL Init (should only happen once)");
+        isGLInitialized = 1;
+    }
+
     CometBusterGame *game = &visualizer->comet_buster;
     int width = visualizer->width;
     int height = visualizer->height;
@@ -1862,7 +1880,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
     }
     
     // Draw filled magenta body
-    draw_vertices(body_verts, segments, GL_POLYGON);
+    draw_vertices(body_verts, segments, GL_TRIANGLE_FAN);
     
     // Draw rotating darker oval pattern on the body (shows rotation)
     gl_set_color_alpha(0.4f, 0.1f, 0.5f, 0.6f);
@@ -1887,7 +1905,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
         
         pattern_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.4f, 0.1f, 0.5f, 0.6f};
     }
-    draw_vertices(pattern_verts, segments, GL_POLYGON);
+    draw_vertices(pattern_verts, segments, GL_TRIANGLE_FAN);
     
     // Draw cyan outline ring (elliptical, matching body rotation)
     gl_set_color_alpha(0.0f, 1.0f, 1.0f, 0.7f);
@@ -1937,7 +1955,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
         
         glow_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 0.0f, 0.8f, 1.0f, 0.2f};
     }
-    draw_vertices(glow_verts, segments, GL_POLYGON);
+    draw_vertices(glow_verts, segments, GL_TRIANGLE_FAN);
     
     // Spawn ports - 6 around equator with pulsing glow
     double port_radius = 6.0;
@@ -1992,7 +2010,7 @@ void draw_spawn_queen_boss_gl(CometBusterGame *game, SpawnQueenBoss *queen, void
             
             damage_verts[i] = {(float)queen->x + rx, (float)queen->y + ry, 1.0f, 0.5f, 0.5f, 0.4f};
         }
-        draw_vertices(damage_verts, segments, GL_POLYGON);
+        draw_vertices(damage_verts, segments, GL_TRIANGLE_FAN);
     }
     
     // Red pulsing core
@@ -2079,7 +2097,7 @@ void draw_void_nexus_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, in
             double y = sin(angle) * oct_radius;
             oct_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.3f, 0.7f, 1.0f, 1.0f};
         }
-        draw_vertices(oct_verts, oct_sides, GL_POLYGON);
+        draw_vertices(oct_verts, oct_sides, GL_TRIANGLE_FAN);
         
         // Draw octagon outline
         gl_set_color(0.3f, 0.7f, 1.0f);
@@ -2121,7 +2139,7 @@ void draw_void_nexus_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, in
                 double y = sin(angle) * hex_radius;
                 hex_verts[j] = {(float)(frag_x + x), (float)(frag_y + y), 0.2f, 0.9f, 1.0f, 1.0f};
             }
-            draw_vertices(hex_verts, hex_sides, GL_POLYGON);
+            draw_vertices(hex_verts, hex_sides, GL_TRIANGLE_FAN);
             
             // Draw hexagon outline
             gl_set_color(0.2f, 0.9f, 1.0f);
@@ -2193,7 +2211,7 @@ void draw_harbinger_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int
         hex_verts[i] = {(float)(boss->x + x), (float)(boss->y + y), 0.3f, 0.0f, 0.7f, 1.0f};
     }
     
-    draw_vertices(hex_verts, hex_points, GL_POLYGON);
+    draw_vertices(hex_verts, hex_points, GL_TRIANGLE_FAN);
     
     // Magenta outline
     gl_set_color(1.0f, 0.3f, 1.0f);
@@ -2300,7 +2318,7 @@ void draw_star_vortex_boss_gl(BossShip *boss, void *cr, int width, int height) {
     }
     
     // Fill star
-    draw_vertices(star_verts, star_vertices, GL_POLYGON);
+    draw_vertices(star_verts, star_vertices, GL_TRIANGLE_FAN);
     
     // Outline (darker shade)
     gl_set_color(r * 0.5f, g * 0.5f, b * 0.5f);

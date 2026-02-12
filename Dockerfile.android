@@ -1,0 +1,73 @@
+FROM ubuntu:22.04
+
+# Prevent timezone prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies (explicitly exclude gradle)
+RUN apt-get update && apt-get install -y \
+    wget \
+    unzip \
+    curl \
+    openjdk-17-jdk \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Remove any system gradle that might be installed
+RUN apt-get remove -y gradle 2>/dev/null || true
+
+# Download Gradle 8.5 directly
+RUN mkdir -p /opt/gradle && \
+    cd /tmp && \
+    curl -L https://services.gradle.org/distributions/gradle-8.5-bin.zip -o gradle-8.5-bin.zip && \
+    unzip -q gradle-8.5-bin.zip && \
+    mv gradle-8.5 /opt/gradle/gradle-8.5 && \
+    rm gradle-8.5-bin.zip && \
+    ln -s /opt/gradle/gradle-8.5 /opt/gradle/current
+
+# Set Gradle as the PRIMARY PATH entry (before system paths)
+ENV GRADLE_HOME=/opt/gradle/current
+ENV PATH=/opt/gradle/current/bin:$PATH
+
+# Verify Gradle 8.5 is being used
+RUN gradle --version | head -1
+
+# Download and install Android SDK
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+RUN mkdir -p $ANDROID_SDK_ROOT
+
+WORKDIR $ANDROID_SDK_ROOT
+
+# Download SDK tools
+RUN cd /tmp && \
+    curl -L https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip && \
+    unzip -q cmdline-tools.zip && \
+    mkdir -p /opt/android-sdk/cmdline-tools/latest && \
+    mv cmdline-tools/* /opt/android-sdk/cmdline-tools/latest/ && \
+    rm cmdline-tools.zip
+
+# Set full PATH with Gradle first
+ENV PATH=/opt/gradle/current/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/ndk/25.1.8937393/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+
+# Install SDK components
+RUN yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platforms;android-34" \
+    "build-tools;34.0.0" \
+    "ndk;25.1.8937393" \
+    "cmake;3.22.1" \
+    "tools" 2>&1 || true
+
+# Accept licenses - write fingerprints directly without extra formatting
+RUN mkdir -p $ANDROID_SDK_ROOT/licenses && \
+    echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_SDK_ROOT/licenses/android-sdk-license && \
+    echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license && \
+    echo "d975f751176a0ee99d7f1ecb14352da9b92becfe" > $ANDROID_SDK_ROOT/licenses/intel-android-extra-license && \
+    echo "0cc2eda328ff8cb2589464f117b854211df9f433" > $ANDROID_SDK_ROOT/licenses/android-ndk-license && \
+    yes 2>/dev/null | sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses >/dev/null 2>&1 || true && \
+    echo "Licenses accepted"
+
+# Create work directory
+RUN mkdir -p /workspace
+WORKDIR /workspace
+
+ENV ANDROID_HOME=$ANDROID_SDK_ROOT
+ENV NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.1.8937393

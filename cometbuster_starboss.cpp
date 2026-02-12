@@ -7,6 +7,12 @@
 #include "visualization.h"
 #include "comet_lang.h"
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 #ifdef ExternalSound
 #include "audio_wad.h"
 #endif
@@ -55,7 +61,7 @@ static void star_vortex_spawn_missile(CometBusterGame *game, double x, double y,
 void comet_buster_spawn_star_vortex(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game) return;
     
-    fprintf(stdout, "[SPAWN STAR VORTEX] Spawning rotating star boss at Wave %d\n", game->current_wave);
+    SDL_Log("[Comet Busters] [SPAWN STAR VORTEX] Spawning rotating star boss at Wave %d\n", game->current_wave);
     
     BossShip *boss = &game->boss;
     memset(boss, 0, sizeof(BossShip));
@@ -105,7 +111,7 @@ void comet_buster_spawn_star_vortex(CometBusterGame *game, int screen_width, int
     // Spawn a few comets alongside the boss
     comet_buster_spawn_random_comets(game, 2, screen_width, screen_height);
     
-    fprintf(stdout, "[SPAWN STAR VORTEX] Boss spawned! Position: (%.1f, %.1f), Health: %d\n", 
+    SDL_Log("[Comet Busters] [SPAWN STAR VORTEX] Boss spawned! Position: (%.1f, %.1f), Health: %d\n", 
             boss->x, boss->y, boss->health);
 }
 
@@ -130,7 +136,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
     
     // Check if boss health reached zero in ANY phase before Phase 2 - transition to Phase 2
     if (boss->health <= 0 && boss->phase < 2) {
-        fprintf(stdout, "[STAR VORTEX] Boss health reached zero! Entering Phase 2 (10 Second Countdown)\n");
+        SDL_Log("[Comet Busters] [STAR VORTEX] Boss health reached zero! Entering Phase 2 (10 Second Countdown)\n");
         comet_buster_spawn_floating_text( game, boss->x, boss->y - 80, phase2_detonation_text[game->current_language], 1.0, 0.5, 0.0 );
         boss->phase = 2;
         boss->phase_timer = 0;
@@ -228,7 +234,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
     if (boss->phase == 0) {
         // Auto-advance to Phase 1 after phase duration
         if (boss->phase_timer >= boss->phase_duration) {
-            fprintf(stdout, "[STAR VORTEX] Phase 0 complete. Entering Phase 1 (Juggernaut spawn)\n");
+            SDL_Log("[Comet Busters] [STAR VORTEX] Phase 0 complete. Entering Phase 1 (Juggernaut spawn)\n");
             comet_buster_spawn_floating_text(game, boss->x, boss->y - 80, phase1_offensive_text[game->current_language], 1.0, 1.0, 0.0);
             boss->phase = 1;
             boss->phase_timer = 0;
@@ -302,7 +308,7 @@ void comet_buster_update_star_vortex(CometBusterGame *game, double dt, int width
         
         // Explosion happens at countdown end (phase_timer >= 10)
         if (boss->phase_timer >= 10.0) {
-            fprintf(stdout, "[STAR VORTEX] Final explosion!\n");
+            SDL_Log("[Comet Busters] [STAR VORTEX] Final explosion!\n");
             star_vortex_final_explosion(game);
             boss->active = false;
             game->boss_active = false;
@@ -381,7 +387,7 @@ bool star_vortex_handle_comet_collision(CometBusterGame *game, Comet *comet,
     boss->shield_impact_angle = atan2(norm_dy, norm_dx);
     boss->shield_impact_timer = 0.2;  // Brief flash effect
     
-    fprintf(stdout, "[STAR VORTEX] Comet collision! Boss velocity: (%.1f, %.1f)\n", boss->vx, boss->vy);
+    SDL_Log("[Comet Busters] [STAR VORTEX] Comet collision! Boss velocity: (%.1f, %.1f)\n", boss->vx, boss->vy);
     
     return true;  // Collision was handled
 }
@@ -471,7 +477,7 @@ void star_vortex_fire_missiles(CometBusterGame *game) {
 void star_vortex_spawn_juggernauts(CometBusterGame *game, int width, int height) {
     if (!game) return;
     
-    fprintf(stdout, "[STAR VORTEX] Spawning juggernaut fleet from corners\n");
+    SDL_Log("[Comet Busters] [STAR VORTEX] Spawning juggernaut fleet from corners\n");
     
     // Spawn from four corners: top-left, top-right, bottom-left, bottom-right
     int corners[4][2] = {
@@ -520,7 +526,7 @@ void star_vortex_final_explosion(CometBusterGame *game) {
     double explosion_x = boss->x;
     double explosion_y = boss->y;
     
-    fprintf(stdout, "[STAR VORTEX] Final explosion at (%.1f, %.1f)\n", explosion_x, explosion_y);
+    SDL_Log("[Comet Busters] [STAR VORTEX] Final explosion at (%.1f, %.1f)\n", explosion_x, explosion_y);
     
     double missile_speed = 250.0;
     double bullet_speed = 200.0;

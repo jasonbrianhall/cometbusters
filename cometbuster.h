@@ -699,6 +699,7 @@ void draw_comet_buster_missile_pickups_gl(CometBusterGame *game, void *cr, int w
 void draw_comet_buster_bomb_pickups_gl(CometBusterGame *game, void *cr, int width, int height);
 void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, int height);
 void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height);
+void gl_init(void);
 
 // Boss drawing functions
 void draw_comet_buster_boss_gl(CometBusterGame *game, BossShip *boss, void *cr, int width, int height);

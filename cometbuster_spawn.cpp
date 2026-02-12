@@ -5,6 +5,12 @@
 #include <time.h>
 #include "cometbuster.h"
 #include "visualization.h"
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 
 #ifdef ExternalSound
 #include "audio_wad.h"
@@ -560,7 +566,7 @@ void comet_buster_spawn_ship_death_explosion(CometBusterGame *game, double x, do
         }
     }
     
-    fprintf(stdout, "[Explosion] Ship destroyed at (%.0f, %.0f) - dealt damage in %.0f pixel radius\n", 
+    SDL_Log("[Comet Busters] [Explosion] Ship destroyed at (%.0f, %.0f) - dealt damage in %.0f pixel radius\n", 
             x, y, explosion_radius);
 }
 
@@ -853,7 +859,7 @@ void comet_buster_spawn_enemy_bullet_from_ship(CometBusterGame *game, double x, 
 void comet_buster_spawn_boss(CometBusterGame *game, int screen_width, int screen_height) {
     if (!game) return;
     
-    fprintf(stdout, "[SPAWN BOSS] Attempting to spawn boss at Wave %d\n", game->current_wave);
+    SDL_Log("[Comet Busters] [SPAWN BOSS] Attempting to spawn boss at Wave %d\n", game->current_wave);
     
     BossShip *boss = &game->boss;
     memset(boss, 0, sizeof(BossShip));
@@ -893,7 +899,7 @@ void comet_buster_spawn_boss(CometBusterGame *game, int screen_width, int screen
     // Spawn some normal comets alongside the boss
     comet_buster_spawn_random_comets(game, 3, screen_width, screen_height);
     
-    fprintf(stdout, "[SPAWN BOSS] Boss spawned! Position: (%.1f, %.1f), Active: %d, Health: %d\n", 
+    SDL_Log("[Comet Busters] [SPAWN BOSS] Boss spawned! Position: (%.1f, %.1f), Active: %d, Health: %d\n", 
             boss->x, boss->y, boss->active, boss->health);
 }
 
@@ -934,7 +940,7 @@ void comet_buster_spawn_boss(CometBusterGame *game, int screen_width, int screen
     boss->active = true;
     game->boss_active = true;
     
-    fprintf(stdout, "[SPAWN STAR BOSS] Rotating star boss spawned! Position: (%.1f, %.1f)\n", 
+    SDL_Log("[Comet Busters] [SPAWN STAR BOSS] Rotating star boss spawned! Position: (%.1f, %.1f)\n", 
             boss->x, boss->y);
 }*/
 

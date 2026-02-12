@@ -1,4 +1,8 @@
+#ifdef ANDROID
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <stdlib.h>
@@ -170,7 +174,7 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntr
             default: {
                 if (hs_entry->cursor_pos < 31) {
                     SDL_Keycode key = event->key.keysym.sym;
-                    SDL_Keymod mod  = event->key.keysym.mod;
+                    SDL_Keymod mod  = (SDL_Keymod) event->key.keysym.mod;
 
                     bool shift = (mod & KMOD_SHIFT) != 0;
 
@@ -250,7 +254,7 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntr
                 } else {
                     SDL_SetWindowFullscreen(gui->window, 0);
                 }
-                printf("[INPUT] F11 - Fullscreen toggled: %s\n", gui->fullscreen ? "ON" : "OFF");
+                SDL_Log("[Comet Busters] [INPUT] F11 - Fullscreen toggled: %s\n", gui->fullscreen ? "ON" : "OFF");
             }
             break;
     }
@@ -271,22 +275,22 @@ static void handle_keyboard_input_special(SDL_Event *event, CometGUI *gui) {
                 // Handle music when pausing/resuming
                 if (gui->game_paused) {
                     audio_stop_music(&gui->audio);
-                    printf("[PAUSE] ========== GAME PAUSED ==========\n");
-                    printf("[PAUSE] Wave: %d | Score: %d | Lives: %d\n",
+                    SDL_Log("[Comet Busters] [PAUSE] ========== GAME PAUSED ==========\n");
+                    SDL_Log("[Comet Busters] [PAUSE] Wave: %d | Score: %d | Lives: %d\n",
                            gui->visualizer.comet_buster.current_wave,
                            gui->visualizer.comet_buster.score,
                            gui->visualizer.comet_buster.ship_lives);
-                    printf("[PAUSE] Press P to resume or ESC for menu\n");
-                    printf("[PAUSE] ====================================\n");
+                    SDL_Log("[Comet Busters] [PAUSE] Press P to resume or ESC for menu\n");
+                    SDL_Log("[Comet Busters] [PAUSE] ====================================\n");
                 } else {
-                    printf("[RESUME] ========== GAME RESUMED ==========\n");
+                    SDL_Log("[Comet Busters] [RESUME] ========== GAME RESUMED ==========\n");
                     // Restart music if still in game (not in menu)
 #ifdef ExternalSound
                     if (!gui->show_menu) {
                         audio_play_random_music(&gui->audio);
                     }
 #endif
-                    printf("[RESUME] ====================================\n");
+                    SDL_Log("[Comet Busters] [RESUME] ====================================\n");
                 }
             }
             break;
@@ -294,7 +298,7 @@ static void handle_keyboard_input_special(SDL_Event *event, CometGUI *gui) {
         case SDLK_c: {
             // CTRL+C to quit
             if ((event->key.keysym.mod & KMOD_CTRL)) {
-                printf("[*] CTRL+C pressed - exiting\n");
+                SDL_Log("[Comet Busters] [*] CTRL+C pressed - exiting\n");
                 gui->running = false;
             }
             break;
@@ -302,7 +306,7 @@ static void handle_keyboard_input_special(SDL_Event *event, CometGUI *gui) {
         case SDLK_k: {
             // CTRL+K to toggle cheat menu (for future use)
             if ((event->key.keysym.mod & KMOD_CTRL)) {
-                printf("[*] CTRL+K pressed - cheat menu not yet implemented\n");
+                SDL_Log("[Comet Busters] [*] CTRL+K pressed - cheat menu not yet implemented\n");
             }
             break;
         }
@@ -319,29 +323,29 @@ static void init_joystick(CometGUI *gui) {
     if (num_joysticks > 0) {
         gui->joystick = SDL_JoystickOpen(0);
         if (gui->joystick) {
-            printf("[JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
-            printf("[JOYSTICK] Buttons: %d\n", SDL_JoystickNumButtons(gui->joystick));
-            printf("[JOYSTICK] Axes: %d\n", SDL_JoystickNumAxes(gui->joystick));
-            printf("[JOYSTICK] Hats: %d\n", SDL_JoystickNumHats(gui->joystick));
-            printf("[JOYSTICK] ===== BUTTON MAPPING =====\n");
-            printf("[JOYSTICK] Button 0 (A/Cross)      - Fire/Select\n");
-            printf("[JOYSTICK] Button 1 (B/Circle)     - Boost/Back\n");
-            printf("[JOYSTICK] Button 2 (X/Square)     - Toggle Missiles\n");
-            printf("[JOYSTICK] Button 3 (Y/Triangle)   - Alt Fire\n");
-            printf("[JOYSTICK] Button 4 (LB/L1)        - Pause\n");
-            printf("[JOYSTICK] Button 7 (Start)        - Toggle Menu\n");
-            printf("[JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
-            printf("[JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
-            printf("[JOYSTICK] ============================\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
+            SDL_Log("[Comet Busters] [JOYSTICK] Buttons: %d\n", SDL_JoystickNumButtons(gui->joystick));
+            SDL_Log("[Comet Busters] [JOYSTICK] Axes: %d\n", SDL_JoystickNumAxes(gui->joystick));
+            SDL_Log("[Comet Busters] [JOYSTICK] Hats: %d\n", SDL_JoystickNumHats(gui->joystick));
+            SDL_Log("[Comet Busters] [JOYSTICK] ===== BUTTON MAPPING =====\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Button 0 (A/Cross)      - Fire/Select\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Button 1 (B/Circle)     - Boost/Back\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Button 2 (X/Square)     - Toggle Missiles\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Button 3 (Y/Triangle)   - Alt Fire\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Button 4 (LB/L1)        - Pause\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Button 7 (Start)        - Toggle Menu\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] ============================\n");
         }
     } else {
-        printf("[JOYSTICK] No joysticks detected\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] No joysticks detected\n");
     }
 }
 
 static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
-        fprintf(stderr, "[ERROR] SDL_Init failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] [ERROR] SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
     
@@ -360,7 +364,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     );
     
     if (!gui->window) {
-        fprintf(stderr, "[ERROR] Window creation failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] [ERROR] Window creation failed: %s\n", SDL_GetError());
         SDL_Quit();
         return false;
     }
@@ -371,7 +375,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     
     // Get the actual window size (might be different if maximized)
     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
-    printf("[SDL] Window created: %dx%d\n", gui->window_width, gui->window_height);
+    SDL_Log("[Comet Busters] [SDL] Window created: %dx%d\n", gui->window_width, gui->window_height);
     
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
@@ -380,7 +384,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     
     gui->gl_context = SDL_GL_CreateContext(gui->window);
     if (!gui->gl_context) {
-        fprintf(stderr, "[ERROR] GL context failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] [ERROR] GL context failed: %s\n", SDL_GetError());
         SDL_DestroyWindow(gui->window);
         SDL_Quit();
         return false;
@@ -390,14 +394,14 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "[ERROR] GLEW init failed\n");
+        SDL_Log("[Comet Busters] [ERROR] GLEW init failed\n");
         SDL_GL_DeleteContext(gui->gl_context);
         SDL_DestroyWindow(gui->window);
         SDL_Quit();
         return false;
     }
     
-    printf("[INIT] SDL2, OpenGL %s, GLEW OK\n", glGetString(GL_VERSION));
+    SDL_Log("[Comet Busters] [INIT] SDL2, OpenGL %s, GLEW OK\n", glGetString(GL_VERSION));
     
     // Set background to match Cairo version dark blue
     glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
@@ -424,7 +428,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED || 
                     event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
-                    printf("[WINDOW] Resized to %dx%d\n", gui->window_width, gui->window_height);
+                    SDL_Log("[Comet Busters] [WINDOW] Resized to %dx%d\n", gui->window_width, gui->window_height);
                 }
                 break;
             
@@ -437,7 +441,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 
                 // Check for splash screen exit on any key
                 if (gui->visualizer.comet_buster.splash_screen_active) {
-                    fprintf(stdout, "[SPLASH] User pressed key - exiting splash screen\n");
+                    SDL_Log("[Comet Busters] [SPLASH] User pressed key - exiting splash screen\n");
                     
                     // Stop the intro music
                     audio_stop_music(&gui->audio);
@@ -468,7 +472,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     audio_play_random_music(&gui->audio);
-                    fprintf(stdout, "[SPLASH] Started gameplay music\n");
+                    SDL_Log("[Comet Busters] [SPLASH] Started gameplay music\n");
 #endif
                     break;  // Skip other input processing when exiting splash
                 }
@@ -534,7 +538,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
 
                                 // If wave changed, reset and spawn new wave
                                 if (wave_changed) {
-                                    printf("[CHEAT] Wave changed from %d to %d - spawning new wave\n", old_wave, new_wave);
+                                    SDL_Log("[Comet Busters] [CHEAT] Wave changed from %d to %d - spawning new wave\n", old_wave, new_wave);
                                     
                                     // Clear all entities
                                     gui->visualizer.comet_buster.comet_count = 0;
@@ -546,12 +550,12 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     
                                     // Spawn the new wave
                                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-                                    printf("[CHEAT] Spawned Wave %d\n", new_wave);
+                                    SDL_Log("[Comet Busters] [CHEAT] Spawned Wave %d\n", new_wave);
                                 } else {
-                                    printf("[CHEAT] Wave unchanged (still Wave %d) - just updated Lives/Missiles/Bombs\n", new_wave);
+                                    SDL_Log("[Comet Busters] [CHEAT] Wave unchanged (still Wave %d) - just updated Lives/Missiles/Bombs\n", new_wave);
                                 }
                                 
-                                printf("[CHEAT] Applied: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d%s\n",
+                                SDL_Log("[Comet Busters] [CHEAT] Applied: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d%s\n",
                                        new_wave, cheat_menu->lives, cheat_menu->missiles, cheat_menu->bombs,
                                        wave_changed ? " (NEW WAVE SPAWNED)" : " (SAME WAVE)");
                                 
@@ -568,7 +572,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Regular menu input (only if cheat menu is not open)
                     if (event.key.keysym.sym == SDLK_c && !cheat_menu) {
                         // Can't open cheat without cheat_menu struct
-                        printf("[CHEAT] Error: cheat_menu is NULL\n");
+                        SDL_Log("[Comet Busters] [CHEAT] Error: cheat_menu is NULL\n");
                     } else if (event.key.keysym.sym == SDLK_c && cheat_menu) {
                         // Open cheat menu from main menu
                         if (gui->menu_state == 0) {
@@ -579,7 +583,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             cheat_menu->lives = gui->visualizer.comet_buster.ship_lives;
                             cheat_menu->missiles = gui->visualizer.comet_buster.missile_ammo;
                             cheat_menu->bombs = gui->visualizer.comet_buster.bomb_count;
-                            printf("[CHEAT] Opening cheat menu (Current: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d)\n",
+                            SDL_Log("[Comet Busters] [CHEAT] Opening cheat menu (Current: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d)\n",
                                    cheat_menu->wave, cheat_menu->lives, cheat_menu->missiles, cheat_menu->bombs);
                         }
                         break;
@@ -712,7 +716,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                         if (gui->show_menu && gui->menu_state == 0) {
                             cheat_menu->state = CHEAT_MENU_OPEN;
                             cheat_menu->selection = 0;
-                            printf("[CHEAT] Opening cheat menu\n");
+                            SDL_Log("[Comet Busters] [CHEAT] Opening cheat menu\n");
                         }
                     }
                     else if (event.key.keysym.sym == SDLK_RETURN) {
@@ -797,7 +801,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
                 if (gui->visualizer.comet_buster.splash_screen_active) {
-                    fprintf(stdout, "[SPLASH] User clicked - exiting splash screen\n");
+                    SDL_Log("[Comet Busters] [SPLASH] User clicked - exiting splash screen\n");
                     
                     // Stop the intro music
                     audio_stop_music(&gui->audio);
@@ -828,7 +832,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     audio_play_random_music(&gui->audio);
-                    fprintf(stdout, "[SPLASH] Started gameplay music\n");
+                    SDL_Log("[Comet Busters] [SPLASH] Started gameplay music\n");
 #endif
                     break;
                 }
@@ -1171,9 +1175,9 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     gui->game_paused = !gui->game_paused;
                                     if (gui->game_paused) {
                                         audio_stop_music(&gui->audio);
-                                        printf("[PAUSE] Game paused via joystick\n");
+                                        SDL_Log("[Comet Busters] [PAUSE] Game paused via joystick\n");
                                     } else {
-                                        printf("[RESUME] Game resumed via joystick\n");
+                                        SDL_Log("[Comet Busters] [RESUME] Game resumed via joystick\n");
 #ifdef ExternalSound
                                         if (!gui->show_menu) {
                                             audio_play_random_music(&gui->audio);
@@ -1380,7 +1384,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
             case SDL_JOYDEVICEADDED:
             case SDL_JOYDEVICEREMOVED:
                 init_joystick(gui);
-                printf("[JOYSTICK] Device change detected, re-initializing joystick\n");
+                SDL_Log("[Comet Busters] [JOYSTICK] Device change detected, re-initializing joystick\n");
                 break;
         }
     }
@@ -1395,7 +1399,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     if (gui->visualizer.comet_buster.finale_splash_active) {
         // Start finale music on first frame of finale splash
         if (!gui->finale_music_started) {
-            fprintf(stdout, "[FINALE] Starting finale music...\n");
+            SDL_Log("[Comet Busters] [FINALE] Starting finale music...\n");
             audio_stop_music(&gui->audio);
 #ifdef ExternalSound
             //audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
@@ -1409,7 +1413,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
         
         // Check if user wants to continue to next wave (can right-click anytime to skip)
         if (gui->visualizer.mouse_right_pressed) {
-            fprintf(stdout, "[FINALE] Player skipping to Wave 31\n");
+            SDL_Log("[Comet Busters] [FINALE] Player skipping to Wave 31\n");
             
             // If scroll isn't done yet, fast-forward to the end
             if (!gui->visualizer.comet_buster.finale_waiting_for_input) {
@@ -1452,60 +1456,60 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     // Check if current music track has finished and queue the next one
 #ifdef ExternalSound
     if (!gui->game_paused && !audio_is_music_playing(&gui->audio)) {
-        fprintf(stdout, "[AUDIO] Current track finished, queuing next track...\n");
+        SDL_Log("[Comet Busters] [AUDIO] Current track finished, queuing next track...\n");
         audio_play_random_music(&gui->audio);
     }
 #endif
     
     // Stop music if game ends and trigger high score entry
     if (gui->visualizer.comet_buster.game_over || gui->visualizer.comet_buster.ship_lives <=0) {
-        printf("\n[HS_FLOW] >>> GAME OVER DETECTED\n");
+        SDL_Log("[Comet Busters] \n[HS_FLOW] >>> GAME OVER DETECTED\n");
         audio_stop_music(&gui->audio);
         
         // Trigger high score entry if not already showing the dialog
         if (!hs_entry) {
-            printf("[HS_FLOW] ERROR: hs_entry is NULL!\n");
+            SDL_Log("[Comet Busters] [HS_FLOW] ERROR: hs_entry is NULL!\n");
             return;
         }
         
-        printf("[HS_FLOW] hs_entry->state = %d (0=NONE, 1=ACTIVE, 2=SAVED)\n", hs_entry->state);
+        SDL_Log("[Comet Busters] [HS_FLOW] hs_entry->state = %d (0=NONE, 1=ACTIVE, 2=SAVED)\n", hs_entry->state);
         
         if (hs_entry->state != HIGH_SCORE_ENTRY_ACTIVE) {
             int score = gui->visualizer.comet_buster.score;
             int count = gui->visualizer.comet_buster.high_score_count;
             
-            printf("[HS_FLOW] Checking high score eligibility...\n");
-            printf("[HS_FLOW] score=%d, high_score_count=%d, MAX=%d\n", 
+            SDL_Log("[Comet Busters] [HS_FLOW] Checking high score eligibility...\n");
+            SDL_Log("[Comet Busters] [HS_FLOW] score=%d, high_score_count=%d, MAX=%d\n", 
                    score, count, 25);
             
             // Check if this is a high score
             bool is_high_score = comet_buster_is_high_score(&gui->visualizer.comet_buster, score);
-            printf("[HS_FLOW] is_high_score() returned: %s\n", is_high_score ? "TRUE" : "FALSE");
+            SDL_Log("[Comet Busters] [HS_FLOW] is_high_score() returned: %s\n", is_high_score ? "TRUE" : "FALSE");
             
             if (is_high_score) {
-                printf("[HS_FLOW] >>> SHOWING DIALOG\n");
+                SDL_Log("[Comet Busters] [HS_FLOW] >>> SHOWING DIALOG\n");
                 // Show high score entry dialog
                 hs_entry->state = HIGH_SCORE_ENTRY_ACTIVE;
                 hs_entry->cursor_pos = 0;
                 memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
-                printf("[HIGHSCORE] New high score! Score: %d\n", score);
+                SDL_Log("[Comet Busters] [HIGHSCORE] New high score! Score: %d\n", score);
             } else {
-                printf("[HS_FLOW] >>> SHOWING MENU (score doesn't qualify)\n");
+                SDL_Log("[Comet Busters] [HS_FLOW] >>> SHOWING MENU (score doesn't qualify)\n");
                 // Score doesn't qualify - always go to menu
                 gui->show_menu = true;
                 gui->menu_state = 0;  // Main menu
                 gui->menu_selection = 0;
                 // Reset state so dialog can show again if next score qualifies
                 hs_entry->state = HIGH_SCORE_ENTRY_NONE;
-                printf("[HIGHSCORE] Game over. Score: %d (not a high score)\n", score);
+                SDL_Log("[Comet Busters] [HIGHSCORE] Game over. Score: %d (not a high score)\n", score);
                 gui->visualizer.comet_buster.ship_lives = 0;
                 gui->visualizer.comet_buster.game_over = true;
                 
             }
         } else {
-            printf("[HS_FLOW] Dialog already active, not triggering again\n");
+            SDL_Log("[Comet Busters] [HS_FLOW] Dialog already active, not triggering again\n");
         }
-        printf("[HS_FLOW] <<< END GAME OVER HANDLING\n\n");
+        SDL_Log("[Comet Busters] [HS_FLOW] <<< END GAME OVER HANDLING\n\n");
     }
 }
 
@@ -1887,7 +1891,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         // Score display - Dark brown
         gl_set_color(0.3f, 0.25f, 0.15f);
         char score_text[128];
-        sprintf(score_text, fmt_score_wave[gui->visualizer.comet_buster.current_language],  gui->visualizer.comet_buster.score, gui->visualizer.comet_buster.current_wave);
+        snprintf(score_text, sizeof(score_text), fmt_score_wave[gui->visualizer.comet_buster.current_language],  gui->visualizer.comet_buster.score, gui->visualizer.comet_buster.current_wave);
         gl_draw_text_simple(score_text, 620, 395, 14);
         
         // Name entry label - Dark brown
@@ -2054,7 +2058,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
                      cheat_menu->selection == 4 ? 1.0f : 0.7f,
                      cheat_menu->selection == 4 ? 1.0f : 0.7f);
         char difficulty_text[128];
-        sprintf(difficulty_text, fmt_cheat_difficulty[gui->visualizer.comet_buster.current_language][cheat_menu->cheat_difficulty]);
+        snprintf(difficulty_text, sizeof(difficulty_text), "%s", fmt_cheat_difficulty[gui->visualizer.comet_buster.current_language][cheat_menu->cheat_difficulty]);
 
         gl_draw_text_simple(difficulty_text, 550, option_y, 16);
         
@@ -2097,7 +2101,7 @@ static void cleanup(CometGUI *gui) {
 // ============================================================
 
 int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused))) {
-    printf("=== Comet Busters ===\n");
+    SDL_Log("[Comet Busters] === Comet Busters ===\n");
     
     CometGUI gui;
     memset(&gui, 0, sizeof(CometGUI));
@@ -2115,16 +2119,122 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.music_volume = gui.preferences.music_volume;
     gui.sfx_volume = gui.preferences.sfx_volume;
     
-    printf("[INIT] Loaded preferences: music_volume=%d, sfx_volume=%d, language=%d\n",
-           gui.music_volume, gui.sfx_volume, gui.preferences.language);
+    SDL_Log("[Comet Busters] [INIT] Loaded preferences: music_volume=%d, sfx_volume=%d, language=%d\n", gui.music_volume, gui.sfx_volume, gui.preferences.language);
     
+        // Load WAD file with sounds
+    std::string wadPath;
+    bool wad_loaded = false;
+
+#ifdef ANDROID
+    // Android: Use JNI to load WAD directly from APK assets
+    // This is handled by jni_wad_loading.cpp which is initialized in SDLActivity.java
+    
+    SDL_Log("[Comet Busters] [AUDIO] Android: Loading WAD from APK assets via JNI...\n");
+    
+    // Declare the external JNI functions from jni_wad_loading.cpp
+    extern unsigned char* load_wad_android(const char *wad_filename, size_t *out_size);
+    extern const char* get_app_files_dir_android(void);
+    
+    size_t wad_size = 0;
+    unsigned char* wad_data = load_wad_android("cometbuster.wad", &wad_size);
+    
+    if (wad_data && wad_size > 0) {
+        SDL_Log("[Comet Busters] [AUDIO] [OK] WAD loaded into memory: %zu bytes\n", wad_size);
+        
+        // Try to save the WAD data to the app files directory for caching/backup
+        const char* app_files_dir = get_app_files_dir_android();
+        if (app_files_dir) {
+            char full_wad_path[512];
+            snprintf(full_wad_path, sizeof(full_wad_path), "%s/cometbuster.wad", app_files_dir);
+            
+            // Write the WAD data to the extracted location
+            FILE* wad_file = fopen(full_wad_path, "wb");
+            if (wad_file) {
+                size_t bytes_written = fwrite(wad_data, 1, wad_size, wad_file);
+                fclose(wad_file);
+                
+                if (bytes_written == wad_size) {
+                    SDL_Log("[Comet Busters] [AUDIO] [OK] WAD cached to: %s (%zu bytes)\n", full_wad_path, wad_size);
+                    if (audio_init(&gui.audio)) {
+                        SDL_Log("[Comet Busters] [AUDIO] System initialized\n");
+                    }
+
+                    wad_loaded = audio_load_wad(&gui.audio, full_wad_path);
+                    
+                    if (wad_loaded) {
+                        SDL_Log("[Comet Busters] [AUDIO] [OK] WAD loaded successfully from cached location\n");
+                    } else {
+                        SDL_Log("[Comet Busters] [WARNING] Failed to load WAD from cached file\n");
+                    }
+                } else {
+                    SDL_Log("[Comet Busters] [WARNING] Incomplete write: %zu of %zu bytes\n", bytes_written, wad_size);
+                }
+            } else {
+                SDL_Log("[Comet Busters] [WARNING] Could not open app files directory for writing\n");
+            }
+        }
+        
+        // Free the loaded WAD data
+        free(wad_data);
+        
+    } else {
+        SDL_Log("[Comet Busters] [WARNING] JNI WAD loading failed, attempting fallback methods...\n");
+        
+        // Fallback 1: Try extracted file location from previous run
+        const char* app_files_dir = get_app_files_dir_android();
+        if (app_files_dir) {
+            char full_path[512];
+            snprintf(full_path, sizeof(full_path), "%s/cometbuster.wad", app_files_dir);
+            
+            FILE* test_file = fopen(full_path, "rb");
+            if (test_file) {
+                fclose(test_file);
+                SDL_Log("[Comet Busters] [AUDIO] Found WAD at extracted location: %s\n", full_path);
+                wad_loaded = audio_load_wad(&gui.audio, full_path);
+                
+                if (wad_loaded) {
+                    SDL_Log("[Comet Busters] [AUDIO] [OK] WAD loaded successfully from extracted location\n");
+                }
+            }
+        }
+        
+        // Fallback 2: Try current directory
+        if (!wad_loaded) {
+            FILE* test_file = fopen("cometbuster.wad", "rb");
+            if (test_file) {
+                fclose(test_file);
+                SDL_Log("[Comet Busters] [AUDIO] Found WAD in current directory\n");
+                wad_loaded = audio_load_wad(&gui.audio, "cometbuster.wad");
+                
+                if (wad_loaded) {
+                    SDL_Log("[Comet Busters] [AUDIO] [OK] WAD loaded successfully\n");
+                }
+            }
+        }
+        
+        if (!wad_loaded) {
+            SDL_Log("[Comet Busters] [ERROR] Could not load WAD from any location\n");
+            SDL_Log("[Comet Busters] [HINT] Make sure cometbuster.wad exists in APK assets/\n");
+            SDL_Log("[Comet Busters] [HINT] Or place it in the app files directory\n");
+        }
+    }
+
+#else
+    // Desktop platforms: Windows and Linux
+#ifdef _WIN32
+    wadPath = getExecutableDir() + "\\cometbuster.wad";
+#else
+    wadPath = "cometbuster.wad";
+#endif
+
     if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
+        SDL_Log("[Comet Busters] Failed to initialize video\n");
         return 1;
     }
     
     // Window is now maximized, get the actual size
     SDL_GetWindowSize(gui.window, &gui.window_width, &gui.window_height);
-    printf("[INIT] Window maximized size: %dx%d\n", gui.window_width, gui.window_height);
+    SDL_Log("[Comet Busters] [INIT] Window maximized size: %dx%d\n", gui.window_width, gui.window_height);
     
     // Initialize visualizer with GAME space (1920x1080), not window size
     memset(&gui.visualizer, 0, sizeof(Visualizer));
@@ -2134,33 +2244,29 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.visualizer.mouse_y = 540;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
     
-    printf("[INIT] Game initialized\n");
+    SDL_Log("[Comet Busters] [INIT] Game initialized\n");
     
     // Load high scores
     high_scores_load(&gui.visualizer.comet_buster);
-    printf("[INIT] High scores loaded\n");
+    SDL_Log("[Comet Busters] [INIT] High scores loaded\n");
     
     // Initialize audio system
     memset(&gui.audio, 0, sizeof(AudioManager));
     if (audio_init(&gui.audio)) {
-        printf("[AUDIO] System initialized\n");
+        SDL_Log("[Comet Busters] [AUDIO] System initialized\n");
     } else {
-        printf("[WARNING] Audio init failed\n");
+        SDL_Log("[Comet Busters] [WARNING] Audio init failed\n");
     }
+
+    SDL_Log("[Comet Busters] [AUDIO] Desktop: Loading from: %s\n", wadPath.c_str());
+    wad_loaded = audio_load_wad(&gui.audio, wadPath.c_str());
     
-    // Load WAD file with sounds
-    std::string wadPath;
-#ifdef _WIN32
-    wadPath = getExecutableDir() + "\\cometbuster.wad";
-#else
-    wadPath = "cometbuster.wad";
+    if (wad_loaded) {
+        SDL_Log("[Comet Busters] [AUDIO] WAD loaded: %s\n", wadPath.c_str());
+    } else {
+        SDL_Log("[Comet Busters] [WARNING] Could not load WAD: %s\n", wadPath.c_str());
+    }
 #endif
-    
-    if (audio_load_wad(&gui.audio, wadPath.c_str())) {
-        printf("[AUDIO] WAD loaded: %s\n", wadPath.c_str());
-    } else {
-        printf("[WARNING] Could not load WAD: %s\n", wadPath.c_str());
-    }
     
     // Copy audio to visualizer so game code can access it
     gui.visualizer.audio = gui.audio;
@@ -2183,7 +2289,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Check if preferences file didn't exist (first run)
     if (!prefs_file_exists) {
-        printf("[INIT] No preferences file found - showing language menu\n");
+        SDL_Log("[Comet Busters] [INIT] No preferences file found - showing language menu\n");
         gui.show_menu = true;
         gui.menu_state = 4;  // Language Menu
         gui.menu_selection = 0;
@@ -2193,17 +2299,17 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     }
 #endif
     
-    printf("[INIT] Ready to play - press WASD to move, Z to fire, ESC to open menu, P to pause\n");
+    SDL_Log("[Comet Busters] [INIT] Ready to play - press WASD to move, Z to fire, ESC to open menu, P to pause\n");
     
     // Only start with splash screen if preferences file already existed
     if (prefs_file_exists) {
-        printf("[INIT] Starting with splash screen and intro music...\n");
+        SDL_Log("[Comet Busters] [INIT] Starting with splash screen and intro music...\n");
         gui.visualizer.comet_buster.splash_screen_active = true;
         comet_buster_reset_game_with_splash(&gui.visualizer.comet_buster, true, MEDIUM);
         gui.show_menu = false;
         gui.menu_state = 0;
     } else {
-        printf("[INIT] Waiting for language selection...\n");
+        SDL_Log("[Comet Busters] [INIT] Waiting for language selection...\n");
         gui.visualizer.comet_buster.splash_screen_active = false;
         gui.show_menu = true;
         gui.menu_state = 4;  // Language Menu
@@ -2266,7 +2372,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.preferences.sfx_volume = gui.sfx_volume;
     gui.preferences.language = gui.visualizer.comet_buster.current_language;
     preferences_save(&gui.preferences);
-    printf("[MAIN] Preferences saved at exit\n");
+    SDL_Log("[Comet Busters] [MAIN] Preferences saved at exit\n");
     
     cleanup(&gui);
     return 0;

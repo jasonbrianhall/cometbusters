@@ -4,6 +4,12 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 #ifndef M_PI
 #define M_PI 3.1415926535
 #endif
@@ -112,7 +118,7 @@ void boss_explosion_create(BossExplosion *explosion, double x, double y, const c
                            r * color_var, g * color_var, b * color_var);
     }
     
-    fprintf(stdout, "[*] Boss explosion created at (%.0f, %.0f)\n", x, y);
+    SDL_Log("[Comet Busters] [*] Boss explosion created at (%.0f, %.0f)\n", x, y);
 }
 
 // Update explosion particles

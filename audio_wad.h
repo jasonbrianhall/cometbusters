@@ -1,7 +1,12 @@
 #ifndef AUDIO_WAD_H
 #define AUDIO_WAD_H
 
+#ifdef ANDROID
+#include <SDL_mixer.h>
+#else
 #include <SDL2/SDL_mixer.h>
+#endif
+
 #include <stdbool.h>
 #include "wad.h"
 
