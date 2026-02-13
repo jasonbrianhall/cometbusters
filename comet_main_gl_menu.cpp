@@ -271,7 +271,8 @@ static void render_save_state_menu(CometGUI *gui, int is_load_menu) {
         }
         
         char state_label[256];
-        snprintf(state_label, sizeof(state_label), "Slot %d: %s", i, menu_get_state_info(i));
+        const char *info = menu_get_state_info(i);
+        snprintf(state_label, sizeof(state_label), "Slot %d: %s", i, info ? info : "Empty");
         gl_draw_text_simple(state_label, state_x + 20, state_y + 20, 14);
     }
     
@@ -709,7 +710,7 @@ int menu_save_state(CometGUI *gui, int slot) {
         return 0;
     }
     
-    // Write header with version and timestamp
+    // Write header
     int version = 1;
     time_t now = time(NULL);
     
@@ -717,33 +718,22 @@ int menu_save_state(CometGUI *gui, int slot) {
         fclose(file);
         return 0;
     }
-    
     if (fwrite(&now, sizeof(time_t), 1, file) != 1) {
         fclose(file);
         return 0;
     }
     
-    // Write essential game state
+    // Save the game structure (CometBusterGame) which contains the actual game data
     CometBusterGame *game = &gui->visualizer.comet_buster;
-    
-    // Save key variables
-    int current_wave = game->current_wave;
-    int score = game->score;
-    int ship_lives = game->ship_lives;
-    int missile_ammo = game->missile_ammo;
-    int bomb_ammo = game->bomb_ammo;
-    int difficulty = game->difficulty;
-    
-    if (fwrite(&current_wave, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fwrite(&score, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fwrite(&ship_lives, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fwrite(&missile_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fwrite(&bomb_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fwrite(&difficulty, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fwrite(game, sizeof(CometBusterGame), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [SAVE STATE] Failed to write game state\n");
+        fclose(file);
+        return 0;
+    }
     
     fclose(file);
-    SDL_Log("[Comet Busters] [SAVE STATE] State %d saved (Wave %d, Score %d, Lives %d)\n", 
-            slot, current_wave, score, ship_lives);
+    SDL_Log("[Comet Busters] [SAVE STATE] State %d saved to %s (%zu bytes)\n", 
+            slot, filename, sizeof(CometBusterGame) + sizeof(int) + sizeof(time_t));
     return 1;
 }
 
@@ -766,11 +756,12 @@ int menu_load_state(CometGUI *gui, int slot) {
         return 0;
     }
     
-    // Read and verify version
+    // Read and verify header
     int version;
     time_t timestamp;
     
     if (fread(&version, sizeof(int), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to read version\n");
         fclose(file);
         return 0;
     }
@@ -782,39 +773,22 @@ int menu_load_state(CometGUI *gui, int slot) {
     }
     
     if (fread(&timestamp, sizeof(time_t), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to read timestamp\n");
         fclose(file);
         return 0;
     }
     
-    // Read game state
+    // Load the game structure
     CometBusterGame *game = &gui->visualizer.comet_buster;
-    
-    int current_wave = 0;
-    int score = 0;
-    int ship_lives = 0;
-    int missile_ammo = 0;
-    int bomb_ammo = 0;
-    int difficulty = 0;
-    
-    if (fread(&current_wave, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fread(&score, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fread(&ship_lives, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fread(&missile_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fread(&bomb_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
-    if (fread(&difficulty, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fread(game, sizeof(CometBusterGame), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to read game state\n");
+        fclose(file);
+        return 0;
+    }
     
     fclose(file);
-    
-    // Apply loaded state to game
-    game->current_wave = current_wave;
-    game->score = score;
-    game->ship_lives = ship_lives;
-    game->missile_ammo = missile_ammo;
-    game->bomb_ammo = bomb_ammo;
-    game->difficulty = difficulty;
-    
-    SDL_Log("[Comet Busters] [LOAD STATE] State %d loaded (Wave %d, Score %d, Lives %d)\n", 
-            slot, current_wave, score, ship_lives);
+    SDL_Log("[Comet Busters] [LOAD STATE] State %d loaded from %s (%zu bytes)\n", 
+            slot, filename, sizeof(CometBusterGame) + sizeof(int) + sizeof(time_t));
     return 1;
 }
 
@@ -842,13 +816,11 @@ static char state_info_buffer[256];
 
 const char* menu_get_state_info(int slot) {
     if (slot < 0 || slot > 9) {
-        snprintf(state_info_buffer, sizeof(state_info_buffer), "Invalid");
-        return state_info_buffer;
+        return "Invalid";
     }
     
     if (!menu_state_exists(slot)) {
-        snprintf(state_info_buffer, sizeof(state_info_buffer), "Empty");
-        return state_info_buffer;
+        return "Empty";
     }
     
     char filename[256];
@@ -856,23 +828,29 @@ const char* menu_get_state_info(int slot) {
     
     FILE *file = fopen(filename, "rb");
     if (!file) {
-        snprintf(state_info_buffer, sizeof(state_info_buffer), "Error");
-        return state_info_buffer;
+        return "Error";
     }
     
+    int version;
     time_t timestamp;
+    CometBusterGame game;
+    
+    // Read version
+    if (fread(&version, sizeof(int), 1, file) != 1) {
+        fclose(file);
+        return "Error";
+    }
+    
+    // Read timestamp
     if (fread(&timestamp, sizeof(time_t), 1, file) != 1) {
         fclose(file);
-        snprintf(state_info_buffer, sizeof(state_info_buffer), "Error");
-        return state_info_buffer;
+        return "Error";
     }
     
-    // Also read game info for display
-    CometBusterGame game;
+    // Read game data
     if (fread(&game, sizeof(CometBusterGame), 1, file) != 1) {
         fclose(file);
-        snprintf(state_info_buffer, sizeof(state_info_buffer), "Error");
-        return state_info_buffer;
+        return "Error";
     }
     
     fclose(file);
