@@ -2867,7 +2867,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Instructions - for keyboard
         gl_set_color(0.4f, 0.3f, 0.2f);  // Darker brown for readability
-        gl_draw_text_simple("Click buttons or use keyboard (A-Z, Space, Enter/Done to submit)", 400, 310, 12);
+        gl_draw_text_simple(hint_name_entry2[gui->visualizer.comet_buster.current_language], 400, 310, 12);
         
         // Draw virtual keyboard
         render_virtual_keyboard(gui, hs_entry, hs_entry->kb_selected_index);

@@ -523,6 +523,16 @@ static const char* hint_name_entry[] = {
     "Geben Sie Ihren Namen ein | ENTER zum Speichern | BackSpace zum Löschen" // DE
 };
 
+static const char* hint_name_entry2[] = {
+    "Click buttons or use keyboard (A-Z, Space, Enter/Done to submit)", // EN
+    "Haz clic en los botones o usa el teclado (A‑Z, Espacio, Enter/Done para enviar)", // ES
+    "Cliquez sur les boutons ou utilisez le clavier (A‑Z, Espace, Entrée/Done pour valider)", // FR
+    "Нажимайте кнопки или используйте клавиатуру (A‑Z, Пробел, Enter/Done для подтверждения)", // RU
+    "Klicken Sie auf die Schaltflächen oder verwenden Sie die Tastatur (A‑Z, Leertaste, Enter/Done zum Bestätigen)" // DE
+};
+
+
+
 static const char* hint_max_chars[] = {
     "Max 32 characters",          // EN
     "Máx. 32 caracteres",         // ES
