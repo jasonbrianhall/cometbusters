@@ -1282,6 +1282,44 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 bool pressed = (event.type == SDL_JOYBUTTONDOWN);
                 int button = event.jbutton.button;
                 
+                // Handle splash screen exit with joystick button
+                if (gui->visualizer.comet_buster.splash_screen_active && pressed) {
+                    SDL_Log("[Comet Busters] [SPLASH] Joystick button pressed - exiting splash screen\n");
+                    
+                    // Stop the intro music
+                    audio_stop_music(&gui->audio);
+                    
+                    // Exit the splash screen
+                    gui->visualizer.comet_buster.splash_screen_active = false;
+                    
+                    // Clear the board completely
+                    gui->visualizer.comet_buster.comet_count = 0;
+                    gui->visualizer.comet_buster.enemy_ship_count = 0;
+                    gui->visualizer.comet_buster.enemy_bullet_count = 0;
+                    gui->visualizer.comet_buster.bullet_count = 0;
+                    gui->visualizer.comet_buster.particle_count = 0;
+                    gui->visualizer.comet_buster.floating_text_count = 0;
+                    gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_count = 0;
+                    gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_count = 0;
+                    gui->visualizer.comet_buster.bomb_pickup_count = 0;
+                    gui->visualizer.comet_buster.score = 0;
+                    gui->visualizer.comet_buster.score_multiplier = 1.0;
+                    gui->visualizer.comet_buster.game_over = false;
+                    gui->visualizer.comet_buster.game_won = false;
+                    
+                    // Spawn wave 1
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                    
+                    // Start gameplay music rotation
+#ifdef ExternalSound
+                    audio_play_random_music(&gui->audio);
+                    SDL_Log("[Comet Busters] [SPLASH] Started gameplay music\n");
+#endif
+                    break;  // Don't process other input while exiting splash
+                }
+                
                 // Handle high score entry with joystick
                 if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE && pressed) {
                     int count = 0;
@@ -2946,6 +2984,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.last_axis_0_state = 0;      // Initialize axis state tracking
     gui.last_axis_1_state = 0;      // Initialize axis state tracking
     
+    bool splash_was_active = true;  // Track splash screen state for music stop
+    
     // Initialize local high score entry UI
     HighScoreEntryUI hs_entry;
     memset(&hs_entry, 0, sizeof(HighScoreEntryUI));
@@ -2976,6 +3016,14 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
+        
+        // Detect splash screen exit and stop intro music
+        if (splash_was_active && !gui.visualizer.comet_buster.splash_screen_active) {
+            SDL_Log("[Comet Busters] [SPLASH] DETECTED splash screen exit - stopping intro, playing background music\n");
+            audio_stop_music(&gui.audio);
+            audio_play_random_music(&gui.audio);
+            splash_was_active = false;
+        }
         
         // Reset scroll wheel input after processing (for weapon changing)
         gui.visualizer.scroll_direction = 0;
