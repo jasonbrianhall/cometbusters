@@ -780,12 +780,15 @@ int menu_load_state(CometGUI *gui, int slot) {
     
     // Load the game structure
     CometBusterGame *game = &gui->visualizer.comet_buster;
+
+    int saved_language = game->current_language;
+
     if (fread(game, sizeof(CometBusterGame), 1, file) != 1) {
         SDL_Log("[Comet Busters] [LOAD STATE] Failed to read game state\n");
         fclose(file);
         return 0;
     }
-    
+    game->current_language = saved_language;
     fclose(file);
     SDL_Log("[Comet Busters] [LOAD STATE] State %d loaded from %s (%zu bytes)\n", 
             slot, filename, sizeof(CometBusterGame) + sizeof(int) + sizeof(time_t));
