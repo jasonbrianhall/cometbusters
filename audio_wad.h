@@ -20,6 +20,13 @@ typedef struct {
     int music_track_count;
     int current_music_track;
     
+    // Track WAD file buffers so we can free them at cleanup
+    WadFile music_wad_buffers[10];  // Store WAD buffers for music
+    
+    // Intro music (separate from rotation, tracked for cleanup)
+    Mix_Music *intro_music;  // Currently playing intro music
+    WadFile intro_wad_buffer;  // Track intro WAD buffer for cleanup
+    
     // Shuffle tracking - keeps order for random playback without repeats
     int shuffle_order[10];       // Randomized order of track indices
     int shuffle_position;        // Current position in the shuffle order
