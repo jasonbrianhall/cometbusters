@@ -37,20 +37,6 @@ typedef struct {
     int cheat_difficulty;   // Cheat Difficulty
 } CheatMenuUI;
 
-#ifdef _WIN32
-std::string getExecutableDir() { 
-    char buffer[MAX_PATH];
-    GetModuleFileNameA(NULL, buffer, MAX_PATH);
-    std::string path(buffer);
-    size_t pos = path.find_last_of("\\/");
-    return (pos == std::string::npos) ? "." : path.substr(0, pos);
-}
-#else
-std::string getExecutableDir() {
-    return ".";
-}
-#endif
-
 typedef struct {
     SDL_Window *window;
     SDL_GLContext gl_context;
@@ -96,3 +82,20 @@ typedef struct {
     int sfx_volume;
     CometPreferences preferences;  // Persistent user preferences (language, volumes)
 } CometGUI;
+
+typedef struct {
+    int x, y, width, height;
+    char character;
+    const char *label;
+    bool is_special;
+} KeyboardButton;
+
+void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu);
+void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntryUI *hs_entry);
+void play_intro(CometGUI *gui, int language);
+void handle_keyboard_input_special(SDL_Event *event, CometGUI *gui);
+int get_keyboard_button_at_pos(int mouse_x, int mouse_y);
+KeyboardButton* get_keyboard_buttons(int *out_count);
+void add_character_to_input(HighScoreEntryUI *hs_entry, char c);
+void render_virtual_keyboard(CometGUI *gui, HighScoreEntryUI *hs_entry, int selected_index);
+void init_joystick(CometGUI *gui);
