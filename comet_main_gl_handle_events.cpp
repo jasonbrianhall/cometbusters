@@ -1903,3 +1903,231 @@ KeyboardButton* get_keyboard_buttons(int *out_count) {
     *out_count = count;
     return buttons;
 }
+
+void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntryUI *hs_entry) {
+    if (!gui) return;
+    bool pressed = (event->type == SDL_KEYDOWN);
+    
+    // Handle high score name entry
+    if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE && pressed) {
+        switch (event->key.keysym.sym) {
+            case SDLK_BACKSPACE: {
+                // Delete last character
+                if (hs_entry->cursor_pos > 0) {
+                    hs_entry->cursor_pos--;
+                    hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                }
+                break;
+            }
+            case SDLK_RETURN: {
+                // Submit the name
+                if (hs_entry->cursor_pos > 0) {
+                    // Save the high score
+                    high_scores_add(&gui->visualizer.comet_buster, 
+                                   gui->visualizer.comet_buster.score,
+                                   gui->visualizer.comet_buster.current_wave,
+                                   hs_entry->name_input);
+                    high_scores_save(&gui->visualizer.comet_buster);
+                    
+                    // Reset game to menu
+                    hs_entry->state = HIGH_SCORE_ENTRY_SAVED;
+                    gui->visualizer.comet_buster.game_over = false;
+                    gui->show_menu = true;
+                    gui->menu_state = 2;  // Show high scores
+                    gui->menu_selection = 2;
+                }
+                break;
+            }
+            case SDLK_LEFT: {
+                // Navigate virtual keyboard left
+                int count = 0;
+                get_keyboard_buttons(&count);
+                
+                // Determine row and position in row
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};  // Start index of each row
+                int row_sizes[] = {10, 9, 7, 4};  // Size of each row
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                if (pos_in_row > 0) {
+                    hs_entry->kb_selected_index--;
+                } else {
+                    // At start of row, go to end
+                    hs_entry->kb_selected_index = row_starts[row] + row_sizes[row] - 1;
+                }
+                break;
+            }
+            case SDLK_RIGHT: {
+                // Navigate virtual keyboard right
+                int count = 0;
+                get_keyboard_buttons(&count);
+                
+                // Determine row and position in row
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};
+                int row_sizes[] = {10, 9, 7, 4};
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                if (pos_in_row < row_sizes[row] - 1) {
+                    hs_entry->kb_selected_index++;
+                } else {
+                    // At end of row, go to start
+                    hs_entry->kb_selected_index = row_starts[row];
+                }
+                break;
+            }
+            case SDLK_UP: {
+                // Navigate virtual keyboard up
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                if (row > 0) {
+                    // Move up one row, keep relative position
+                    int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                    int new_row = row - 1;
+                    int row_sizes[] = {10, 9, 7, 4};
+                    
+                    // Don't go past end of new row
+                    if (pos_in_row >= row_sizes[new_row]) {
+                        pos_in_row = row_sizes[new_row] - 1;
+                    }
+                    hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
+                }
+                break;
+            }
+            case SDLK_DOWN: {
+                // Navigate virtual keyboard down
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                if (row < 3) {
+                    // Move down one row, keep relative position
+                    int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                    int new_row = row + 1;
+                    int row_sizes[] = {10, 9, 7, 4};
+                    
+                    // Don't go past end of new row
+                    if (pos_in_row >= row_sizes[new_row]) {
+                        pos_in_row = row_sizes[new_row] - 1;
+                    }
+                    hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
+                }
+                break;
+            }
+            default: {
+                if (hs_entry->cursor_pos < 31) {
+                    SDL_Keycode key = event->key.keysym.sym;
+                    SDL_Keymod mod  = (SDL_Keymod) event->key.keysym.mod;
+
+                    bool shift = (mod & KMOD_SHIFT) != 0;
+
+                    // Letters only
+                    if (key >= SDLK_a && key <= SDLK_z) {
+                        char c = (char)key;
+
+                        if (shift)
+                            c = c - 'a' + 'A';   // uppercase
+                        else
+                            c = c;               // lowercase
+
+                        hs_entry->name_input[hs_entry->cursor_pos++] = c;
+                        hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                    }
+                    else if (key == SDLK_SPACE) {
+                        hs_entry->name_input[hs_entry->cursor_pos++] = ' ';
+                        hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                    }
+                }
+                break;
+            }
+        }
+        return;  // Don't process other input while in name entry
+    }
+    
+    switch (event->key.keysym.sym) {
+        // Movement keys - A/D/W/S and Arrow keys
+        case SDLK_a:
+        case SDLK_LEFT:
+            gui->visualizer.key_a_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        case SDLK_d:
+        case SDLK_RIGHT:
+            gui->visualizer.key_d_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        case SDLK_w:
+        case SDLK_UP:
+            gui->visualizer.key_w_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        case SDLK_s:
+        case SDLK_DOWN:
+            gui->visualizer.key_s_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        
+        // Fire keys
+        case SDLK_z:
+            gui->visualizer.key_z_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        case SDLK_SPACE:
+        case SDLK_x:
+            gui->visualizer.key_x_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        case SDLK_LCTRL:
+        case SDLK_RCTRL:
+            gui->visualizer.key_ctrl_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        
+        // Special keys
+        case SDLK_q:
+            gui->visualizer.key_q_pressed = pressed;
+            gui->visualizer.mouse_just_moved = false;
+            break;
+        case SDLK_F11:
+            gui->visualizer.mouse_just_moved = false;
+            if (pressed) {
+                gui->fullscreen = !gui->fullscreen;
+                if (gui->fullscreen) {
+                    SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                } else {
+                    SDL_SetWindowFullscreen(gui->window, 0);
+                }
+                SDL_Log("[Comet Busters] [INPUT] F11 - Fullscreen toggled: %s\n", gui->fullscreen ? "ON" : "OFF");
+            }
+            break;
+    }
+}
+
