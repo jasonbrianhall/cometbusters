@@ -87,6 +87,8 @@ typedef struct {
 static GLRenderState gl_state = {0};
 
 // Shader sources
+#ifndef ANDROID
+// Desktop OpenGL 3.3+
 static const char *vertex_shader = 
     "#version 330 core\n"
     "layout(location = 0) in vec2 position;\n"
@@ -105,6 +107,31 @@ static const char *fragment_shader =
     "void main() {\n"
     "    FragColor = vertexColor;\n"
     "}\n";
+
+#else
+// OpenGL ES 3.0+ (Android)
+static const char *vertex_shader = 
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "layout(location = 0) in vec2 position;\n"
+    "layout(location = 1) in vec4 color;\n"
+    "uniform mat4 projection;\n"
+    "out vec4 vertexColor;\n"
+    "void main() {\n"
+    "    vertexColor = color;\n"
+    "    gl_Position = projection * vec4(position, 0.0, 1.0);\n"
+    "}\n";
+
+static const char *fragment_shader =
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "in vec4 vertexColor;\n"
+    "out vec4 FragColor;\n"
+    "void main() {\n"
+    "    FragColor = vertexColor;\n"
+    "}\n";
+#endif
+
 
 static GLuint compile_shader(const char *src, GLenum type) {
     GLuint shader = glCreateShader(type);
