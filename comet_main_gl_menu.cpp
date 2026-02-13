@@ -697,7 +697,9 @@ static void ensure_save_dir() {
  * Saves the current game state to a slot (0-9)
  */
 int menu_save_state(CometGUI *gui, int slot) {
-    if (slot < 0 || slot > 9) return 0;
+    SDL_Log("[Comet Busters] [SAVE STATE] saving to slot: %i\n", slot);
+
+    if (slot < 0 || slot > 10) return 0;
     
     ensure_save_dir();
     
@@ -741,11 +743,9 @@ int menu_save_state(CometGUI *gui, int slot) {
  * Loads a game state from a slot (0-9)
  */
 int menu_load_state(CometGUI *gui, int slot) {
-    if (slot < 0 || slot > 9) return 0;
-    if (!menu_state_exists(slot)) {
-        SDL_Log("[Comet Busters] [LOAD STATE] Slot %d does not exist\n", slot);
-        return 0;
-    }
+    SDL_Log("[Comet Busters] [Load STATE] saving to slot: %i\n", slot);
+
+    if (slot < 0 || slot > 10) return 0;
     
     char filename[256];
     get_state_filename(slot, filename, sizeof(filename));
