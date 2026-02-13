@@ -379,7 +379,7 @@ static const char* perfect_destruction_text[] = {
     "PERFEKTE ZERSTÖRUNG!"         // German
 };
 
-static const char* main_menu_items[][7] = {
+static const char* main_menu_items[][8] = {
     {   // English
         "CONTINUE",
         "NEW GAME",
@@ -387,6 +387,7 @@ static const char* main_menu_items[][7] = {
         "AUDIO",
         "LANGUAGE",
         "HELP",
+        "FULLSCREEN",
         "QUIT"
     },
     {   // Spanish
@@ -396,6 +397,7 @@ static const char* main_menu_items[][7] = {
         "AUDIO",
         "IDIOMA (Language)",
         "AYUDA",
+        "PANTALLA COMPLETA",
         "SALIR"
     },
     {   // French
@@ -405,6 +407,7 @@ static const char* main_menu_items[][7] = {
         "AUDIO",
         "LANGUE (Language)",
         "AIDE",
+        "PLEIN ÉCRAN",
         "QUITTER"
     },
     {   // Russian
@@ -414,6 +417,7 @@ static const char* main_menu_items[][7] = {
         "АУДИО",
         "ЯЗЫК (Language)",
         "СПРАВКА",
+        "ПОЛНЫЙ ЭКРАН",
         "ВЫХОД"
     },
     {   // German
@@ -423,6 +427,7 @@ static const char* main_menu_items[][7] = {
         "AUDIO",
         "SPRACHE (Language)",
         "HILFE",
+        "VOLLBILD",
         "BEENDEN"
     }
 };
@@ -1074,5 +1079,3 @@ F11                  - Vollbild umschalten
 C im Hauptmenü       - Verstecktes Cheat-Menü)"
     }
 };
-
-

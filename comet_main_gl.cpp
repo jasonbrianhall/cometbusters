@@ -92,7 +92,7 @@ typedef struct {
     
     // Menu state
     bool show_menu;
-    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
     int menu_state;      // 0=Main Menu, 1=Difficulty Select, 2=High Scores Display, 3=Audio Menu, 4=Language Menu
     int gui_difficulty_level; // 1-3
     
@@ -593,7 +593,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
                             // Main menu wrapping navigation
-                            int num_menu_items = 7;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                            int num_menu_items = 8;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
                             int items_per_page = 5;
                             
                             gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
@@ -629,7 +629,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
                             // Main menu wrapping navigation
-                            int num_menu_items = 7;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                            int num_menu_items = 8;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
                             int items_per_page = 5;
                             
                             gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
@@ -752,7 +752,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     gui->show_help_overlay = true;
                                     gui->help_scroll_offset = 0;
                                     break;
-                                case 6:  // Quit
+                                case 6:  // Fullscreen toggle
+                                    gui->fullscreen = !gui->fullscreen;
+                                    if (gui->fullscreen) {
+                                        SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                    } else {
+                                        SDL_SetWindowFullscreen(gui->window, 0);
+                                    }
+                                    SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
+                                    break;
+                                case 7:  // Quit
                                     gui->running = false;
                                     break;
                             }
@@ -891,7 +900,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                             gui->show_help_overlay = true;
                                             gui->help_scroll_offset = 0;
                                             break;
-                                        case 6:  // Quit
+                                        case 6:  // Fullscreen toggle
+                                            gui->fullscreen = !gui->fullscreen;
+                                            if (gui->fullscreen) {
+                                                SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                            } else {
+                                                SDL_SetWindowFullscreen(gui->window, 0);
+                                            }
+                                            SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
+                                            break;
+                                        case 7:  // Quit
                                             gui->running = false;
                                             break;
                                     }
@@ -1028,7 +1046,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 if (gui->show_menu) {
                     if (gui->menu_state == 0) {
                         // Main menu scrolling
-                        int num_menu_items = 7;
+                        int num_menu_items = 8;
                         int items_per_page = 5;
                         
                         if (event.wheel.y > 0) {
@@ -1121,7 +1139,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                         gui->show_help_overlay = true;
                                         gui->help_scroll_offset = 0;
                                         break;
-                                    case 6:  // Quit
+                                    case 6:  // Fullscreen toggle
+                                        gui->fullscreen = !gui->fullscreen;
+                                        if (gui->fullscreen) {
+                                            SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                        } else {
+                                            SDL_SetWindowFullscreen(gui->window, 0);
+                                        }
+                                        SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
+                                        break;
+                                    case 7:  // Quit
                                         gui->running = false;
                                         break;
                                 }
@@ -1255,7 +1282,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             if (current_state < 0) {
                                 // Moving up in menu
                                 if (gui->menu_state == 0) {
-                                    int num_menu_items = 7;
+                                    int num_menu_items = 8;
                                     int items_per_page = 5;
                                     gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
                                     if (gui->menu_selection < gui->main_menu_scroll_offset) {
@@ -1280,7 +1307,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             } else if (current_state > 0) {
                                 // Moving down in menu
                                 if (gui->menu_state == 0) {
-                                    int num_menu_items = 7;
+                                    int num_menu_items = 8;
                                     int items_per_page = 5;
                                     gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
                                     int max_scroll = (num_menu_items > items_per_page) ? (num_menu_items - items_per_page) : 0;
@@ -1358,7 +1385,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 
                 if (gui->show_menu) {
                     if (gui->menu_state == 0) {
-                        int num_menu_items = 7;
+                        int num_menu_items = 8;
                         int items_per_page = 5;
                         
                         if (hat & SDL_HAT_UP) {
@@ -1560,7 +1587,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             int menu_width = 400;
             int menu_height = 60;
             int items_per_page = 5;
-            int num_menu_items = 7;  // Continue, New Game, High Scores, Audio, Language, Help, Quit
+            int num_menu_items = 8;  // Continue, New Game, High Scores, Audio, Language, Help, Fullscreen, Quit
             
             // Calculate scroll position - keep selected item visible
             int current_selection = gui->menu_selection;
