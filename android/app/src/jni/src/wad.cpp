@@ -1,0 +1,189 @@
+#include "wad.h"
+#include "miniz.h"
+#include <stdio.h>
+#include <string.h>
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
+// Open WAD file (which is a ZIP archive)
+bool wad_open(WadArchive *wad, const char *filename) {
+    if (!wad || !filename) {
+        SDL_Log("[Comet Busters] Error: Invalid WAD parameters\n");
+        return false;
+    }
+    
+    // Copy filename for reference
+    strncpy(wad->filename, filename, sizeof(wad->filename) - 1);
+    wad->filename[sizeof(wad->filename) - 1] = '\0';
+    
+    // Allocate ZIP archive structure
+    mz_zip_archive *zip = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
+    if (!zip) {
+        SDL_Log("[Comet Busters] Error: Memory allocation failed\n");
+        return false;
+    }
+    
+    // Initialize archive
+    memset(zip, 0, sizeof(mz_zip_archive));
+    
+    // Open the ZIP file
+    if (!mz_zip_reader_init_file(zip, filename, 0)) {
+        SDL_Log("[Comet Busters] Error: Failed to open WAD file '%s': %s\n", 
+                filename, mz_zip_get_error_string(mz_zip_get_last_error(zip)));
+        free(zip);
+        return false;
+    }
+    
+    wad->zip_archive = (void *)zip;
+    
+    SDL_Log("[Comet Busters] ✓ WAD file opened: %s\n", filename);
+    SDL_Log("[Comet Busters]   Files in archive: %u\n", mz_zip_reader_get_num_files(zip));
+    
+    return true;
+}
+
+// ============================================================================
+// NEW FUNCTION: Open WAD from memory buffer (for Android JNI loading)
+// ============================================================================
+// Call this when you have WAD data loaded into memory (e.g., from APK assets)
+// Parameters:
+//   wad       - pointer to WadArchive structure to initialize
+//   wad_data  - pointer to WAD file data in memory
+//   wad_size  - size of WAD data in bytes
+// Returns: true if successful, false otherwise
+bool wad_open_from_memory(WadArchive *wad, const unsigned char *wad_data, size_t wad_size) {
+    if (!wad || !wad_data || wad_size == 0) {
+        SDL_Log("[Comet Busters] Error: Invalid WAD memory parameters\n");
+        return false;
+    }
+    
+    // Set filename to indicate memory-based loading
+    snprintf(wad->filename, sizeof(wad->filename), "<memory buffer: %zu bytes>", wad_size);
+    
+    // Allocate ZIP archive structure
+    mz_zip_archive *zip = (mz_zip_archive *)malloc(sizeof(mz_zip_archive));
+    if (!zip) {
+        SDL_Log("[Comet Busters] Error: Memory allocation failed\n");
+        return false;
+    }
+    
+    // Initialize archive
+    memset(zip, 0, sizeof(mz_zip_archive));
+    
+    // Open the ZIP file from memory buffer
+    // mz_zip_reader_init_mem() reads the archive from memory, not from disk
+    if (!mz_zip_reader_init_mem(zip, wad_data, wad_size, 0)) {
+        SDL_Log("[Comet Busters] Error: Failed to open WAD from memory: %s\n", 
+                mz_zip_get_error_string(mz_zip_get_last_error(zip)));
+        free(zip);
+        return false;
+    }
+    
+    wad->zip_archive = (void *)zip;
+    
+    SDL_Log("[Comet Busters] ✓ WAD file opened from memory: %zu bytes\n", wad_size);
+    SDL_Log("[Comet Busters]   Files in archive: %u\n", mz_zip_reader_get_num_files(zip));
+    
+    return true;
+}
+
+// Close WAD file
+void wad_close(WadArchive *wad) {
+    if (!wad || !wad->zip_archive) return;
+    
+    mz_zip_archive *zip = (mz_zip_archive *)wad->zip_archive;
+    mz_zip_reader_end(zip);
+    free(zip);
+    wad->zip_archive = NULL;
+    
+    SDL_Log("[Comet Busters] ✓ WAD file closed: %s\n", wad->filename);
+}
+
+// Extract file from WAD
+bool wad_extract_file(WadArchive *wad, const char *internal_path, WadFile *out_file) {
+    if (!wad || !wad->zip_archive || !internal_path || !out_file) {
+        SDL_Log("[Comet Busters] Error: Invalid extract parameters\n");
+        return false;
+    }
+    
+    mz_zip_archive *zip = (mz_zip_archive *)wad->zip_archive;
+    
+    // Find file index
+    int file_index = mz_zip_reader_locate_file(zip, internal_path, NULL, 0);
+    if (file_index < 0) {
+        SDL_Log("[Comet Busters] Error: File '%s' not found in WAD\n", internal_path);
+        return false;
+    }
+    
+    // Get file info
+    mz_zip_archive_file_stat file_stat;
+    if (!mz_zip_reader_file_stat(zip, file_index, &file_stat)) {
+        SDL_Log("[Comet Busters] Error: Failed to read file stats for '%s'\n", internal_path);
+        return false;
+    }
+    
+    // Allocate buffer
+    out_file->size = file_stat.m_uncomp_size;
+    out_file->data = (char *)malloc(out_file->size);
+    if (!out_file->data) {
+        SDL_Log("[Comet Busters] Error: Memory allocation failed for file '%s' (%zu bytes)\n", 
+                internal_path, out_file->size);
+        out_file->size = 0;
+        return false;
+    }
+    
+    // Extract file
+    if (!mz_zip_reader_extract_to_mem(zip, file_index, out_file->data, 
+                                       out_file->size, 0)) {
+        SDL_Log("[Comet Busters] Error: Failed to extract file '%s' from WAD\n", internal_path);
+        free(out_file->data);
+        out_file->data = NULL;
+        out_file->size = 0;
+        return false;
+    }
+    
+    SDL_Log("[Comet Busters]   Extracted: %s (%zu bytes)\n", internal_path, out_file->size);
+    return true;
+}
+
+// Free extracted file
+void wad_free_file(WadFile *file) {
+    if (file && file->data) {
+        free(file->data);
+        file->data = NULL;
+        file->size = 0;
+    }
+}
+
+// Get number of files in WAD
+int wad_get_file_count(WadArchive *wad) {
+    if (!wad || !wad->zip_archive) return 0;
+    
+    mz_zip_archive *zip = (mz_zip_archive *)wad->zip_archive;
+    return (int)mz_zip_reader_get_num_files(zip);
+}
+
+// Get filename at index
+const char* wad_get_filename(WadArchive *wad, int index) {
+    if (!wad || !wad->zip_archive) return NULL;
+    
+    mz_zip_archive *zip = (mz_zip_archive *)wad->zip_archive;
+    static mz_zip_archive_file_stat file_stat;
+    
+    if (!mz_zip_reader_file_stat(zip, index, &file_stat)) {
+        return NULL;
+    }
+    return file_stat.m_filename;    
+}
+
+// Check if file exists in WAD
+bool wad_file_exists(WadArchive *wad, const char *internal_path) {
+    if (!wad || !wad->zip_archive || !internal_path) return false;
+    
+    mz_zip_archive *zip = (mz_zip_archive *)wad->zip_archive;
+    int file_index = mz_zip_reader_locate_file(zip, internal_path, NULL, 0);
+    return file_index >= 0;
+}

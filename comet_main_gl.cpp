@@ -1372,6 +1372,31 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     break;  // Don't process other input while in high score entry
                 }
                 
+                // Handle Start button BEFORE checking show_menu - works in all cases
+                if (button >= 6 && button <= 9) {  // START - buttons 6, 7, 8, 9
+                    if (pressed) {
+                        if (!gui->show_menu) {
+                            // Menu not shown - open it
+                            gui->show_menu = true;
+                            gui->menu_state = 0;
+                            gui->menu_selection = 0;  // Select Continue by default
+                            SDL_Log("[Comet Busters] [MENU] Start button opened menu\n");
+                        } else if (gui->show_menu && gui->menu_state == 0) {
+                            // Menu is shown on main menu - treat Start like pressing Continue
+                            if (gui->visualizer.comet_buster.ship_lives > 0) {
+                                gui->show_menu = false;
+                                SDL_Log("[Comet Busters] [MENU] Start button closed menu (Continue)\n");
+                            }
+                        } else {
+                            // Menu is shown but in a submenu - go back to main menu
+                            gui->menu_state = 0;
+                            gui->menu_selection = 0;
+                            SDL_Log("[Comet Busters] [MENU] Start button returned to main menu\n");
+                        }
+                    }
+                    break;  // Handle Start button and skip the show_menu block
+                }
+                
                 if (gui->show_menu) {
                     // Menu navigation with joystick
                     switch (button) {
@@ -1475,16 +1500,6 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
 #endif
                                     }
                                 }
-                            }
-                            break;
-                        case 6:
-                        case 7:
-                        case 8:
-                        case 9:  // START - Toggle Menu (supports multiple button mappings)
-                            if (pressed) {
-                                gui->show_menu = !gui->show_menu;
-                                gui->menu_state = 0;
-                                gui->menu_selection = 0;
                             }
                             break;
                     }
