@@ -1,6 +1,13 @@
+#ifndef COMET_MAIN_GL_GUI_H
+#define COMET_MAIN_GL_GUI_H
+
 // ============================================================
 // LOCAL HIGH SCORE ENTRY STATE (Not in header - local only)
 // ============================================================
+
+#include "cometbuster.h"
+#include "visualization.h"
+#include "comet_preferences.h"
 
 typedef enum {
     HIGH_SCORE_ENTRY_NONE = 0,
@@ -99,3 +106,5 @@ KeyboardButton* get_keyboard_buttons(int *out_count);
 void add_character_to_input(HighScoreEntryUI *hs_entry, char c);
 void render_virtual_keyboard(CometGUI *gui, HighScoreEntryUI *hs_entry, int selected_index);
 void init_joystick(CometGUI *gui);
+
+#endif

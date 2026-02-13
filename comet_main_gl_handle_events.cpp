@@ -29,6 +29,7 @@
 #include "comet_lang.h"
 #include "comet_preferences.h"
 #include "comet_main_gl_gui.h"
+#include "comet_main_gl_menu.h"
 
 void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
     SDL_Event event;
@@ -100,12 +101,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         gui->menu_state = 0;
                         gui->menu_selection = 5;  // Keep Help selected
                     } else if (gui->show_menu && gui->menu_state != 0) {
-                        gui->menu_state = 0;
-                        gui->menu_selection = 1;
+                        menu_close_submenu(gui);
+                    gui->menu_selection = 1;
                     } else {
                         gui->show_menu = !gui->show_menu;
-                        gui->menu_state = 0;
-                        gui->menu_selection = 0;
+                        menu_open_submenu(gui, 0);
                         if (gui->visualizer.comet_buster.ship_lives<=0) {
                             comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, MEDIUM);
                         }
@@ -210,18 +210,12 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             int num_menu_items = 8;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
                             int items_per_page = 5;
                             
-                            gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
-                            
-                            // Adjust scroll offset to keep selection visible
-                            if (gui->menu_selection < gui->main_menu_scroll_offset) {
-                                gui->main_menu_scroll_offset = gui->menu_selection;
-                            }
+                            menu_move_up(gui);
 
                         } else if (gui->menu_state == 1) {
-                            gui->gui_difficulty_level = (gui->gui_difficulty_level - 1);
-                            if (gui->gui_difficulty_level < 1) gui->gui_difficulty_level = 3;
+                            menu_update_difficulty(gui, -1);
                         } else if (gui->menu_state == 3) {
-                            gui->menu_selection = (gui->menu_selection - 1 + 2) % 2;
+                            menu_move_up(gui);
                         } else if (gui->menu_state == 4) {
                             int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
                             int items_per_page = 4;
@@ -260,10 +254,9 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                 gui->main_menu_scroll_offset = max_scroll;
                             }
                         } else if (gui->menu_state == 1) {
-                            gui->gui_difficulty_level = (gui->gui_difficulty_level + 1);
-                            if (gui->gui_difficulty_level > 3) gui->gui_difficulty_level = 1;
+                            menu_update_difficulty(gui, 1);
                         } else if (gui->menu_state == 3) {
-                            gui->menu_selection = (gui->menu_selection + 1) % 2;
+                            menu_move_down(gui);
                         } else if (gui->menu_state == 4) {
                             int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
                             int items_per_page = 4;
@@ -355,12 +348,10 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     gui->menu_state = 2;
                                     break;
                                 case 3:  // Audio
-                                    gui->menu_state = 3;
-                                    gui->menu_selection = 0;
+                                    menu_open_submenu(gui, 3);
                                     break;
                                 case 4:  // Language
-                                    gui->menu_state = 4;
-                                    gui->menu_selection = 0;
+                                    menu_open_submenu(gui, 4);
                                     break;
                                 case 5:  // Help - Show help overlay
                                     gui->show_help_overlay = true;
@@ -552,12 +543,10 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                             gui->menu_state = 2;
                                             break;
                                         case 3:  // Audio
-                                            gui->menu_state = 3;
-                                            gui->menu_selection = 0;
+                                            menu_open_submenu(gui, 3);
                                             break;
                                         case 4:  // Language
-                                            gui->menu_state = 4;
-                                            gui->menu_selection = 0;
+                                            menu_open_submenu(gui, 4);
                                             break;
                                         case 5:  // Help
                                             gui->show_help_overlay = true;
@@ -932,8 +921,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             // Menu not shown - open it
                             SDL_Log("[Comet Busters] [MENU] Start: Menu closed, opening menu\n");
                             gui->show_menu = true;
-                            gui->menu_state = 0;
-                            gui->menu_selection = 0;  // Select Continue by default
+                            menu_open_submenu(gui, 0);  // Select Continue by default
                             SDL_Log("[Comet Busters] [MENU] Start button opened menu\n");
                         } else if (gui->show_menu && gui->menu_state == 0) {
                             // Menu is shown on main menu - treat Start like pressing Continue
@@ -947,8 +935,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         } else {
                             // Menu is shown but in a submenu - go back to main menu
                             SDL_Log("[Comet Busters] [MENU] Start: Menu open in submenu, returning to main\n");
-                            gui->menu_state = 0;
-                            gui->menu_selection = 0;
+                            menu_open_submenu(gui, 0);
                             SDL_Log("[Comet Busters] [MENU] Start button returned to main menu\n");
                         }
                     }
@@ -996,12 +983,10 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         gui->menu_state = 2;
                                         break;
                                     case 3:  // Audio
-                                        gui->menu_state = 3;
-                                        gui->menu_selection = 0;
+                                        menu_open_submenu(gui, 3);
                                         break;
                                     case 4:  // Language
-                                        gui->menu_state = 4;
-                                        gui->menu_selection = 0;
+                                        menu_open_submenu(gui, 4);
                                         break;
                                     case 5:  // Help
                                         gui->show_help_overlay = true;
@@ -1314,8 +1299,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         gui->main_menu_scroll_offset = gui->menu_selection;
                                     }
                                 } else if (gui->menu_state == 1) {
-                                    gui->gui_difficulty_level = (gui->gui_difficulty_level - 1);
-                                    if (gui->gui_difficulty_level < 1) gui->gui_difficulty_level = 3;
+                                    menu_update_difficulty(gui, -1);
                                 } else if (gui->menu_state == 4) {
                                     int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
                                     int items_per_page = 4;
@@ -1343,8 +1327,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         gui->main_menu_scroll_offset = max_scroll;
                                     }
                                 } else if (gui->menu_state == 1) {
-                                    gui->gui_difficulty_level = (gui->gui_difficulty_level + 1);
-                                    if (gui->gui_difficulty_level > 3) gui->gui_difficulty_level = 1;
+                                    menu_update_difficulty(gui, 1);
                                 } else if (gui->menu_state == 4) {
                                     int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
                                     int items_per_page = 4;
@@ -1577,18 +1560,18 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     } else if (gui->menu_state == 1) {
                         // Difficulty selection (2 items: Easy, Normal, Hard)
                         if (hat & SDL_HAT_UP) {
-                            gui->menu_selection = (gui->menu_selection - 1 + 3) % 3;
+                            menu_move_up(gui);
                         } else if (hat & SDL_HAT_DOWN) {
-                            gui->menu_selection = (gui->menu_selection + 1) % 3;
+                            menu_move_down(gui);
                         }
                     } else if (gui->menu_state == 2) {
                         // High scores display - no navigation needed (just display)
                     } else if (gui->menu_state == 3) {
                         // Audio menu (2-3 items: Music Volume, SFX Volume, Back)
                         if (hat & SDL_HAT_UP) {
-                            gui->menu_selection = (gui->menu_selection - 1 + 3) % 3;
+                            menu_move_up(gui);
                         } else if (hat & SDL_HAT_DOWN) {
-                            gui->menu_selection = (gui->menu_selection + 1) % 3;
+                            menu_move_down(gui);
                         } else if (hat & SDL_HAT_LEFT) {
                             // Decrease volume
                             if (gui->menu_selection == 0) {
@@ -2130,4 +2113,3 @@ void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntryUI *hs
             break;
     }
 }
-
