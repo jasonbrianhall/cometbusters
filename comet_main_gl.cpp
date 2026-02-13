@@ -106,6 +106,11 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Quit();
         return false;
     }
+    SDL_Log("[Comet Busters] [GL] VERSION: %s", glGetString(GL_VERSION));
+    SDL_Log("[Comet Busters] [GL] RENDERER: %s", glGetString(GL_RENDERER));
+    SDL_Log("[Comet Busters] [GL] GLSL: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+    SDL_GL_MakeCurrent(gui->window, gui->gl_context);
     
     SDL_GL_SetSwapInterval(1);
     

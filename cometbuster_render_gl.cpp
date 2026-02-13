@@ -201,7 +201,7 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
 void gl_init(void) {
     if (gl_state.program) return;
     
-    SDL_Log("[Comet Busters] [GL] Initializing modern GL 3.3+ renderer\n");
+    SDL_Log("[Comet Busters] [GL] Initializing GL Renderer\n");
     glGenVertexArrays(1, &global_vao);
     
     gl_state.program = create_program(vertex_shader, fragment_shader);
@@ -238,7 +238,7 @@ void gl_init(void) {
     // Initialize FreeType font system with base64-encoded TTF
     ft_init_from_base64();
     
-    SDL_Log("[Comet Busters] [GL] GL 3.3+ renderer initialized\n");
+    SDL_Log("[Comet Busters] [GL] GL renderer initialized\n");
 }
 
 static void draw_vertices(Vertex *verts, int count, GLenum mode) {
