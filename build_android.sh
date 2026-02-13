@@ -58,7 +58,7 @@ mkdir -p android/app/src/jni/src
 mkdir -p android/app/src/main/assets
 mkdir -p build/android
 
-cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp jni_wad_loading.cpp android/app/src/jni/src/ 2>/dev/null || true
+cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp jni_wad_loading.cpp comet_main_gl_handle_events.cpp comet_main_gl_menu.cpp android/app/src/jni/src/ 2>/dev/null || true
 cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/src/ 2>/dev/null || true
 cp -f SDLActivity.java android/app/src/main/java/org/libsdl/app/SDLActivity.java
 cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
@@ -399,6 +399,8 @@ LOCAL_SRC_FILES := \
     src/comet_highscores.cpp \
     src/comet_preferences.cpp \
     src/jni_wad_loading.cpp \
+    src/comet_main_gl_menu.cpp \
+    src/comet_main_gl_handle_events.cpp \
     src/miniz.c \
     src/miniz_tdef.c \
     src/miniz_tinfl.c \
