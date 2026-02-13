@@ -2452,7 +2452,7 @@ static void render_virtual_keyboard(CometGUI *gui, HighScoreEntryUI *hs_entry, i
             // Special button - use label
             gl_draw_text_simple(btn->label, btn->x + 10, btn->y + 8, 9);
         } else if (btn->character == ' ') {
-            gl_draw_text_simple("SPACE", btn->x + 20, btn->y + 8, 9);
+            gl_draw_text_simple(key_space[gui->visualizer.comet_buster.current_language], btn->x + 20, btn->y + 8, 9);
         } else if (btn->character != '\b' && btn->character != '\n') {
             // Regular letter - larger and bold-looking
             char text[2] = {btn->character, '\0'};

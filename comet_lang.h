@@ -531,6 +531,14 @@ static const char* hint_name_entry2[] = {
     "Klicken Sie auf die Schaltflächen oder verwenden Sie die Tastatur (A‑Z, Leertaste, Enter/Done zum Bestätigen)" // DE
 };
 
+static const char* key_space[] = {
+    "SPACE",     // EN
+    "Espacio",   // ES
+    "Espace",    // FR
+    "Пробел",    // RU
+    "Leertaste"  // DE
+};
+
 
 
 static const char* hint_max_chars[] = {
