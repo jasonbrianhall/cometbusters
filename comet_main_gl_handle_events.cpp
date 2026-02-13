@@ -31,6 +31,62 @@
 #include "comet_main_gl_gui.h"
 #include "comet_main_gl_menu.h"
 
+// ============================================================
+// QUICK SAVE/LOAD HELPER FUNCTIONS (for F5/F7 - slot 10)
+// ============================================================
+
+static void get_quicksave_filename(char *filename, size_t max_len) {
+    char expanded_dir[512];
+    
+#ifdef _WIN32
+    const char *appdata = getenv("APPDATA");
+    if (appdata) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s\\Local\\CometBusters\\savedata", appdata);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "CometBusters\\savedata");
+    }
+#else
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s/.local/share/cometbusters/savedata", home);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "./.cometbusters/savedata");
+    }
+#endif
+    
+    snprintf(filename, max_len, "%s/comet_state_10.sav", expanded_dir);
+}
+
+static void ensure_quicksave_dir() {
+    char expanded_dir[512];
+    
+#ifdef _WIN32
+    const char *appdata = getenv("APPDATA");
+    if (appdata) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s\\Local\\CometBusters\\savedata", appdata);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "CometBusters\\savedata");
+    }
+    
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "mkdir \"%s\" 2>nul", expanded_dir);
+    system(cmd);
+#else
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s/.local/share/cometbusters/savedata", home);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "./.cometbusters/savedata");
+    }
+    
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "mkdir -p \"%s\" 2>/dev/null", expanded_dir);
+    system(cmd);
+#endif
+}
+
+// ============================================================
+
 void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -2047,6 +2103,60 @@ void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntryUI *hs
             gui->visualizer.key_q_pressed = pressed;
             gui->visualizer.mouse_just_moved = false;
             break;
+        case SDLK_F5:
+            gui->visualizer.mouse_just_moved = false;
+            if (pressed) {
+                // F5 - Quick save to slot 10 (independent of menu)
+                ensure_quicksave_dir();
+                char filename[256];
+                get_quicksave_filename(filename, sizeof(filename));
+                
+                FILE *file = fopen(filename, "wb");
+                if (file) {
+                    int version = 1;
+                    time_t now = time(NULL);
+                    
+                    if (fwrite(&version, sizeof(int), 1, file) == 1 &&
+                        fwrite(&now, sizeof(time_t), 1, file) == 1 &&
+                        fwrite(&gui->visualizer.comet_buster, sizeof(CometBusterGame), 1, file) == 1) {
+                        SDL_Log("[Comet Busters] [INPUT] F5 - Quick saved to slot 10\n");
+                    } else {
+                        SDL_Log("[Comet Busters] [INPUT] F5 - Quick save FAILED (write error)\n");
+                    }
+                    fclose(file);
+                } else {
+                    SDL_Log("[Comet Busters] [INPUT] F5 - Quick save FAILED (file error)\n");
+                }
+            }
+            break;
+        
+        case SDLK_F7:
+            gui->visualizer.mouse_just_moved = false;
+            if (pressed) {
+                // F7 - Quick load from slot 10 (independent of menu)
+                char filename[256];
+                get_quicksave_filename(filename, sizeof(filename));
+                
+                FILE *file = fopen(filename, "rb");
+                if (file) {
+                    int version;
+                    time_t timestamp;
+                    
+                    if (fread(&version, sizeof(int), 1, file) == 1 &&
+                        version == 1 &&
+                        fread(&timestamp, sizeof(time_t), 1, file) == 1 &&
+                        fread(&gui->visualizer.comet_buster, sizeof(CometBusterGame), 1, file) == 1) {
+                        SDL_Log("[Comet Busters] [INPUT] F7 - Quick loaded from slot 10\n");
+                    } else {
+                        SDL_Log("[Comet Busters] [INPUT] F7 - Quick load FAILED (read error)\n");
+                    }
+                    fclose(file);
+                } else {
+                    SDL_Log("[Comet Busters] [INPUT] F7 - Quick load FAILED (file not found)\n");
+                }
+            }
+            break;
+        
         case SDLK_F11:
             gui->visualizer.mouse_just_moved = false;
             if (pressed) {
