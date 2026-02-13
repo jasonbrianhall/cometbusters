@@ -1452,7 +1452,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 int axis = event.jaxis.axis;
                 int value = event.jaxis.value;
                 const int AXIS_THRESHOLD = 16384;  // ~25% of max range
-                const uint32_t AXIS_THROTTLE_MS = 150;  // Throttle menu navigation to 150ms per input
+                const uint32_t AXIS_THROTTLE_MS = 50;  // Fast response (50ms = ~20 inputs/second)
                 
                 // Handle high score entry navigation with joystick
                 if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
