@@ -207,9 +207,6 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
                             // Main menu wrapping navigation
-                            int num_menu_items = 8;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
-                            int items_per_page = 5;
-                            
                             menu_move_up(gui);
 
                         } else if (gui->menu_state == 1) {
@@ -218,11 +215,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             menu_move_up(gui);
                         } else if (gui->menu_state == 4) {
                             menu_update_language(gui, -1);
+                        } else if (gui->menu_state == 5 || gui->menu_state == 6) {
+                            menu_move_up(gui);
                         }
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
                             // Main menu wrapping navigation
-                            int num_menu_items = 8;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
+                            int num_menu_items = 10;  // 0=Continue, 1=New, 2=HighScores, 3=Save, 4=Load, 5=Audio, 6=Language, 7=Help, 8=Fullscreen, 9=Quit
                             int items_per_page = 5;
                             
                             gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
@@ -239,11 +238,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                 gui->main_menu_scroll_offset = max_scroll;
                             }
                         } else if (gui->menu_state == 1) {
-                            menu_update_difficulty(gui, 1);
+                            menu_move_down(gui);
                         } else if (gui->menu_state == 3) {
                             menu_move_down(gui);
                         } else if (gui->menu_state == 4) {
                             menu_update_language(gui, 1);
+                        } else if (gui->menu_state == 5 || gui->menu_state == 6) {
+                            menu_move_down(gui);
                         }
                     } else if (event.key.keysym.sym == SDLK_LEFT) {
                         if (gui->menu_state == 3) {
@@ -282,17 +283,25 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                 case 2:  // High Scores
                                     gui->menu_state = 2;
                                     break;
-                                case 3:  // Audio
+                                case 3:  // Save Game
+                                    gui->menu_state = 5;
+                                    gui->menu_selection = 0;
+                                    break;
+                                case 4:  // Load Game
+                                    gui->menu_state = 6;
+                                    gui->menu_selection = 0;
+                                    break;
+                                case 5:  // Audio
                                     menu_open_submenu(gui, 3);
                                     break;
-                                case 4:  // Language
+                                case 6:  // Language
                                     menu_open_submenu(gui, 4);
                                     break;
-                                case 5:  // Help - Show help overlay
+                                case 7:  // Help - Show help overlay
                                     gui->show_help_overlay = true;
                                     gui->help_scroll_offset = 0;
                                     break;
-                                case 6:  // Fullscreen toggle
+                                case 8:  // Fullscreen toggle
                                     gui->fullscreen = !gui->fullscreen;
                                     if (gui->fullscreen) {
                                         SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -301,7 +310,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     }
                                     SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
                                     break;
-                                case 7:  // Quit
+                                case 9:  // Quit
                                     gui->running = false;
                                     break;
                             }
@@ -330,6 +339,21 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         } else if (gui->menu_state == 4) {
                             gui->menu_state = 0;
                             gui->menu_selection = 4;
+                        } else if (gui->menu_state == 5) {
+                            // Save game state
+                            if (menu_save_state(gui, gui->menu_selection)) {
+                                SDL_Log("[Comet Busters] [MENU] Game saved to slot %d\n", gui->menu_selection);
+                            }
+                            gui->menu_state = 0;
+                            gui->menu_selection = 3;
+                        } else if (gui->menu_state == 6) {
+                            // Load game state
+                            if (menu_load_state(gui, gui->menu_selection)) {
+                                SDL_Log("[Comet Busters] [MENU] Game loaded from slot %d\n", gui->menu_selection);
+                                gui->show_menu = false;
+                            } else {
+                                SDL_Log("[Comet Busters] [MENU] Failed to load from slot %d\n", gui->menu_selection);
+                            }
                         }
                     }
                 } else {
@@ -633,7 +657,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 if (gui->show_menu) {
                     if (gui->menu_state == 0) {
                         // Main menu scrolling
-                        int num_menu_items = 8;
+                        int num_menu_items = 10;
                         int items_per_page = 5;
                         
                         if (event.wheel.y > 0) {
@@ -924,17 +948,25 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         case 2:  // High Scores
                                             gui->menu_state = 2;
                                             break;
-                                        case 3:  // Audio
+                                        case 3:  // Save Game
+                                            gui->menu_state = 5;
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 4:  // Load Game
+                                            gui->menu_state = 6;
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 5:  // Audio
                                             menu_open_submenu(gui, 3);
                                             break;
-                                        case 4:  // Language
+                                        case 6:  // Language
                                             menu_open_submenu(gui, 4);
                                             break;
-                                        case 5:  // Help
+                                        case 7:  // Help
                                             gui->show_help_overlay = true;
                                             gui->help_scroll_offset = 0;
                                             break;
-                                        case 6:  // Fullscreen toggle
+                                        case 8:  // Fullscreen toggle
                                             gui->fullscreen = !gui->fullscreen;
                                             if (gui->fullscreen) {
                                                 SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -943,7 +975,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                             }
                                             SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
                                             break;
-                                        case 7:  // Quit
+                                        case 9:  // Quit
                                             gui->running = false;
                                             break;
                                     }
@@ -969,11 +1001,26 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                 } else if (gui->menu_state == 3) {
                                     // Audio - return to main menu
                                     gui->menu_state = 0;
-                                    gui->menu_selection = 3;
+                                    gui->menu_selection = 5;
                                 } else if (gui->menu_state == 4) {
                                     // Language - return to main menu
                                     gui->menu_state = 0;
-                                    gui->menu_selection = 4;
+                                    gui->menu_selection = 6;
+                                } else if (gui->menu_state == 5) {
+                                    // Save game state
+                                    if (menu_save_state(gui, gui->menu_selection)) {
+                                        SDL_Log("[Comet Busters] [MENU] Game saved to slot %d\n", gui->menu_selection);
+                                    }
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = 3;
+                                } else if (gui->menu_state == 6) {
+                                    // Load game state
+                                    if (menu_load_state(gui, gui->menu_selection)) {
+                                        SDL_Log("[Comet Busters] [MENU] Game loaded from slot %d\n", gui->menu_selection);
+                                        gui->show_menu = false;
+                                    } else {
+                                        SDL_Log("[Comet Busters] [MENU] Failed to load from slot %d\n", gui->menu_selection);
+                                    }
                                 }
                             }
                             break;
@@ -1242,8 +1289,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             if (current_state < 0) {
                                 // Moving up in menu
                                 if (gui->menu_state == 0) {
-                                    int num_menu_items = 8;
-                                    int items_per_page = 5;
+                                    int num_menu_items = 10;
                                     gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
                                     if (gui->menu_selection < gui->main_menu_scroll_offset) {
                                         gui->main_menu_scroll_offset = gui->menu_selection;
@@ -1254,11 +1300,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     menu_move_up(gui);
                                 } else if (gui->menu_state == 4) {
                                     menu_update_language(gui, -1);
+                                } else if (gui->menu_state == 5 || gui->menu_state == 6) {
+                                    menu_move_up(gui);
                                 }
                             } else if (current_state > 0) {
                                 // Moving down in menu
                                 if (gui->menu_state == 0) {
-                                    int num_menu_items = 8;
+                                    int num_menu_items = 10;
                                     int items_per_page = 5;
                                     gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
                                     int max_scroll = (num_menu_items > items_per_page) ? (num_menu_items - items_per_page) : 0;
@@ -1269,11 +1317,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         gui->main_menu_scroll_offset = max_scroll;
                                     }
                                 } else if (gui->menu_state == 1) {
-                                    menu_update_difficulty(gui, 1);
+                                    menu_move_down(gui);
                                 } else if (gui->menu_state == 3) {
                                     menu_move_down(gui);
                                 } else if (gui->menu_state == 4) {
                                     menu_update_language(gui, 1);
+                                } else if (gui->menu_state == 5 || gui->menu_state == 6) {
+                                    menu_move_down(gui);
                                 }
                             }
                             gui->last_axis_1_state = current_state;
@@ -1499,6 +1549,12 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             menu_update_language(gui, -1);
                         } else if (hat & SDL_HAT_DOWN) {
                             menu_update_language(gui, 1);
+                        }
+                    } else if (gui->menu_state == 5 || gui->menu_state == 6) {
+                        if (hat & SDL_HAT_UP) {
+                            menu_move_up(gui);
+                        } else if (hat & SDL_HAT_DOWN) {
+                            menu_move_down(gui);
                         }
                     }
                 }

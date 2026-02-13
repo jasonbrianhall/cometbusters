@@ -15,6 +15,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
+#ifdef _WIN32
+    #include <direct.h>
+#else
+    #include <sys/stat.h>
+    #include <sys/types.h>
+#endif
 
 #include "cometbuster.h"
 #include "comet_lang.h"
@@ -44,7 +52,7 @@ static void render_main_menu(CometGUI *gui) {
     int menu_width = 400;
     int menu_height = 60;
     int items_per_page = 5;
-    int num_menu_items = 8;  // Continue, New Game, High Scores, Audio, Language, Help, Fullscreen, Quit
+    int num_menu_items = 10;  // Continue, New Game, High Scores, Save, Load, Audio, Language, Help, Fullscreen, Quit
     
     // Calculate scroll position - keep selected item visible
     int current_selection = gui->menu_selection;
@@ -230,6 +238,52 @@ static void render_audio_menu(CometGUI *gui) {
 }
 
 // ============================================================
+// SAVE STATE MENU RENDERING
+// ============================================================
+
+static void render_save_state_menu(CometGUI *gui, int is_load_menu) {
+    gl_set_color(0.0f, 1.0f, 1.0f);
+    if (is_load_menu) {
+        gl_draw_text_simple("LOAD GAME", 850, 100, 24);
+    } else {
+        gl_draw_text_simple("SAVE GAME", 850, 100, 24);
+    }
+    
+    int state_y_start = 250;
+    int state_spacing = 85;
+    int state_width = 500;
+    int state_height = 60;
+    
+    for (int i = 0; i < 10; i++) {
+        int state_y = state_y_start + (i * state_spacing);
+        int state_x = (1920 - state_width) / 2;
+        
+        if (i == gui->menu_selection) {
+            gl_set_color(1.0f, 1.0f, 0.0f);
+            gl_draw_rect_filled(state_x - 3, state_y - 3, state_width + 6, state_height + 6);
+            gl_set_color(0.0f, 0.5f, 1.0f);
+            gl_draw_rect_filled(state_x, state_y, state_width, state_height);
+            gl_set_color(1.0f, 1.0f, 0.0f);
+        } else {
+            gl_set_color(0.2f, 0.2f, 0.4f);
+            gl_draw_rect_filled(state_x, state_y, state_width, state_height);
+            gl_set_color(0.7f, 0.7f, 1.0f);
+        }
+        
+        char state_label[256];
+        snprintf(state_label, sizeof(state_label), "Slot %d: %s", i, menu_get_state_info(i));
+        gl_draw_text_simple(state_label, state_x + 20, state_y + 20, 14);
+    }
+    
+    gl_set_color(0.8f, 0.8f, 0.8f);
+    if (is_load_menu) {
+        gl_draw_text_simple("UP/DOWN to select | ENTER to load | ESC to cancel", 350, 950, 12);
+    } else {
+        gl_draw_text_simple("UP/DOWN to select | ENTER to save | ESC to cancel", 350, 950, 12);
+    }
+}
+
+// ============================================================
 // LANGUAGE MENU RENDERING
 // ============================================================
 
@@ -334,6 +388,12 @@ void render_menu(CometGUI *gui) {
         case 4:
             render_language_menu(gui);
             break;
+        case 5:
+            render_save_state_menu(gui, 0);  // Save menu
+            break;
+        case 6:
+            render_save_state_menu(gui, 1);  // Load menu
+            break;
         default:
             break;
     }
@@ -350,7 +410,7 @@ void render_menu(CometGUI *gui) {
 void menu_move_up(CometGUI *gui) {
     if (gui->menu_state == 0) {
         // Main menu
-        int num_menu_items = 8;
+        int num_menu_items = 10;
         gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
         
         // Update scroll offset
@@ -366,6 +426,9 @@ void menu_move_up(CometGUI *gui) {
     } else if (gui->menu_state == 4) {
         // Language menu
         menu_update_language(gui, -1);
+    } else if (gui->menu_state == 5 || gui->menu_state == 6) {
+        // Save/Load menu (10 slots)
+        gui->menu_selection = (gui->menu_selection - 1 + 10) % 10;
     }
 }
 
@@ -375,7 +438,7 @@ void menu_move_up(CometGUI *gui) {
 void menu_move_down(CometGUI *gui) {
     if (gui->menu_state == 0) {
         // Main menu
-        int num_menu_items = 8;
+        int num_menu_items = 10;
         int items_per_page = 5;
         gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
         
@@ -392,6 +455,9 @@ void menu_move_down(CometGUI *gui) {
     } else if (gui->menu_state == 4) {
         // Language menu
         menu_update_language(gui, 1);
+    } else if (gui->menu_state == 5 || gui->menu_state == 6) {
+        // Save/Load menu (10 slots)
+        gui->menu_selection = (gui->menu_selection + 1) % 10;
     }
 }
 
@@ -554,4 +620,268 @@ void menu_toggle(CometGUI *gui) {
         gui->menu_state = 0;
         gui->menu_selection = 0;
     }
+}
+
+// ============================================================
+// SAVE/LOAD STATE SYSTEM
+// ============================================================
+
+#ifdef _WIN32
+    #define SAVE_STATE_DIR "AppData\\Local\\CometBusters\\savedata"
+#else
+    #define SAVE_STATE_DIR "~/.local/share/cometbusters/savedata"
+#endif
+
+/**
+ * Gets the filename for a save state slot
+ */
+static void get_state_filename(int slot, char *filename, int max_len) {
+    char expanded_dir[512];
+    
+#ifdef _WIN32
+    // Windows: Use %APPDATA%\Local\CometBusters\savedata
+    const char *appdata = getenv("APPDATA");
+    if (appdata) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s\\Local\\CometBusters\\savedata", appdata);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "CometBusters\\savedata");
+    }
+#else
+    // Linux/Unix: Use ~/.local/share/cometbusters/savedata
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s/.local/share/cometbusters/savedata", home);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "./.cometbusters/savedata");
+    }
+#endif
+    
+    snprintf(filename, max_len, "%s/comet_state_%d.sav", expanded_dir, slot);
+}
+
+/**
+ * Ensures the save directory exists
+ */
+static void ensure_save_dir() {
+    char expanded_dir[512];
+    
+#ifdef _WIN32
+    const char *appdata = getenv("APPDATA");
+    if (appdata) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s\\Local\\CometBusters\\savedata", appdata);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "CometBusters\\savedata");
+    }
+    
+    // Create directory structure on Windows
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "mkdir \"%s\" 2>nul", expanded_dir);
+    system(cmd);
+#else
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(expanded_dir, sizeof(expanded_dir), "%s/.local/share/cometbusters/savedata", home);
+    } else {
+        snprintf(expanded_dir, sizeof(expanded_dir), "./.cometbusters/savedata");
+    }
+    
+    // Create directory structure on Unix/Linux
+    char cmd[1024];
+    snprintf(cmd, sizeof(cmd), "mkdir -p \"%s\" 2>/dev/null", expanded_dir);
+    system(cmd);
+#endif
+}
+
+/**
+ * Saves the current game state to a slot (0-9)
+ */
+int menu_save_state(CometGUI *gui, int slot) {
+    if (slot < 0 || slot > 9) return 0;
+    
+    ensure_save_dir();
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "wb");
+    if (!file) {
+        SDL_Log("[Comet Busters] [SAVE STATE] Failed to open file: %s\n", filename);
+        return 0;
+    }
+    
+    // Write header with version and timestamp
+    int version = 1;
+    time_t now = time(NULL);
+    
+    if (fwrite(&version, sizeof(int), 1, file) != 1) {
+        fclose(file);
+        return 0;
+    }
+    
+    if (fwrite(&now, sizeof(time_t), 1, file) != 1) {
+        fclose(file);
+        return 0;
+    }
+    
+    // Write essential game state
+    CometBusterGame *game = &gui->visualizer.comet_buster;
+    
+    // Save key variables
+    int current_wave = game->current_wave;
+    int score = game->score;
+    int ship_lives = game->ship_lives;
+    int missile_ammo = game->missile_ammo;
+    int bomb_ammo = game->bomb_ammo;
+    int difficulty = game->difficulty;
+    
+    if (fwrite(&current_wave, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fwrite(&score, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fwrite(&ship_lives, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fwrite(&missile_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fwrite(&bomb_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fwrite(&difficulty, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    
+    fclose(file);
+    SDL_Log("[Comet Busters] [SAVE STATE] State %d saved (Wave %d, Score %d, Lives %d)\n", 
+            slot, current_wave, score, ship_lives);
+    return 1;
+}
+
+/**
+ * Loads a game state from a slot (0-9)
+ */
+int menu_load_state(CometGUI *gui, int slot) {
+    if (slot < 0 || slot > 9) return 0;
+    if (!menu_state_exists(slot)) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Slot %d does not exist\n", slot);
+        return 0;
+    }
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to open file: %s\n", filename);
+        return 0;
+    }
+    
+    // Read and verify version
+    int version;
+    time_t timestamp;
+    
+    if (fread(&version, sizeof(int), 1, file) != 1) {
+        fclose(file);
+        return 0;
+    }
+    
+    if (version != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Unsupported save version: %d\n", version);
+        fclose(file);
+        return 0;
+    }
+    
+    if (fread(&timestamp, sizeof(time_t), 1, file) != 1) {
+        fclose(file);
+        return 0;
+    }
+    
+    // Read game state
+    CometBusterGame *game = &gui->visualizer.comet_buster;
+    
+    int current_wave = 0;
+    int score = 0;
+    int ship_lives = 0;
+    int missile_ammo = 0;
+    int bomb_ammo = 0;
+    int difficulty = 0;
+    
+    if (fread(&current_wave, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fread(&score, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fread(&ship_lives, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fread(&missile_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fread(&bomb_ammo, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    if (fread(&difficulty, sizeof(int), 1, file) != 1) { fclose(file); return 0; }
+    
+    fclose(file);
+    
+    // Apply loaded state to game
+    game->current_wave = current_wave;
+    game->score = score;
+    game->ship_lives = ship_lives;
+    game->missile_ammo = missile_ammo;
+    game->bomb_ammo = bomb_ammo;
+    game->difficulty = difficulty;
+    
+    SDL_Log("[Comet Busters] [LOAD STATE] State %d loaded (Wave %d, Score %d, Lives %d)\n", 
+            slot, current_wave, score, ship_lives);
+    return 1;
+}
+
+/**
+ * Checks if a save state exists
+ */
+int menu_state_exists(int slot) {
+    if (slot < 0 || slot > 9) return 0;
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "rb");
+    if (file) {
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * Gets human-readable info about a save state
+ */
+static char state_info_buffer[256];
+
+const char* menu_get_state_info(int slot) {
+    if (slot < 0 || slot > 9) {
+        snprintf(state_info_buffer, sizeof(state_info_buffer), "Invalid");
+        return state_info_buffer;
+    }
+    
+    if (!menu_state_exists(slot)) {
+        snprintf(state_info_buffer, sizeof(state_info_buffer), "Empty");
+        return state_info_buffer;
+    }
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        snprintf(state_info_buffer, sizeof(state_info_buffer), "Error");
+        return state_info_buffer;
+    }
+    
+    time_t timestamp;
+    if (fread(&timestamp, sizeof(time_t), 1, file) != 1) {
+        fclose(file);
+        snprintf(state_info_buffer, sizeof(state_info_buffer), "Error");
+        return state_info_buffer;
+    }
+    
+    // Also read game info for display
+    CometBusterGame game;
+    if (fread(&game, sizeof(CometBusterGame), 1, file) != 1) {
+        fclose(file);
+        snprintf(state_info_buffer, sizeof(state_info_buffer), "Error");
+        return state_info_buffer;
+    }
+    
+    fclose(file);
+    
+    // Format: "Wave X Score Y HH:MM"
+    struct tm *timeinfo = localtime(&timestamp);
+    snprintf(state_info_buffer, sizeof(state_info_buffer), 
+             "Wave %d | Score %d | %02d:%02d",
+             game.current_wave, game.score, timeinfo->tm_hour, timeinfo->tm_min);
+    
+    return state_info_buffer;
 }

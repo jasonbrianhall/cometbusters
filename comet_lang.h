@@ -379,11 +379,13 @@ static const char* perfect_destruction_text[] = {
     "PERFEKTE ZERSTÖRUNG!"         // German
 };
 
-static const char* main_menu_items[][8] = {
+static const char* main_menu_items[][10] = {
     {   // English
         "CONTINUE",
         "NEW GAME",
         "HIGH SCORES",
+        "SAVE GAME",
+        "LOAD GAME",
         "AUDIO",
         "LANGUAGE",
         "HELP",
@@ -394,6 +396,8 @@ static const char* main_menu_items[][8] = {
         "CONTINUAR",
         "NUEVA PARTIDA",
         "PUNTUACIONES",
+        "GUARDAR JUEGO",
+        "CARGAR JUEGO",
         "AUDIO",
         "IDIOMA (Language)",
         "AYUDA",
@@ -404,6 +408,8 @@ static const char* main_menu_items[][8] = {
         "CONTINUER",
         "NOUVELLE PARTIE",
         "MEILLEURS SCORES",
+        "SAUVEGARDER",
+        "CHARGER",
         "AUDIO",
         "LANGUE (Language)",
         "AIDE",
@@ -414,6 +420,8 @@ static const char* main_menu_items[][8] = {
         "ПРОДОЛЖИТЬ",
         "НОВАЯ ИГРА",
         "РЕКОРДЫ",
+        "СОХРАНИТЬ ИГРУ",
+        "ЗАГРУЗИТЬ ИГРУ",
         "АУДИО",
         "ЯЗЫК (Language)",
         "СПРАВКА",
@@ -424,6 +432,8 @@ static const char* main_menu_items[][8] = {
         "FORTFAHREN",
         "NEUES SPIEL",
         "HIGHSCORES",
+        "SPIEL SPEICHERN",
+        "SPIEL LADEN",
         "AUDIO",
         "SPRACHE (Language)",
         "HILFE",
