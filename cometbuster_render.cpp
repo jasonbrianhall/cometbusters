@@ -15,6 +15,12 @@
 #include "audio_wad.h"
 #endif 
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 // ============================================================================
 // RENDERING - VECTOR-BASED ASTEROIDS
 // ============================================================================

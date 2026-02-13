@@ -23,6 +23,12 @@
 #include "audio_wad.h"
 #include "comet_help.h"
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 // OpenGL GTK callbacks (needed by comet_main.cpp)
 gboolean on_realize(GtkGLArea *area, gpointer data);
 gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data);
