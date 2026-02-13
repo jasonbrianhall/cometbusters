@@ -226,25 +226,24 @@ static void render_audio_menu(CometGUI *gui) {
     }
     
     gl_set_color(0.8f, 0.8f, 0.8f);
-    gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 550, 950, 10);
+    gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 480, 950, 10);
 }
 
 // ============================================================
-// LANGUAGE SELECTION MENU RENDERING
+// LANGUAGE MENU RENDERING
 // ============================================================
 
 static void render_language_menu(CometGUI *gui) {
     gl_set_color(0.0f, 1.0f, 1.0f);
-    gl_draw_text_simple(label_select_language[gui->visualizer.comet_buster.current_language], 800, 150, 24);
-                
-    int lang_y_start = 350;
-    int lang_spacing = 120;
+    gl_draw_text_simple(label_select_language[gui->visualizer.comet_buster.current_language], 800, 150, 20);
+    
+    int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+    int lang_y_start = 300;
+    int lang_spacing = 110;
     int lang_width = 400;
     int lang_height = 60;
-    int items_per_page = 4;  // Show 4 languages at a time
-    int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
+    int items_per_page = 4;
     
-    // Calculate scroll position - keep selected language visible
     int current_lang = gui->visualizer.comet_buster.current_language;
     int scroll_offset = gui->lang_menu_scroll_offset;
     
@@ -365,7 +364,8 @@ void menu_move_up(CometGUI *gui) {
         // Audio menu
         gui->menu_selection = (gui->menu_selection - 1 + 2) % 2;
     } else if (gui->menu_state == 4) {
-        // Language menu - handled by language selection logic
+        // Language menu
+        menu_update_language(gui, -1);
     }
 }
 
@@ -390,7 +390,8 @@ void menu_move_down(CometGUI *gui) {
         // Audio menu
         gui->menu_selection = (gui->menu_selection + 1) % 2;
     } else if (gui->menu_state == 4) {
-        // Language menu - handled by language selection logic
+        // Language menu
+        menu_update_language(gui, 1);
     }
 }
 
@@ -405,16 +406,31 @@ void menu_update_difficulty(CometGUI *gui, int direction) {
 
 /**
  * Updates audio volume (left/right navigation in audio menu)
+ * Called by both keyboard and joystick handlers
  */
 void menu_update_volume(CometGUI *gui, int option, int direction) {
     int *volume = (option == 0) ? &gui->music_volume : &gui->sfx_volume;
+    int *pref_volume = (option == 0) ? &gui->preferences.music_volume : &gui->preferences.sfx_volume;
+    
     *volume += direction * 5;
     if (*volume < 0) *volume = 0;
     if (*volume > 100) *volume = 100;
+    
+    // Update audio system
+    if (option == 0) {
+        audio_set_music_volume(&gui->audio, *volume);
+    } else {
+        audio_set_sfx_volume(&gui->audio, *volume);
+    }
+    
+    // Save preference
+    *pref_volume = *volume;
+    preferences_save(&gui->preferences);
 }
 
 /**
- * Updates language selection (left/right navigation in language menu)
+ * Updates language selection with automatic preference save
+ * Called by both keyboard and joystick handlers
  */
 void menu_update_language(CometGUI *gui, int direction) {
     int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
@@ -437,6 +453,70 @@ void menu_update_language(CometGUI *gui, int direction) {
     
     if (gui->visualizer.comet_buster.current_language >= scroll_offset + items_per_page) {
         gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language - items_per_page + 1;
+    }
+    
+    // CRITICAL FIX: Always save language preference (both keyboard and joystick paths)
+    gui->preferences.language = gui->visualizer.comet_buster.current_language;
+    preferences_save(&gui->preferences);
+}
+
+/**
+ * Move cheat menu selection up with wrapping
+ * Called by both keyboard and joystick handlers
+ */
+void menu_cheat_move_up(CheatMenuUI *cheat_menu) {
+    if (!cheat_menu) return;
+    cheat_menu->selection = (cheat_menu->selection - 1 + 7) % 7;
+}
+
+/**
+ * Move cheat menu selection down with wrapping
+ * Called by both keyboard and joystick handlers
+ */
+void menu_cheat_move_down(CheatMenuUI *cheat_menu) {
+    if (!cheat_menu) return;
+    cheat_menu->selection = (cheat_menu->selection + 1) % 7;
+}
+
+/**
+ * Update cheat menu value for selected option
+ * Handles wave, lives, missiles, bombs, difficulty with wrapping
+ * Called by both keyboard and joystick handlers
+ */
+void menu_cheat_update_value(CheatMenuUI *cheat_menu, int direction) {
+    if (!cheat_menu) return;
+    
+    switch (cheat_menu->selection) {
+        case 0:
+            // Wave (1-30)
+            cheat_menu->wave += direction;
+            if (cheat_menu->wave < 1) cheat_menu->wave = 30;
+            if (cheat_menu->wave > 30) cheat_menu->wave = 1;
+            break;
+        case 1:
+            // Lives (1-20)
+            cheat_menu->lives += direction;
+            if (cheat_menu->lives < 1) cheat_menu->lives = 20;
+            if (cheat_menu->lives > 20) cheat_menu->lives = 1;
+            break;
+        case 2:
+            // Missiles (0-99)
+            cheat_menu->missiles += direction;
+            if (cheat_menu->missiles < 0) cheat_menu->missiles = 99;
+            if (cheat_menu->missiles > 99) cheat_menu->missiles = 0;
+            break;
+        case 3:
+            // Bombs (0-99)
+            cheat_menu->bombs += direction;
+            if (cheat_menu->bombs < 0) cheat_menu->bombs = 99;
+            if (cheat_menu->bombs > 99) cheat_menu->bombs = 0;
+            break;
+        case 4:
+            // Difficulty (0-2)
+            cheat_menu->cheat_difficulty += direction;
+            if (cheat_menu->cheat_difficulty < 0) cheat_menu->cheat_difficulty = 2;
+            if (cheat_menu->cheat_difficulty > 2) cheat_menu->cheat_difficulty = 0;
+            break;
     }
 }
 

@@ -42,17 +42,35 @@ void menu_move_down(CometGUI *gui);
 void menu_update_difficulty(CometGUI *gui, int direction);
 
 /**
- * Updates audio volume during audio menu
+ * Updates audio volume during audio menu with preference save
+ * @param gui: GUI state
  * @param option: 0 for music, 1 for SFX
  * @param direction: -1 for decrease, +1 for increase
  */
 void menu_update_volume(CometGUI *gui, int option, int direction);
 
 /**
- * Updates language selection during language menu
+ * Updates language selection during language menu with preference save
  * @param direction: -1 for previous, +1 for next
  */
 void menu_update_language(CometGUI *gui, int direction);
+
+/**
+ * Updates cheat menu selection up with wrapping
+ */
+void menu_cheat_move_up(CheatMenuUI *cheat_menu);
+
+/**
+ * Updates cheat menu selection down with wrapping
+ */
+void menu_cheat_move_down(CheatMenuUI *cheat_menu);
+
+/**
+ * Updates cheat menu value (wave, lives, missiles, bombs, difficulty)
+ * @param cheat_menu: Cheat menu state
+ * @param direction: -1 for decrease, +1 for increase
+ */
+void menu_cheat_update_value(CheatMenuUI *cheat_menu, int direction);
 
 // ============================================================
 // MENU STATE MANAGEMENT

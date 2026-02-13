@@ -117,9 +117,9 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     // Handle cheat menu input first (takes priority)
                     if (cheat_menu && cheat_menu->state == CHEAT_MENU_OPEN) {
                         if (event.key.keysym.sym == SDLK_UP) {
-                            cheat_menu->selection = (cheat_menu->selection - 1 + 7) % 7;
-                        } else if (event.key.keysym.sym == SDLK_DOWN) {
-                            cheat_menu->selection = (cheat_menu->selection + 1) % 7;
+                    menu_cheat_move_up(cheat_menu);
+                } else if (event.key.keysym.sym == SDLK_DOWN) {
+                    menu_cheat_move_down(cheat_menu);
                         } else if (event.key.keysym.sym == SDLK_LEFT) {
                             switch (cheat_menu->selection) {
                                 case 0: cheat_menu->wave = (cheat_menu->wave - 1 < 1) ? 30 : cheat_menu->wave - 1; break;
@@ -217,22 +217,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         } else if (gui->menu_state == 3) {
                             menu_move_up(gui);
                         } else if (gui->menu_state == 4) {
-                            int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
-                            int items_per_page = 4;
-                            
-                            gui->visualizer.comet_buster.current_language--;
-                            if (gui->visualizer.comet_buster.current_language < 0) {
-                                gui->visualizer.comet_buster.current_language = num_languages - 1;
-                            }
-                            
-                            // Adjust scroll offset to keep selection visible
-                            if (gui->visualizer.comet_buster.current_language < gui->lang_menu_scroll_offset) {
-                                gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language;
-                            }
-                            
-                            // SAVE PREFERENCES
-                            gui->preferences.language = gui->visualizer.comet_buster.current_language;
-                            preferences_save(&gui->preferences);
+                            menu_update_language(gui, -1);
                         }
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
@@ -258,65 +243,15 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         } else if (gui->menu_state == 3) {
                             menu_move_down(gui);
                         } else if (gui->menu_state == 4) {
-                            int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
-                            int items_per_page = 4;
-                            
-                            gui->visualizer.comet_buster.current_language++;
-                            if (gui->visualizer.comet_buster.current_language >= num_languages) {
-                                gui->visualizer.comet_buster.current_language = 0;
-                            }
-                            
-                            // Adjust scroll offset to keep selection visible
-                            int max_scroll = (num_languages > items_per_page) ? 
-                                            (num_languages - items_per_page) : 0;
-                            
-                            if (gui->visualizer.comet_buster.current_language >= gui->lang_menu_scroll_offset + items_per_page) {
-                                gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language - items_per_page + 1;
-                            }
-                            
-                            if (gui->lang_menu_scroll_offset > max_scroll) {
-                                gui->lang_menu_scroll_offset = max_scroll;
-                            }
-                            
-                            // SAVE PREFERENCES
-                            gui->preferences.language = gui->visualizer.comet_buster.current_language;
-                            preferences_save(&gui->preferences);
+                            menu_update_language(gui, 1);
                         }
                     } else if (event.key.keysym.sym == SDLK_LEFT) {
                         if (gui->menu_state == 3) {
-                            if (gui->menu_selection == 0) {
-                                gui->music_volume = (gui->music_volume - 5);
-                                if (gui->music_volume < 0) gui->music_volume = 0;
-                                audio_set_music_volume(&gui->audio, gui->music_volume);
-                                // SAVE PREFERENCES
-                                gui->preferences.music_volume = gui->music_volume;
-                                preferences_save(&gui->preferences);
-                            } else {
-                                gui->sfx_volume = (gui->sfx_volume - 5);
-                                if (gui->sfx_volume < 0) gui->sfx_volume = 0;
-                                audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
-                                // SAVE PREFERENCES
-                                gui->preferences.sfx_volume = gui->sfx_volume;
-                                preferences_save(&gui->preferences);
-                            }
+                            menu_update_volume(gui, gui->menu_selection, -1);
                         }
                     } else if (event.key.keysym.sym == SDLK_RIGHT) {
                         if (gui->menu_state == 3) {
-                            if (gui->menu_selection == 0) {
-                                gui->music_volume = (gui->music_volume + 5);
-                                if (gui->music_volume > 100) gui->music_volume = 100;
-                                audio_set_music_volume(&gui->audio, gui->music_volume);
-                                // SAVE PREFERENCES
-                                gui->preferences.music_volume = gui->music_volume;
-                                preferences_save(&gui->preferences);
-                            } else {
-                                gui->sfx_volume = (gui->sfx_volume + 5);
-                                if (gui->sfx_volume > 100) gui->sfx_volume = 100;
-                                audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
-                                // SAVE PREFERENCES
-                                gui->preferences.sfx_volume = gui->sfx_volume;
-                                preferences_save(&gui->preferences);
-                            }
+                            menu_update_volume(gui, gui->menu_selection, 1);
                         }
                     } else if (event.key.keysym.sym == SDLK_c) {
                         // Open cheat menu from main menu
@@ -968,52 +903,78 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     // Menu navigation with joystick
                     switch (button) {
                         case 0:  // A button - select/confirm
-                            if (pressed && gui->menu_state == 0) {
-                                switch (gui->menu_selection) {
-                                    case 0:  // Continue
-                                        if(gui->visualizer.comet_buster.ship_lives > 0) {
-                                            gui->show_menu = false;
-                                        }
-                                        break;
-                                    case 1:  // New Game
-                                        gui->menu_state = 1;
-                                        gui->gui_difficulty_level = 1;
-                                        break;
-                                    case 2:  // High Scores
-                                        gui->menu_state = 2;
-                                        break;
-                                    case 3:  // Audio
-                                        menu_open_submenu(gui, 3);
-                                        break;
-                                    case 4:  // Language
-                                        menu_open_submenu(gui, 4);
-                                        break;
-                                    case 5:  // Help
-                                        gui->show_help_overlay = true;
-                                        gui->help_scroll_offset = 0;
-                                        break;
-                                    case 6:  // Fullscreen toggle
-                                        gui->fullscreen = !gui->fullscreen;
-                                        if (gui->fullscreen) {
-                                            SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                                        } else {
-                                            SDL_SetWindowFullscreen(gui->window, 0);
-                                        }
-                                        SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
-                                        break;
-                                    case 7:  // Quit
-                                        gui->running = false;
-                                        break;
-                                }
-                            } else if (pressed && gui->menu_state == 1) {
-                                // Start game with selected difficulty
-                                comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, gui->gui_difficulty_level-1);
+                            if (pressed) {
+                                if (gui->show_help_overlay) {
+                                    // Close help overlay and return to main menu
+                                    gui->show_help_overlay = false;
+                                    gui->help_scroll_offset = 0;
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = 5;  // Keep Help selected
+                                } else if (gui->menu_state == 0) {
+                                    switch (gui->menu_selection) {
+                                        case 0:  // Continue
+                                            if(gui->visualizer.comet_buster.ship_lives > 0) {
+                                                gui->show_menu = false;
+                                            }
+                                            break;
+                                        case 1:  // New Game
+                                            gui->menu_state = 1;
+                                            gui->gui_difficulty_level = 1;
+                                            break;
+                                        case 2:  // High Scores
+                                            gui->menu_state = 2;
+                                            break;
+                                        case 3:  // Audio
+                                            menu_open_submenu(gui, 3);
+                                            break;
+                                        case 4:  // Language
+                                            menu_open_submenu(gui, 4);
+                                            break;
+                                        case 5:  // Help
+                                            gui->show_help_overlay = true;
+                                            gui->help_scroll_offset = 0;
+                                            break;
+                                        case 6:  // Fullscreen toggle
+                                            gui->fullscreen = !gui->fullscreen;
+                                            if (gui->fullscreen) {
+                                                SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                            } else {
+                                                SDL_SetWindowFullscreen(gui->window, 0);
+                                            }
+                                            SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
+                                            break;
+                                        case 7:  // Quit
+                                            gui->running = false;
+                                            break;
+                                    }
+                                } else if (gui->menu_state == 1) {
+                                    // Start game with selected difficulty
+                                    comet_buster_reset_game_with_splash(&gui->visualizer.comet_buster, true, gui->gui_difficulty_level-1);
+                                    
+                                    if (hs_entry) {
+                                        hs_entry->state = HIGH_SCORE_ENTRY_NONE;
+                                        hs_entry->cursor_pos = 0;
+                                        memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
+                                    }
 #ifdef ExternalSound
-                                play_intro(gui, gui->visualizer.comet_buster.current_language);
+                                    play_intro(gui, gui->visualizer.comet_buster.current_language);
 #endif
-                                gui->show_menu = false;
-                                gui->game_paused = false;
-                                gui->finale_music_started = false;
+                                    gui->show_menu = false;
+                                    gui->game_paused = false;
+                                    gui->finale_music_started = false;
+                                } else if (gui->menu_state == 2) {
+                                    // High Scores - return to main menu
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = 2;
+                                } else if (gui->menu_state == 3) {
+                                    // Audio - return to main menu
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = 3;
+                                } else if (gui->menu_state == 4) {
+                                    // Language - return to main menu
+                                    gui->menu_state = 0;
+                                    gui->menu_selection = 4;
+                                }
                             }
                             break;
                         case 1:  // B button - back/cancel
@@ -1024,8 +985,9 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     gui->menu_state = 0;
                                     gui->menu_selection = 5;
                                 } else if (gui->menu_state != 0) {
+                                    int prev_state = gui->menu_state;
                                     gui->menu_state = 0;
-                                    gui->menu_selection = (gui->menu_state == 4) ? 4 : 1;
+                                    gui->menu_selection = (prev_state == 4) ? 4 : 1;
                                 }
                             }
                             break;
@@ -1260,25 +1222,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                 // Moving left in menu
                                 if (gui->menu_state == 3) {
                                     // Audio menu - decrease volume
-                                    if (gui->menu_selection == 0) {
-                                        gui->music_volume = (gui->music_volume - 5);
-                                        if (gui->music_volume < 0) gui->music_volume = 0;
-                                        audio_set_music_volume(&gui->audio, gui->music_volume);
-                                        gui->preferences.music_volume = gui->music_volume;
-                                        preferences_save(&gui->preferences);
-                                    }
+                                    menu_update_volume(gui, gui->menu_selection, -1);
                                 }
                             } else if (current_state > 0) {
                                 // Moving right in menu
                                 if (gui->menu_state == 3) {
                                     // Audio menu - increase volume
-                                    if (gui->menu_selection == 0) {
-                                        gui->music_volume = (gui->music_volume + 5);
-                                        if (gui->music_volume > 100) gui->music_volume = 100;
-                                        audio_set_music_volume(&gui->audio, gui->music_volume);
-                                        gui->preferences.music_volume = gui->music_volume;
-                                        preferences_save(&gui->preferences);
-                                    }
+                                    menu_update_volume(gui, gui->menu_selection, 1);
                                 }
                             }
                             gui->last_axis_0_state = current_state;
@@ -1300,18 +1250,10 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     }
                                 } else if (gui->menu_state == 1) {
                                     menu_update_difficulty(gui, -1);
+                                } else if (gui->menu_state == 3) {
+                                    menu_move_up(gui);
                                 } else if (gui->menu_state == 4) {
-                                    int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
-                                    int items_per_page = 4;
-                                    gui->visualizer.comet_buster.current_language--;
-                                    if (gui->visualizer.comet_buster.current_language < 0) {
-                                        gui->visualizer.comet_buster.current_language = num_languages - 1;
-                                    }
-                                    if (gui->visualizer.comet_buster.current_language < gui->lang_menu_scroll_offset) {
-                                        gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language;
-                                    }
-                                    gui->preferences.language = gui->visualizer.comet_buster.current_language;
-                                    preferences_save(&gui->preferences);
+                                    menu_update_language(gui, -1);
                                 }
                             } else if (current_state > 0) {
                                 // Moving down in menu
@@ -1328,22 +1270,10 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     }
                                 } else if (gui->menu_state == 1) {
                                     menu_update_difficulty(gui, 1);
+                                } else if (gui->menu_state == 3) {
+                                    menu_move_down(gui);
                                 } else if (gui->menu_state == 4) {
-                                    int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
-                                    int items_per_page = 4;
-                                    gui->visualizer.comet_buster.current_language++;
-                                    if (gui->visualizer.comet_buster.current_language >= num_languages) {
-                                        gui->visualizer.comet_buster.current_language = 0;
-                                    }
-                                    int max_scroll = (num_languages > items_per_page) ? (num_languages - items_per_page) : 0;
-                                    if (gui->visualizer.comet_buster.current_language >= gui->lang_menu_scroll_offset + items_per_page) {
-                                        gui->lang_menu_scroll_offset = gui->visualizer.comet_buster.current_language - items_per_page + 1;
-                                    }
-                                    if (gui->lang_menu_scroll_offset > max_scroll) {
-                                        gui->lang_menu_scroll_offset = max_scroll;
-                                    }
-                                    gui->preferences.language = gui->visualizer.comet_buster.current_language;
-                                    preferences_save(&gui->preferences);
+                                    menu_update_language(gui, 1);
                                 }
                             }
                             gui->last_axis_1_state = current_state;
@@ -1539,23 +1469,10 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 
                 if (gui->show_menu) {
                     if (gui->menu_state == 0) {
-                        int num_menu_items = 8;
-                        int items_per_page = 5;
-                        
                         if (hat & SDL_HAT_UP) {
-                            gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
-                            if (gui->menu_selection < gui->main_menu_scroll_offset) {
-                                gui->main_menu_scroll_offset = gui->menu_selection;
-                            }
+                            menu_move_up(gui);
                         } else if (hat & SDL_HAT_DOWN) {
-                            gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
-                            int max_scroll = (num_menu_items > items_per_page) ? (num_menu_items - items_per_page) : 0;
-                            if (gui->menu_selection >= gui->main_menu_scroll_offset + items_per_page) {
-                                gui->main_menu_scroll_offset = gui->menu_selection - items_per_page + 1;
-                            }
-                            if (gui->main_menu_scroll_offset > max_scroll) {
-                                gui->main_menu_scroll_offset = max_scroll;
-                            }
+                            menu_move_down(gui);
                         }
                     } else if (gui->menu_state == 1) {
                         // Difficulty selection (2 items: Easy, Normal, Hard)
@@ -1573,40 +1490,15 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         } else if (hat & SDL_HAT_DOWN) {
                             menu_move_down(gui);
                         } else if (hat & SDL_HAT_LEFT) {
-                            // Decrease volume
-                            if (gui->menu_selection == 0) {
-                                // Music volume
-                                gui->music_volume = (gui->music_volume - 5 < 0) ? 0 : gui->music_volume - 5;
-                                audio_set_music_volume(&gui->audio, gui->music_volume);
-                                gui->preferences.music_volume = gui->music_volume;
-                            } else if (gui->menu_selection == 1) {
-                                // SFX volume
-                                gui->sfx_volume = (gui->sfx_volume - 5 < 0) ? 0 : gui->sfx_volume - 5;
-                                audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
-                                gui->preferences.sfx_volume = gui->sfx_volume;
-                            }
+                            menu_update_volume(gui, gui->menu_selection, -1);
                         } else if (hat & SDL_HAT_RIGHT) {
-                            // Increase volume
-                            if (gui->menu_selection == 0) {
-                                // Music volume
-                                gui->music_volume = (gui->music_volume + 5 > 128) ? 128 : gui->music_volume + 5;
-                                audio_set_music_volume(&gui->audio, gui->music_volume);
-                                gui->preferences.music_volume = gui->music_volume;
-                            } else if (gui->menu_selection == 1) {
-                                // SFX volume
-                                gui->sfx_volume = (gui->sfx_volume + 5 > 128) ? 128 : gui->sfx_volume + 5;
-                                audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
-                                gui->preferences.sfx_volume = gui->sfx_volume;
-                            }
+                            menu_update_volume(gui, gui->menu_selection, 1);
                         }
                     } else if (gui->menu_state == 4) {
-                        // Language menu - UP/DOWN for navigation
                         if (hat & SDL_HAT_UP) {
-                            gui->menu_selection = (gui->menu_selection - 1 + 5) % 5;  // 5 languages
-                            gui->lang_menu_scroll_offset = gui->menu_selection;
+                            menu_update_language(gui, -1);
                         } else if (hat & SDL_HAT_DOWN) {
-                            gui->menu_selection = (gui->menu_selection + 1) % 5;
-                            gui->lang_menu_scroll_offset = gui->menu_selection;
+                            menu_update_language(gui, 1);
                         }
                     }
                 }
