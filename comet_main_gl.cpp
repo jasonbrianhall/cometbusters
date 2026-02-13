@@ -2895,14 +2895,16 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     audio_set_music_volume(&gui.audio, gui.music_volume);
     audio_set_sfx_volume(&gui.audio, gui.sfx_volume);
     
-    // Load background music tracks (for when gameplay starts)
+    // Load background music tracks into rotation queue (for when gameplay starts)
 #ifdef ExternalSound
-    audio_play_music(&gui.audio, "music/track1.mp3", false);   // Load track 1
-    audio_play_music(&gui.audio, "music/track2.mp3", false);   // Load track 2
-    audio_play_music(&gui.audio, "music/track3.mp3", false);   // Load track 3
-    audio_play_music(&gui.audio, "music/track4.mp3", false);   // Load track 4
-    audio_play_music(&gui.audio, "music/track5.mp3", false);   // Load track 5
-    audio_play_music(&gui.audio, "music/track6.mp3", false);   // Load track 6
+    audio_queue_music_for_rotation(&gui.audio, "music/track1.mp3");   // Queue track 1
+    audio_queue_music_for_rotation(&gui.audio, "music/track2.mp3");   // Queue track 2
+    audio_queue_music_for_rotation(&gui.audio, "music/track3.mp3");   // Queue track 3
+    audio_queue_music_for_rotation(&gui.audio, "music/track4.mp3");   // Queue track 4
+    audio_queue_music_for_rotation(&gui.audio, "music/track5.mp3");   // Queue track 5
+    audio_queue_music_for_rotation(&gui.audio, "music/track6.mp3");   // Queue track 6
+    
+    SDL_Log("[Comet Busters] [AUDIO] Queued %d background music tracks for rotation\n", gui.audio.music_track_count);
     
     // Set language from preferences BEFORE playing intro
     gui.visualizer.comet_buster.current_language = gui.preferences.language;

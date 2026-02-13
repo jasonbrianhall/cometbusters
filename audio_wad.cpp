@@ -338,6 +338,47 @@ void audio_play_intro_music(AudioManager *audio, const char *internal_path) {
     }
 }
 
+// Queue music for rotation without playing it (for background music rotation)
+void audio_queue_music_for_rotation(AudioManager *audio, const char *internal_path) {
+    if (!audio || !internal_path) return;
+    
+    // Don't exceed array bounds
+    if (audio->music_track_count >= 10) {
+        SDL_Log("[Comet Busters] [WARNING] Music rotation array full, cannot queue: %s\n", internal_path);
+        return;
+    }
+    
+    WadFile music_file;
+    if (!wad_extract_file(&audio->wad, internal_path, &music_file)) {
+        SDL_Log("[Comet Busters] Failed to load music from WAD: %s\n", internal_path);
+        return;
+    }
+    
+    // Create SDL_RWops from memory
+    SDL_RWops *rw = SDL_RWFromMem(music_file.data, music_file.size);
+    if (!rw) {
+        SDL_Log("[Comet Busters] Failed to create SDL_RWops for music\n");
+        wad_free_file(&music_file);
+        return;
+    }
+    
+    // Load music
+    Mix_Music *music = Mix_LoadMUS_RW(rw, 1);
+    if (!music) {
+        SDL_Log("[Comet Busters] Failed to load music: %s\n", Mix_GetError());
+        free(music_file.data);
+        return;
+    }
+    
+    // Add to rotation array WITHOUT playing
+    audio->music_tracks[audio->music_track_count] = music;
+    audio->music_track_count++;
+    
+    SDL_Log("[Comet Busters] [OK] Queued for rotation: %s (track %d/%d)\n", 
+            internal_path, audio->music_track_count, 10);
+}
+
+
 // Play random music from loaded tracks (ensures no repeats until all tracks played)
 void audio_play_random_music(AudioManager *audio) {
     if (!audio || audio->music_track_count == 0) return;
