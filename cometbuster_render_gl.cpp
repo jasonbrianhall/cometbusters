@@ -134,16 +134,26 @@ static const char *fragment_shader =
 
 
 static GLuint compile_shader(const char *src, GLenum type) {
+    const char *type_str = (type == GL_VERTEX_SHADER) ? "VERTEX" : "FRAGMENT";
     GLuint shader = glCreateShader(type);
+    
+    if (!shader) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create %s shader object\n", type_str);
+        return 0;
+    }
+    
     glShaderSource(shader, 1, &src, NULL);
     glCompileShader(shader);
     
     int success;
-    char log[512];
+    char log[1024];
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(shader, 512, NULL, log);
-        SDL_Log("[Comet Busters] [GL] Shader compile error: %s\n", log);
+        glGetShaderInfoLog(shader, sizeof(log), NULL, log);
+        SDL_Log("[Comet Busters] [GL] %s shader compile error: %s\n", type_str, log);
+        SDL_Log("[Comet Busters] [GL] Source:\n%s\n", src);
+        glDeleteShader(shader);
+        return 0;
     }
     return shader;
 }
@@ -151,17 +161,36 @@ static GLuint compile_shader(const char *src, GLenum type) {
 static GLuint create_program(const char *vs_src, const char *fs_src) {
     GLuint vs = compile_shader(vs_src, GL_VERTEX_SHADER);
     GLuint fs = compile_shader(fs_src, GL_FRAGMENT_SHADER);
+    
+    if (!vs || !fs) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Shader compilation failed\n");
+        if (vs) glDeleteShader(vs);
+        if (fs) glDeleteShader(fs);
+        return 0;
+    }
+    
     GLuint prog = glCreateProgram();
+    if (!prog) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create program object\n");
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+        return 0;
+    }
+    
     glAttachShader(prog, vs);
     glAttachShader(prog, fs);
     glLinkProgram(prog);
     
     int success;
-    char log[512];
+    char log[1024];
     glGetProgramiv(prog, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(prog, 512, NULL, log);
+        glGetProgramInfoLog(prog, sizeof(log), NULL, log);
         SDL_Log("[Comet Busters] [GL] Program link error: %s\n", log);
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+        glDeleteProgram(prog);
+        return 0;
     }
     
     glDeleteShader(vs);
