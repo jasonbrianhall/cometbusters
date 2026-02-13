@@ -975,135 +975,86 @@ static const char* help_menu_text[][1] = {
     {   // ENGLISH
         R"(CONTROLS
 
-
 W or Up Arrow        - Forward thrust
-
 A or Left Arrow      - Turn left
-
 D or Right Arrow     - Turn right
-
 S or Down Arrow      - Backward thrust
-
 Q                    - Toggle weapons (missiles auto-select when gained)
-
 SPACE or X           - Boost
-
 CTRL                 - Fire forward
-
 Z                    - Omnidirectional fire
-
 P                    - Pause/Resume
-
+F5                   - Quick save (slot 10)
+F7                   - Quick load (slot 10)
 F11                  - Toggle fullscreen
-
 C in main menu       - Hidden Cheat Menu)"
     },
-
     {   // SPANISH
         R"(CONTROLES
 
-
 W o Flecha Arriba    - Impulso hacia adelante
-
 A o Flecha Izquierda - Girar a la izquierda
-
 D o Flecha Derecha   - Girar a la derecha
-
 S o Flecha Abajo     - Impulso hacia atrás
-
 Q                    - Cambiar armas (misiles se seleccionan automáticamente)
-
 ESPACIO o X          - Aceleración
-
 CTRL                 - Disparo frontal
-
 Z                    - Disparo omnidireccional
-
 P                    - Pausar/Reanudar
-
+F5                   - Guardado rápido (ranura 10)
+F7                   - Carga rápida (ranura 10)
 F11                  - Pantalla completa
-
 C en el menú principal - Menú de trucos oculto)"
     },
-
     {   // FRENCH
         R"(COMMANDES
 
-
 W ou Flèche Haut     - Poussée avant
-
 A ou Flèche Gauche   - Tourner à gauche
-
 D ou Flèche Droite   - Tourner à droite
-
 S ou Flèche Bas      - Poussée arrière
-
 Q                    - Changer d'arme (missiles auto-sélectionnés)
-
 ESPACE ou X          - Boost
-
 CTRL                 - Tir vers l'avant
-
 Z                    - Tir omnidirectionnel
-
 P                    - Pause/Reprise
-
+F5                   - Sauvegarde rapide (emplacement 10)
+F7                   - Chargement rapide (emplacement 10)
 F11                  - Plein écran
-
 C dans le menu principal - Menu de triche caché)"
     },
-
     {   // RUSSIAN
         R"(УПРАВЛЕНИЕ
 
-
 W или Стрелка Вверх  - Тяга вперёд
-
 A или Стрелка Влево  - Поворот влево
-
 D или Стрелка Вправо - Поворот вправо
-
 S или Стрелка Вниз   - Тяга назад
-
 Q                    - Переключить оружие (ракеты выбираются автоматически)
-
 ПРОБЕЛ или X         - Ускорение
-
 CTRL                 - Огонь вперёд
-
 Z                    - Огонь во все стороны
-
 P                    - Пауза/Продолжить
-
+F5                   - Быстрое сохранение (слот 10)
+F7                   - Быстрая загрузка (слот 10)
 F11                  - Полный экран
-
 C в главном меню     - Скрытое меню читов)"
     },
-
     {   // GERMAN
         R"(STEUERUNG
 
-
 W oder Pfeil Hoch    - Schub nach vorne
-
 A oder Pfeil Links   - Nach links drehen
-
 D oder Pfeil Rechts  - Nach rechts drehen
-
 S oder Pfeil Unten   - Rückwärtsschub
-
 Q                    - Waffen wechseln (Raketen werden automatisch gewählt)
-
 LEERTASTE oder X     - Boost
-
 STRG                 - Nach vorne feuern
-
 Z                    - Rundumfeuer
-
 P                    - Pause/Fortsetzen
-
+F5                   - Schnellspeicherung (Slot 10)
+F7                   - Schnellladevorgang (Slot 10)
 F11                  - Vollbild umschalten
-
 C im Hauptmenü       - Verstecktes Cheat-Menü)"
     }
 };
