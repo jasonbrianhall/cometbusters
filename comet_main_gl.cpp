@@ -457,6 +457,7 @@ static void init_joystick(CometGUI *gui) {
             SDL_Log("[Comet Busters] [JOYSTICK] Button 2 (X/Square)     - Toggle Missiles\n");
             SDL_Log("[Comet Busters] [JOYSTICK] Button 3 (Y/Triangle)   - Alt Fire\n");
             SDL_Log("[Comet Busters] [JOYSTICK] Button 4 (LB/L1)        - Pause\n");
+            SDL_Log("[Comet Busters] [JOYSTICK] Button 5 (RB/R1)        - Cheat Menu\n");
             SDL_Log("[Comet Busters] [JOYSTICK] Button 7 (Start)        - Toggle Menu\n");
             SDL_Log("[Comet Busters] [JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
             SDL_Log("[Comet Busters] [JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
@@ -1283,7 +1284,66 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 int button = event.jbutton.button;
                 
                 if (pressed) {
-                    SDL_Log("[Comet Busters] [JOYSTICK] Button %d pressed (splash_active=%d)\n", button, gui->visualizer.comet_buster.splash_screen_active);
+                    SDL_Log("[Comet Busters] [JOYSTICK] *** Button %d PRESSED (show_menu=%d, splash_active=%d, menu_state=%d) ***\n", 
+                            button, gui->show_menu, gui->visualizer.comet_buster.splash_screen_active, 
+                            gui->show_menu ? gui->menu_state : -1);
+                }
+                
+                // Handle cheat menu with joystick (takes priority over game input)
+                if (cheat_menu && cheat_menu->state == CHEAT_MENU_OPEN && pressed) {
+                    switch (button) {
+                        case 0:  // A button - Apply/Select
+                            if (cheat_menu->selection == 5) {  // Apply
+                                int old_wave = gui->visualizer.comet_buster.current_wave;
+                                int new_wave = cheat_menu->wave;
+                                bool wave_changed = (old_wave != new_wave);
+                                
+                                // Apply all cheats
+                                gui->visualizer.comet_buster.current_wave = new_wave;
+                                gui->visualizer.comet_buster.ship_lives = cheat_menu->lives;
+                                gui->visualizer.comet_buster.missile_ammo = cheat_menu->missiles;
+                                gui->visualizer.comet_buster.bomb_ammo = cheat_menu->bombs;
+                                gui->visualizer.comet_buster.difficulty = cheat_menu->cheat_difficulty;
+
+                                // If wave changed, reset and spawn new wave
+                                if (wave_changed) {
+                                    SDL_Log("[Comet Busters] [CHEAT] Wave changed from %d to %d - spawning new wave\n", old_wave, new_wave);
+                                    
+                                    // Clear all entities
+                                    gui->visualizer.comet_buster.comet_count = 0;
+                                    gui->visualizer.comet_buster.enemy_ship_count = 0;
+                                    gui->visualizer.comet_buster.enemy_bullet_count = 0;
+                                    gui->visualizer.comet_buster.bullet_count = 0;
+                                    gui->visualizer.comet_buster.particle_count = 0;
+                                    gui->visualizer.comet_buster.missile_count = 0;
+                                    
+                                    // Spawn the new wave
+                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                                    SDL_Log("[Comet Busters] [CHEAT] Spawned Wave %d\n", new_wave);
+                                } else {
+                                    SDL_Log("[Comet Busters] [CHEAT] Wave unchanged - just updated Lives/Missiles/Bombs\n");
+                                }
+                                
+                                SDL_Log("[Comet Busters] [CHEAT] Applied: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d\n",
+                                       new_wave, cheat_menu->lives, cheat_menu->missiles, cheat_menu->bombs);
+                                
+                                cheat_menu->state = CHEAT_MENU_CLOSED;
+                            } else if (cheat_menu->selection == 6) {  // Cancel
+                                cheat_menu->state = CHEAT_MENU_CLOSED;
+                            }
+                            break;
+                        
+                        case 1:  // B button - Cancel
+                            cheat_menu->state = CHEAT_MENU_CLOSED;
+                            break;
+                        
+                        case 5:  // RB / R1 - Close cheat menu (toggle)
+                            cheat_menu->state = CHEAT_MENU_CLOSED;
+                            SDL_Log("[Comet Busters] [CHEAT] Cheat menu closed via joystick button\n");
+                            break;
+                    }
+                    // Don't process other buttons while cheat menu is open
+                    break;
                 }
                 
                 // Handle splash screen exit with joystick button
@@ -1374,27 +1434,58 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 
                 // Handle Start button BEFORE checking show_menu - works in all cases
                 if (button >= 6 && button <= 9) {  // START - buttons 6, 7, 8, 9
+                    SDL_Log("[Comet Busters] [JOYSTICK] Start button (button %d) pressed=%d\n", button, pressed);
                     if (pressed) {
+                        SDL_Log("[Comet Busters] [MENU] show_menu=%d, menu_state=%d, ship_lives=%d\n", 
+                                gui->show_menu, gui->menu_state, gui->visualizer.comet_buster.ship_lives);
+                        
                         if (!gui->show_menu) {
                             // Menu not shown - open it
+                            SDL_Log("[Comet Busters] [MENU] Start: Menu closed, opening menu\n");
                             gui->show_menu = true;
                             gui->menu_state = 0;
                             gui->menu_selection = 0;  // Select Continue by default
                             SDL_Log("[Comet Busters] [MENU] Start button opened menu\n");
                         } else if (gui->show_menu && gui->menu_state == 0) {
                             // Menu is shown on main menu - treat Start like pressing Continue
+                            SDL_Log("[Comet Busters] [MENU] Start: Menu open on main menu, pressing Continue\n");
                             if (gui->visualizer.comet_buster.ship_lives > 0) {
                                 gui->show_menu = false;
                                 SDL_Log("[Comet Busters] [MENU] Start button closed menu (Continue)\n");
+                            } else {
+                                SDL_Log("[Comet Busters] [MENU] Start: No lives, can't continue\n");
                             }
                         } else {
                             // Menu is shown but in a submenu - go back to main menu
+                            SDL_Log("[Comet Busters] [MENU] Start: Menu open in submenu, returning to main\n");
                             gui->menu_state = 0;
                             gui->menu_selection = 0;
                             SDL_Log("[Comet Busters] [MENU] Start button returned to main menu\n");
                         }
                     }
                     break;  // Handle Start button and skip the show_menu block
+                }
+                
+                // Handle Button 5 (RB/R1) - Cheat Menu
+                if (button == 5 && pressed) {
+                    SDL_Log("[Comet Busters] [JOYSTICK] Button 5 pressed - cheat_menu=%p\n", cheat_menu);
+                    
+                    if (!cheat_menu) {
+                        SDL_Log("[Comet Busters] [CHEAT] Error: cheat_menu is NULL\n");
+                    } else if (gui->show_menu && gui->menu_state == 0) {
+                        // Open cheat menu from main menu
+                        SDL_Log("[Comet Busters] [CHEAT] Opening cheat menu\n");
+                        cheat_menu->state = CHEAT_MENU_OPEN;
+                        cheat_menu->selection = 0;
+                        cheat_menu->wave = gui->visualizer.comet_buster.current_wave;
+                        cheat_menu->lives = gui->visualizer.comet_buster.ship_lives;
+                        cheat_menu->missiles = gui->visualizer.comet_buster.missile_ammo;
+                        cheat_menu->bombs = gui->visualizer.comet_buster.bomb_count;
+                        cheat_menu->cheat_difficulty = gui->visualizer.comet_buster.difficulty;
+                        SDL_Log("[Comet Busters] [CHEAT] Cheat menu opened: Wave=%d, Lives=%d, Missiles=%d, Bombs=%d\n",
+                                cheat_menu->wave, cheat_menu->lives, cheat_menu->missiles, cheat_menu->bombs);
+                    }
+                    break;  // Don't process other input after handling button 5
                 }
                 
                 if (gui->show_menu) {
@@ -1499,6 +1590,21 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                         }
 #endif
                                     }
+                                }
+                            }
+                            break;
+                        case 5:  // RB / R1 - Cheat Menu (like C on keyboard)
+                            if (pressed) {
+                                if (cheat_menu) {
+                                    if (cheat_menu->state == CHEAT_MENU_CLOSED) {
+                                        cheat_menu->state = CHEAT_MENU_OPEN;
+                                        SDL_Log("[Comet Busters] [CHEAT] Cheat menu opened via joystick button\n");
+                                    } else {
+                                        cheat_menu->state = CHEAT_MENU_CLOSED;
+                                        SDL_Log("[Comet Busters] [CHEAT] Cheat menu closed via joystick button\n");
+                                    }
+                                } else {
+                                    SDL_Log("[Comet Busters] [CHEAT] Error: cheat_menu is NULL\n");
                                 }
                             }
                             break;
@@ -1813,6 +1919,36 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
             case SDL_JOYHATMOTION: {
                 int hat = event.jhat.value;
                 
+                // Handle cheat menu with D-Pad (takes priority)
+                if (cheat_menu && cheat_menu->state == CHEAT_MENU_OPEN) {
+                    if (hat & SDL_HAT_UP) {
+                        cheat_menu->selection = (cheat_menu->selection - 1 + 7) % 7;
+                        SDL_Log("[Comet Busters] [CHEAT] Selection up: %d\n", cheat_menu->selection);
+                    } else if (hat & SDL_HAT_DOWN) {
+                        cheat_menu->selection = (cheat_menu->selection + 1) % 7;
+                        SDL_Log("[Comet Busters] [CHEAT] Selection down: %d\n", cheat_menu->selection);
+                    } else if (hat & SDL_HAT_LEFT) {
+                        switch (cheat_menu->selection) {
+                            case 0: cheat_menu->wave = (cheat_menu->wave - 1 < 1) ? 30 : cheat_menu->wave - 1; break;
+                            case 1: cheat_menu->lives = (cheat_menu->lives - 1 < 1) ? 20 : cheat_menu->lives - 1; break;
+                            case 2: cheat_menu->missiles = (cheat_menu->missiles - 1 < 0) ? 99 : cheat_menu->missiles - 1; break;
+                            case 3: cheat_menu->bombs = (cheat_menu->bombs - 1 < 0) ? 99 : cheat_menu->bombs - 1; break;
+                            case 4: cheat_menu->cheat_difficulty = (cheat_menu->cheat_difficulty - 1 < 0) ? 2 : cheat_menu->cheat_difficulty - 1; break;
+                        }
+                        SDL_Log("[Comet Busters] [CHEAT] Value left\n");
+                    } else if (hat & SDL_HAT_RIGHT) {
+                        switch (cheat_menu->selection) {
+                            case 0: cheat_menu->wave = (cheat_menu->wave + 1 > 30) ? 1 : cheat_menu->wave + 1; break;
+                            case 1: cheat_menu->lives = (cheat_menu->lives + 1 > 20) ? 1 : cheat_menu->lives + 1; break;
+                            case 2: cheat_menu->missiles = (cheat_menu->missiles + 1 > 99) ? 0 : cheat_menu->missiles + 1; break;
+                            case 3: cheat_menu->bombs = (cheat_menu->bombs + 1 > 99) ? 0 : cheat_menu->bombs + 1; break;
+                            case 4: cheat_menu->cheat_difficulty = (cheat_menu->cheat_difficulty + 1 > 2) ? 0 : cheat_menu->cheat_difficulty + 1; break;
+                        }
+                        SDL_Log("[Comet Busters] [CHEAT] Value right\n");
+                    }
+                    break;  // Don't process other D-Pad input while cheat menu is open
+                }
+                
                 // Handle splash screen exit with D-Pad
                 if (gui->visualizer.comet_buster.splash_screen_active && hat != SDL_HAT_CENTERED) {
                     SDL_Log("[Comet Busters] [SPLASH] D-Pad pressed (hat=%d) while splash active - exiting splash screen\n", hat);
@@ -1949,8 +2085,60 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                 gui->main_menu_scroll_offset = max_scroll;
                             }
                         }
+                    } else if (gui->menu_state == 1) {
+                        // Difficulty selection (2 items: Easy, Normal, Hard)
+                        if (hat & SDL_HAT_UP) {
+                            gui->menu_selection = (gui->menu_selection - 1 + 3) % 3;
+                        } else if (hat & SDL_HAT_DOWN) {
+                            gui->menu_selection = (gui->menu_selection + 1) % 3;
+                        }
+                    } else if (gui->menu_state == 2) {
+                        // High scores display - no navigation needed (just display)
+                    } else if (gui->menu_state == 3) {
+                        // Audio menu (2-3 items: Music Volume, SFX Volume, Back)
+                        if (hat & SDL_HAT_UP) {
+                            gui->menu_selection = (gui->menu_selection - 1 + 3) % 3;
+                        } else if (hat & SDL_HAT_DOWN) {
+                            gui->menu_selection = (gui->menu_selection + 1) % 3;
+                        } else if (hat & SDL_HAT_LEFT) {
+                            // Decrease volume
+                            if (gui->menu_selection == 0) {
+                                // Music volume
+                                gui->music_volume = (gui->music_volume - 5 < 0) ? 0 : gui->music_volume - 5;
+                                audio_set_music_volume(&gui->audio, gui->music_volume);
+                                gui->preferences.music_volume = gui->music_volume;
+                            } else if (gui->menu_selection == 1) {
+                                // SFX volume
+                                gui->sfx_volume = (gui->sfx_volume - 5 < 0) ? 0 : gui->sfx_volume - 5;
+                                audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
+                                gui->preferences.sfx_volume = gui->sfx_volume;
+                            }
+                        } else if (hat & SDL_HAT_RIGHT) {
+                            // Increase volume
+                            if (gui->menu_selection == 0) {
+                                // Music volume
+                                gui->music_volume = (gui->music_volume + 5 > 128) ? 128 : gui->music_volume + 5;
+                                audio_set_music_volume(&gui->audio, gui->music_volume);
+                                gui->preferences.music_volume = gui->music_volume;
+                            } else if (gui->menu_selection == 1) {
+                                // SFX volume
+                                gui->sfx_volume = (gui->sfx_volume + 5 > 128) ? 128 : gui->sfx_volume + 5;
+                                audio_set_sfx_volume(&gui->audio, gui->sfx_volume);
+                                gui->preferences.sfx_volume = gui->sfx_volume;
+                            }
+                        }
+                    } else if (gui->menu_state == 4) {
+                        // Language menu - UP/DOWN for navigation
+                        if (hat & SDL_HAT_UP) {
+                            gui->menu_selection = (gui->menu_selection - 1 + 5) % 5;  // 5 languages
+                            gui->lang_menu_scroll_offset = gui->menu_selection;
+                        } else if (hat & SDL_HAT_DOWN) {
+                            gui->menu_selection = (gui->menu_selection + 1) % 5;
+                            gui->lang_menu_scroll_offset = gui->menu_selection;
+                        }
                     }
                 }
+
                 break;
             }
             
