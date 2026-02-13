@@ -90,11 +90,16 @@ bool audio_init(AudioManager *audio) {
     for (int i = 0; i < 10; i++) {
         audio->music_tracks[i] = NULL;
         audio->shuffle_order[i] = 0;
+        audio->music_wad_buffers[i].data = NULL;  // Initialize WAD buffers
+        audio->music_wad_buffers[i].size = 0;
     }
     audio->music_track_count = 0;
     audio->current_music_track = 0;
     audio->shuffle_position = 0;
     audio->shuffle_initialized = false;
+    audio->intro_music = NULL;  // Initialize intro music pointer
+    audio->intro_wad_buffer.data = NULL;  // Initialize intro WAD buffer
+    audio->intro_wad_buffer.size = 0;
     
     audio->sfx_fire = NULL;
     audio->sfx_alien_fire = NULL;
@@ -180,11 +185,29 @@ void audio_cleanup(AudioManager *audio) {
         Mix_HaltMusic();
     }
     
+    // Free intro music if it exists
+    if (audio->intro_music) {
+        Mix_FreeMusic(audio->intro_music);
+        audio->intro_music = NULL;
+    }
+    
+    // Free intro WAD buffer
+    if (audio->intro_wad_buffer.data) {
+        wad_free_file(&audio->intro_wad_buffer);
+        audio->intro_wad_buffer.data = NULL;
+    }
+    
     // Free all music tracks
     for (int i = 0; i < 10; i++) {
         if (audio->music_tracks[i]) {
             Mix_FreeMusic(audio->music_tracks[i]);
             audio->music_tracks[i] = NULL;
+        }
+        
+        // Free WAD buffer for this track
+        if (audio->music_wad_buffers[i].data) {
+            wad_free_file(&audio->music_wad_buffers[i]);
+            audio->music_wad_buffers[i].data = NULL;
         }
     }
     
@@ -284,7 +307,7 @@ void audio_play_music(AudioManager *audio, const char *internal_path, bool loop)
     Mix_Music *music = Mix_LoadMUS_RW(rw, 1);
     if (!music) {
         SDL_Log("[Comet Busters] Failed to load music: %s\n", Mix_GetError());
-        free(music_file.data);
+        wad_free_file(&music_file);
         return;
     }
     
@@ -324,19 +347,67 @@ void audio_play_intro_music(AudioManager *audio, const char *internal_path) {
     Mix_Music *music = Mix_LoadMUS_RW(rw, 1);
     if (!music) {
         SDL_Log("[Comet Busters] Failed to load intro music: %s\n", Mix_GetError());
-        free(music_file.data);
+        wad_free_file(&music_file);
         return;
     }
     
-    // NOTE: Do NOT add to music_tracks array - this keeps it separate from gameplay rotation
-    // Play once (no loop) - the music_finished callback will be set up by the caller
+    // Store both the intro music and its WAD buffer for cleanup later
+    audio->intro_music = music;
+    audio->intro_wad_buffer = music_file;  // Keep buffer alive while music plays
+    
+    // Play once (no loop)
     if (Mix_PlayMusic(music, 0) < 0) {
         SDL_Log("[Comet Busters] Failed to play intro music: %s\n", Mix_GetError());
         Mix_FreeMusic(music);
+        audio->intro_music = NULL;
+        wad_free_file(&audio->intro_wad_buffer);
     } else {
         SDL_Log("[Comet Busters] [*] Playing intro: %s\n", internal_path);
     }
 }
+
+// Queue music for rotation without playing it (for background music rotation)
+void audio_queue_music_for_rotation(AudioManager *audio, const char *internal_path) {
+    if (!audio || !internal_path) return;
+    
+    // Don't exceed array bounds
+    if (audio->music_track_count >= 10) {
+        SDL_Log("[Comet Busters] [WARNING] Music rotation array full, cannot queue: %s\n", internal_path);
+        return;
+    }
+    
+    WadFile music_file;
+    if (!wad_extract_file(&audio->wad, internal_path, &music_file)) {
+        SDL_Log("[Comet Busters] Failed to load music from WAD: %s\n", internal_path);
+        return;
+    }
+    
+    // Create SDL_RWops from memory
+    SDL_RWops *rw = SDL_RWFromMem(music_file.data, music_file.size);
+    if (!rw) {
+        SDL_Log("[Comet Busters] Failed to create SDL_RWops for music\n");
+        wad_free_file(&music_file);
+        return;
+    }
+    
+    // Load music
+    Mix_Music *music = Mix_LoadMUS_RW(rw, 1);
+    if (!music) {
+        SDL_Log("[Comet Busters] Failed to load music: %s\n", Mix_GetError());
+        wad_free_file(&music_file);
+        return;
+    }
+    
+    // Add to rotation array WITHOUT playing
+    int idx = audio->music_track_count;
+    audio->music_tracks[idx] = music;
+    audio->music_wad_buffers[idx] = music_file;  // Store WAD buffer for cleanup
+    audio->music_track_count++;
+    
+    SDL_Log("[Comet Busters] [OK] Queued for rotation: %s (track %d/%d)\n", 
+            internal_path, audio->music_track_count, 10);
+}
+
 
 // Play random music from loaded tracks (ensures no repeats until all tracks played)
 void audio_play_random_music(AudioManager *audio) {
@@ -374,6 +445,13 @@ void audio_stop_music(AudioManager *audio) {
     if (Mix_PlayingMusic()) {
         Mix_HaltMusic();
         SDL_Log("[Comet Busters] [*] Music stopped\n");
+    }
+    
+    // Free intro music if it was playing
+    if (audio->intro_music) {
+        Mix_FreeMusic(audio->intro_music);
+        audio->intro_music = NULL;
+        SDL_Log("[Comet Busters] [*] Intro music freed\n");
     }
 }
 

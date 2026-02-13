@@ -10,6 +10,12 @@
 #include "cometbuster.h"
 #include "visualization.h"
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
+#include <SDL2/SDL.h>
+#endif
+
 // ============================================================================
 // OPENGL CONTEXT CALLBACKS
 // ============================================================================

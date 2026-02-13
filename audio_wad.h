@@ -20,6 +20,13 @@ typedef struct {
     int music_track_count;
     int current_music_track;
     
+    // Track WAD file buffers so we can free them at cleanup
+    WadFile music_wad_buffers[10];  // Store WAD buffers for music
+    
+    // Intro music (separate from rotation, tracked for cleanup)
+    Mix_Music *intro_music;  // Currently playing intro music
+    WadFile intro_wad_buffer;  // Track intro WAD buffer for cleanup
+    
     // Shuffle tracking - keeps order for random playback without repeats
     int shuffle_order[10];       // Randomized order of track indices
     int shuffle_position;        // Current position in the shuffle order
@@ -68,6 +75,7 @@ int audio_get_sfx_volume(AudioManager *audio);
 // Music playback
 void audio_play_music(AudioManager *audio, const char *internal_path, bool loop);
 void audio_play_intro_music(AudioManager *audio, const char *internal_path);  // Play intro music - NOT added to rotation
+void audio_queue_music_for_rotation(AudioManager *audio, const char *internal_path);  // Load music into rotation without playing
 void audio_play_random_music(AudioManager *audio);  // Play random track from loaded list (no repeats until all played)
 void audio_stop_music(AudioManager *audio);
 void audio_pause_music(AudioManager *audio);

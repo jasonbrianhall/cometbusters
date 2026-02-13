@@ -393,6 +393,7 @@ typedef struct {
     bool using_spread_fire;          // Currently in spread fire mode?
     double spread_fire_cooldown;     // Cooldown between spread fire shots (5x normal cooldown)
     double missile_generation_timer; // Accumulates missiles when energy is full (5 per second)
+    int bomb_generation_counter;     // Counts missiles toward bomb generation (1 bomb per 3 missiles)
     
     // Bomb system
     Bomb bombs[MAX_BOMBS];

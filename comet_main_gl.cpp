@@ -43,6 +43,10 @@ typedef struct {
     int state;                  // HighScoreEntryState
     char name_input[32];        // Player's typed name
     int cursor_pos;             // Current cursor position
+    
+    // Virtual keyboard state
+    int kb_selected_index;      // Currently selected key for keyboard nav
+    bool kb_show;               // Show virtual keyboard
 } HighScoreEntryUI;
 
 // ============================================================
@@ -92,7 +96,7 @@ typedef struct {
     
     // Menu state
     bool show_menu;
-    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+    int menu_selection;  // 0=Continue, 1=New Game, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
     int menu_state;      // 0=Main Menu, 1=Difficulty Select, 2=High Scores Display, 3=Audio Menu, 4=Language Menu
     int gui_difficulty_level; // 1-3
     
@@ -134,6 +138,22 @@ void play_finale(CometGUI *gui, int language) {
 
 
 // ============================================================
+// VIRTUAL KEYBOARD FORWARD DECLARATIONS
+// ============================================================
+
+typedef struct {
+    int x, y, width, height;
+    char character;
+    const char *label;
+    bool is_special;
+} KeyboardButton;
+
+static KeyboardButton* get_keyboard_buttons(int *out_count);
+static int get_keyboard_button_at_pos(int mouse_x, int mouse_y);
+static void add_character_to_input(HighScoreEntryUI *hs_entry, char c);
+static void render_virtual_keyboard(CometGUI *gui, HighScoreEntryUI *hs_entry, int selected_index);
+
+// ============================================================
 // INPUT HANDLING
 // ============================================================
 
@@ -168,6 +188,110 @@ static void handle_keyboard_input(SDL_Event *event, CometGUI *gui, HighScoreEntr
                     gui->show_menu = true;
                     gui->menu_state = 2;  // Show high scores
                     gui->menu_selection = 2;
+                }
+                break;
+            }
+            case SDLK_LEFT: {
+                // Navigate virtual keyboard left
+                int count = 0;
+                get_keyboard_buttons(&count);
+                
+                // Determine row and position in row
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};  // Start index of each row
+                int row_sizes[] = {10, 9, 7, 4};  // Size of each row
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                if (pos_in_row > 0) {
+                    hs_entry->kb_selected_index--;
+                } else {
+                    // At start of row, go to end
+                    hs_entry->kb_selected_index = row_starts[row] + row_sizes[row] - 1;
+                }
+                break;
+            }
+            case SDLK_RIGHT: {
+                // Navigate virtual keyboard right
+                int count = 0;
+                get_keyboard_buttons(&count);
+                
+                // Determine row and position in row
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};
+                int row_sizes[] = {10, 9, 7, 4};
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                if (pos_in_row < row_sizes[row] - 1) {
+                    hs_entry->kb_selected_index++;
+                } else {
+                    // At end of row, go to start
+                    hs_entry->kb_selected_index = row_starts[row];
+                }
+                break;
+            }
+            case SDLK_UP: {
+                // Navigate virtual keyboard up
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                if (row > 0) {
+                    // Move up one row, keep relative position
+                    int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                    int new_row = row - 1;
+                    int row_sizes[] = {10, 9, 7, 4};
+                    
+                    // Don't go past end of new row
+                    if (pos_in_row >= row_sizes[new_row]) {
+                        pos_in_row = row_sizes[new_row] - 1;
+                    }
+                    hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
+                }
+                break;
+            }
+            case SDLK_DOWN: {
+                // Navigate virtual keyboard down
+                int row = 0;
+                int row_starts[] = {0, 10, 19, 26, 30};
+                
+                for (int r = 0; r < 4; r++) {
+                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                        row = r;
+                        break;
+                    }
+                }
+                
+                if (row < 3) {
+                    // Move down one row, keep relative position
+                    int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                    int new_row = row + 1;
+                    int row_sizes[] = {10, 9, 7, 4};
+                    
+                    // Don't go past end of new row
+                    if (pos_in_row >= row_sizes[new_row]) {
+                        pos_in_row = row_sizes[new_row] - 1;
+                    }
+                    hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
                 }
                 break;
             }
@@ -593,7 +717,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     if (event.key.keysym.sym == SDLK_UP) {
                         if (gui->menu_state == 0) {
                             // Main menu wrapping navigation
-                            int num_menu_items = 7;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                            int num_menu_items = 8;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
                             int items_per_page = 5;
                             
                             gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
@@ -629,7 +753,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                     } else if (event.key.keysym.sym == SDLK_DOWN) {
                         if (gui->menu_state == 0) {
                             // Main menu wrapping navigation
-                            int num_menu_items = 7;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                            int num_menu_items = 8;  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Fullscreen, 7=Quit
                             int items_per_page = 5;
                             
                             gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
@@ -752,7 +876,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                     gui->show_help_overlay = true;
                                     gui->help_scroll_offset = 0;
                                     break;
-                                case 6:  // Quit
+                                case 6:  // Fullscreen toggle
+                                    gui->fullscreen = !gui->fullscreen;
+                                    if (gui->fullscreen) {
+                                        SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                    } else {
+                                        SDL_SetWindowFullscreen(gui->window, 0);
+                                    }
+                                    SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
+                                    break;
+                                case 7:  // Quit
                                     gui->running = false;
                                     break;
                             }
@@ -800,6 +933,55 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
             case SDL_MOUSEBUTTONDOWN: {
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
+                
+                // Handle high score entry virtual keyboard clicks
+                if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
+                    // Convert from window coordinates to game space (1920x1080)
+                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1920.0f);
+                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 1080.0f);
+                    
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        int button_idx = get_keyboard_button_at_pos(mouse_x, mouse_y);
+                        if (button_idx >= 0) {
+                            int count = 0;
+                            KeyboardButton *buttons = get_keyboard_buttons(&count);
+                            KeyboardButton *btn = &buttons[button_idx];
+                            
+                            if (btn->character == '\b') {
+                                // Backspace
+                                if (hs_entry->cursor_pos > 0) {
+                                    hs_entry->cursor_pos--;
+                                    hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                                }
+                            } else if (btn->character == '\n') {
+                                // Submit (Done button)
+                                if (hs_entry->cursor_pos > 0) {
+                                    high_scores_add(&gui->visualizer.comet_buster, 
+                                                   gui->visualizer.comet_buster.score,
+                                                   gui->visualizer.comet_buster.current_wave,
+                                                   hs_entry->name_input);
+                                    high_scores_save(&gui->visualizer.comet_buster);
+                                    
+                                    hs_entry->state = HIGH_SCORE_ENTRY_SAVED;
+                                    gui->visualizer.comet_buster.game_over = false;
+                                    gui->show_menu = true;
+                                    gui->menu_state = 2;  // Show high scores
+                                    gui->menu_selection = 2;
+                                }
+                            } else if (btn->character == 'C' && btn->is_special) {
+                                // Clear button
+                                hs_entry->cursor_pos = 0;
+                                memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
+                            } else {
+                                // Regular character (letter or space)
+                                add_character_to_input(hs_entry, btn->character);
+                            }
+                            break;  // Don't process other events while in high score entry
+                        }
+                    }
+                    break;  // Don't process other input while in high score entry
+                }
+                
                 if (gui->visualizer.comet_buster.splash_screen_active) {
                     SDL_Log("[Comet Busters] [SPLASH] User clicked - exiting splash screen\n");
                     
@@ -891,7 +1073,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                             gui->show_help_overlay = true;
                                             gui->help_scroll_offset = 0;
                                             break;
-                                        case 6:  // Quit
+                                        case 6:  // Fullscreen toggle
+                                            gui->fullscreen = !gui->fullscreen;
+                                            if (gui->fullscreen) {
+                                                SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                            } else {
+                                                SDL_SetWindowFullscreen(gui->window, 0);
+                                            }
+                                            SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
+                                            break;
+                                        case 7:  // Quit
                                             gui->running = false;
                                             break;
                                     }
@@ -1028,7 +1219,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 if (gui->show_menu) {
                     if (gui->menu_state == 0) {
                         // Main menu scrolling
-                        int num_menu_items = 7;
+                        int num_menu_items = 8;
                         int items_per_page = 5;
                         
                         if (event.wheel.y > 0) {
@@ -1091,6 +1282,96 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 bool pressed = (event.type == SDL_JOYBUTTONDOWN);
                 int button = event.jbutton.button;
                 
+                if (pressed) {
+                    SDL_Log("[Comet Busters] [JOYSTICK] Button %d pressed (splash_active=%d)\n", button, gui->visualizer.comet_buster.splash_screen_active);
+                }
+                
+                // Handle splash screen exit with joystick button
+                if (gui->visualizer.comet_buster.splash_screen_active && pressed) {
+                    SDL_Log("[Comet Busters] [SPLASH] Joystick button %d pressed while splash active - exiting splash screen\n", button);
+                    
+                    // Stop the intro music
+                    SDL_Log("[Comet Busters] [SPLASH] Calling audio_stop_music()...\n");
+                    audio_stop_music(&gui->audio);
+                    
+                    // Exit the splash screen
+                    gui->visualizer.comet_buster.splash_screen_active = false;
+                    
+                    // Clear the board completely
+                    gui->visualizer.comet_buster.comet_count = 0;
+                    gui->visualizer.comet_buster.enemy_ship_count = 0;
+                    gui->visualizer.comet_buster.enemy_bullet_count = 0;
+                    gui->visualizer.comet_buster.bullet_count = 0;
+                    gui->visualizer.comet_buster.particle_count = 0;
+                    gui->visualizer.comet_buster.floating_text_count = 0;
+                    gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_count = 0;
+                    gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_count = 0;
+                    gui->visualizer.comet_buster.bomb_pickup_count = 0;
+                    gui->visualizer.comet_buster.score = 0;
+                    gui->visualizer.comet_buster.score_multiplier = 1.0;
+                    gui->visualizer.comet_buster.game_over = false;
+                    gui->visualizer.comet_buster.game_won = false;
+                    
+                    // Spawn wave 1
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                    
+                    // Start gameplay music rotation
+#ifdef ExternalSound
+                    SDL_Log("[Comet Busters] [SPLASH] Calling audio_play_random_music()...\n");
+                    audio_play_random_music(&gui->audio);
+                    SDL_Log("[Comet Busters] [SPLASH] Started gameplay music\n");
+#endif
+                    SDL_Log("[Comet Busters] [SPLASH] Exiting splash screen handler for button %d\n", button);
+                    break;  // Don't process other input while exiting splash
+                }
+                
+                // Handle high score entry with joystick
+                if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE && pressed) {
+                    int count = 0;
+                    KeyboardButton *buttons = get_keyboard_buttons(&count);
+                    KeyboardButton *current_btn = &buttons[hs_entry->kb_selected_index];
+                    
+                    switch (button) {
+                        case 0:  // A button - select current key
+                            if (current_btn->character == '\b') {
+                                // Backspace
+                                if (hs_entry->cursor_pos > 0) {
+                                    hs_entry->cursor_pos--;
+                                    hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+                                }
+                            } else if (current_btn->character == '\n') {
+                                // Submit (Done button)
+                                if (hs_entry->cursor_pos > 0) {
+                                    high_scores_add(&gui->visualizer.comet_buster, 
+                                                   gui->visualizer.comet_buster.score,
+                                                   gui->visualizer.comet_buster.current_wave,
+                                                   hs_entry->name_input);
+                                    high_scores_save(&gui->visualizer.comet_buster);
+                                    
+                                    hs_entry->state = HIGH_SCORE_ENTRY_SAVED;
+                                    gui->visualizer.comet_buster.game_over = false;
+                                    gui->show_menu = true;
+                                    gui->menu_state = 2;  // Show high scores
+                                    gui->menu_selection = 2;
+                                }
+                            } else if (current_btn->character == 'C' && current_btn->is_special) {
+                                // Clear button
+                                hs_entry->cursor_pos = 0;
+                                memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
+                            } else {
+                                // Regular character
+                                add_character_to_input(hs_entry, current_btn->character);
+                            }
+                            break;
+                        case 1:  // B button - cancel/back
+                            // Could implement back to menu option here
+                            break;
+                    }
+                    break;  // Don't process other input while in high score entry
+                }
+                
                 if (gui->show_menu) {
                     // Menu navigation with joystick
                     switch (button) {
@@ -1121,7 +1402,16 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                                         gui->show_help_overlay = true;
                                         gui->help_scroll_offset = 0;
                                         break;
-                                    case 6:  // Quit
+                                    case 6:  // Fullscreen toggle
+                                        gui->fullscreen = !gui->fullscreen;
+                                        if (gui->fullscreen) {
+                                            SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                                        } else {
+                                            SDL_SetWindowFullscreen(gui->window, 0);
+                                        }
+                                        SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
+                                        break;
+                                    case 7:  // Quit
                                         gui->running = false;
                                         break;
                                 }
@@ -1207,7 +1497,159 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                 int axis = event.jaxis.axis;
                 int value = event.jaxis.value;
                 const int AXIS_THRESHOLD = 16384;  // ~25% of max range
-                const uint32_t AXIS_THROTTLE_MS = 150;  // Throttle menu navigation to 150ms per input
+                const uint32_t AXIS_THROTTLE_MS = 50;  // Fast response (50ms = ~20 inputs/second)
+                
+                // Handle splash screen exit with left stick movement
+                if (gui->visualizer.comet_buster.splash_screen_active && (abs(value) > AXIS_THRESHOLD)) {
+                    SDL_Log("[Comet Busters] [SPLASH] Joystick axis %d moved (value=%d) while splash active - exiting splash screen\n", axis, value);
+                    
+                    // Stop the intro music
+                    SDL_Log("[Comet Busters] [SPLASH] Calling audio_stop_music()...\n");
+                    audio_stop_music(&gui->audio);
+                    
+                    // Exit the splash screen
+                    gui->visualizer.comet_buster.splash_screen_active = false;
+                    
+                    // Clear the board completely
+                    gui->visualizer.comet_buster.comet_count = 0;
+                    gui->visualizer.comet_buster.enemy_ship_count = 0;
+                    gui->visualizer.comet_buster.enemy_bullet_count = 0;
+                    gui->visualizer.comet_buster.bullet_count = 0;
+                    gui->visualizer.comet_buster.particle_count = 0;
+                    gui->visualizer.comet_buster.floating_text_count = 0;
+                    gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_count = 0;
+                    gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_count = 0;
+                    gui->visualizer.comet_buster.bomb_pickup_count = 0;
+                    gui->visualizer.comet_buster.score = 0;
+                    gui->visualizer.comet_buster.score_multiplier = 1.0;
+                    gui->visualizer.comet_buster.game_over = false;
+                    gui->visualizer.comet_buster.game_won = false;
+                    
+                    // Spawn wave 1
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                    
+                    // Start gameplay music rotation
+#ifdef ExternalSound
+                    SDL_Log("[Comet Busters] [SPLASH] Calling audio_play_random_music()...\n");
+                    audio_play_random_music(&gui->audio);
+                    SDL_Log("[Comet Busters] [SPLASH] Started gameplay music\n");
+#endif
+                    SDL_Log("[Comet Busters] [SPLASH] Axis splash exit complete\n");
+                    break;  // Don't process other input while exiting splash
+                }
+                
+                // Handle high score entry navigation with joystick
+                if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
+                    uint32_t current_time = SDL_GetTicks();
+                    bool should_process = (current_time - gui->last_joystick_axis_time) >= AXIS_THROTTLE_MS;
+                    
+                    if (axis == 0) {
+                        // Left stick X-axis (or D-pad) - horizontal keyboard navigation
+                        int current_state = (value < -AXIS_THRESHOLD) ? -1 : (value > AXIS_THRESHOLD) ? 1 : 0;
+                        
+                        if (current_state != gui->last_axis_0_state && should_process) {
+                            int count = 0;
+                            get_keyboard_buttons(&count);
+                            if (current_state < 0) {
+                                // Moving left - same as arrow key
+                                int row = 0;
+                                int row_starts[] = {0, 10, 19, 26, 30};
+                                int row_sizes[] = {10, 9, 7, 4};
+                                
+                                for (int r = 0; r < 4; r++) {
+                                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                        row = r;
+                                        break;
+                                    }
+                                }
+                                
+                                int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                                if (pos_in_row > 0) {
+                                    hs_entry->kb_selected_index--;
+                                } else {
+                                    hs_entry->kb_selected_index = row_starts[row] + row_sizes[row] - 1;
+                                }
+                            } else if (current_state > 0) {
+                                // Moving right - same as arrow key
+                                int row = 0;
+                                int row_starts[] = {0, 10, 19, 26, 30};
+                                int row_sizes[] = {10, 9, 7, 4};
+                                
+                                for (int r = 0; r < 4; r++) {
+                                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                        row = r;
+                                        break;
+                                    }
+                                }
+                                
+                                int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                                if (pos_in_row < row_sizes[row] - 1) {
+                                    hs_entry->kb_selected_index++;
+                                } else {
+                                    hs_entry->kb_selected_index = row_starts[row];
+                                }
+                            }
+                            gui->last_axis_0_state = current_state;
+                            gui->last_joystick_axis_time = current_time;
+                        }
+                    } else if (axis == 1) {
+                        // Left stick Y-axis (or D-pad vertical) - vertical keyboard navigation
+                        int current_state = (value < -AXIS_THRESHOLD) ? -1 : (value > AXIS_THRESHOLD) ? 1 : 0;
+                        
+                        if (current_state != gui->last_axis_1_state && should_process) {
+                            int count = 0;
+                            get_keyboard_buttons(&count);
+                            if (current_state < 0) {
+                                // Moving up
+                                int row = 0;
+                                int row_starts[] = {0, 10, 19, 26, 30};
+                                
+                                for (int r = 0; r < 4; r++) {
+                                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                        row = r;
+                                        break;
+                                    }
+                                }
+                                
+                                if (row > 0) {
+                                    int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                                    int new_row = row - 1;
+                                    int row_sizes[] = {10, 9, 7, 4};
+                                    if (pos_in_row >= row_sizes[new_row]) {
+                                        pos_in_row = row_sizes[new_row] - 1;
+                                    }
+                                    hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
+                                }
+                            } else if (current_state > 0) {
+                                // Moving down
+                                int row = 0;
+                                int row_starts[] = {0, 10, 19, 26, 30};
+                                
+                                for (int r = 0; r < 4; r++) {
+                                    if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                        row = r;
+                                        break;
+                                    }
+                                }
+                                
+                                if (row < 3) {
+                                    int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                                    int new_row = row + 1;
+                                    int row_sizes[] = {10, 9, 7, 4};
+                                    if (pos_in_row >= row_sizes[new_row]) {
+                                        pos_in_row = row_sizes[new_row] - 1;
+                                    }
+                                    hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
+                                }
+                            }
+                            gui->last_axis_1_state = current_state;
+                            gui->last_joystick_axis_time = current_time;
+                        }
+                    }
+                    break;  // Don't process other input while in high score entry
+                }
                 
                 if (gui->show_menu) {
                     // Menu navigation with D-pad/left stick (with throttling)
@@ -1255,7 +1697,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             if (current_state < 0) {
                                 // Moving up in menu
                                 if (gui->menu_state == 0) {
-                                    int num_menu_items = 7;
+                                    int num_menu_items = 8;
                                     int items_per_page = 5;
                                     gui->menu_selection = (gui->menu_selection - 1 + num_menu_items) % num_menu_items;
                                     if (gui->menu_selection < gui->main_menu_scroll_offset) {
@@ -1280,7 +1722,7 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
                             } else if (current_state > 0) {
                                 // Moving down in menu
                                 if (gui->menu_state == 0) {
-                                    int num_menu_items = 7;
+                                    int num_menu_items = 8;
                                     int items_per_page = 5;
                                     gui->menu_selection = (gui->menu_selection + 1) % num_menu_items;
                                     int max_scroll = (num_menu_items > items_per_page) ? (num_menu_items - items_per_page) : 0;
@@ -1356,9 +1798,125 @@ static void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI
             case SDL_JOYHATMOTION: {
                 int hat = event.jhat.value;
                 
+                // Handle splash screen exit with D-Pad
+                if (gui->visualizer.comet_buster.splash_screen_active && hat != SDL_HAT_CENTERED) {
+                    SDL_Log("[Comet Busters] [SPLASH] D-Pad pressed (hat=%d) while splash active - exiting splash screen\n", hat);
+                    
+                    // Stop the intro music
+                    SDL_Log("[Comet Busters] [SPLASH] Calling audio_stop_music()...\n");
+                    audio_stop_music(&gui->audio);
+                    
+                    // Exit the splash screen
+                    gui->visualizer.comet_buster.splash_screen_active = false;
+                    
+                    // Clear the board completely
+                    gui->visualizer.comet_buster.comet_count = 0;
+                    gui->visualizer.comet_buster.enemy_ship_count = 0;
+                    gui->visualizer.comet_buster.enemy_bullet_count = 0;
+                    gui->visualizer.comet_buster.bullet_count = 0;
+                    gui->visualizer.comet_buster.particle_count = 0;
+                    gui->visualizer.comet_buster.floating_text_count = 0;
+                    gui->visualizer.comet_buster.canister_count = 0;
+                    gui->visualizer.comet_buster.missile_count = 0;
+                    gui->visualizer.comet_buster.missile_pickup_count = 0;
+                    gui->visualizer.comet_buster.bomb_count = 0;
+                    gui->visualizer.comet_buster.bomb_pickup_count = 0;
+                    gui->visualizer.comet_buster.score = 0;
+                    gui->visualizer.comet_buster.score_multiplier = 1.0;
+                    gui->visualizer.comet_buster.game_over = false;
+                    gui->visualizer.comet_buster.game_won = false;
+                    
+                    // Spawn wave 1
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+                    
+                    // Start gameplay music rotation
+#ifdef ExternalSound
+                    SDL_Log("[Comet Busters] [SPLASH] Calling audio_play_random_music()...\n");
+                    audio_play_random_music(&gui->audio);
+                    SDL_Log("[Comet Busters] [SPLASH] Started gameplay music\n");
+#endif
+                    SDL_Log("[Comet Busters] [SPLASH] D-Pad splash exit complete\n");
+                    break;  // Don't process other input while exiting splash
+                }
+                
+                // Handle high score entry navigation with D-Pad
+                if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
+                    int count = 0;
+                    get_keyboard_buttons(&count);
+                    int row_starts[] = {0, 10, 19, 26, 30};
+                    int row_sizes[] = {10, 9, 7, 4};
+                    
+                    if (hat & SDL_HAT_UP) {
+                        // Move up one row
+                        int row = 0;
+                        for (int r = 0; r < 4; r++) {
+                            if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                row = r;
+                                break;
+                            }
+                        }
+                        if (row > 0) {
+                            int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                            int new_row = row - 1;
+                            if (pos_in_row >= row_sizes[new_row]) {
+                                pos_in_row = row_sizes[new_row] - 1;
+                            }
+                            hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
+                        }
+                    } else if (hat & SDL_HAT_DOWN) {
+                        // Move down one row
+                        int row = 0;
+                        for (int r = 0; r < 4; r++) {
+                            if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                row = r;
+                                break;
+                            }
+                        }
+                        if (row < 3) {
+                            int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                            int new_row = row + 1;
+                            if (pos_in_row >= row_sizes[new_row]) {
+                                pos_in_row = row_sizes[new_row] - 1;
+                            }
+                            hs_entry->kb_selected_index = row_starts[new_row] + pos_in_row;
+                        }
+                    } else if (hat & SDL_HAT_LEFT) {
+                        // Move left within row
+                        int row = 0;
+                        for (int r = 0; r < 4; r++) {
+                            if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                row = r;
+                                break;
+                            }
+                        }
+                        int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                        if (pos_in_row > 0) {
+                            hs_entry->kb_selected_index--;
+                        } else {
+                            hs_entry->kb_selected_index = row_starts[row] + row_sizes[row] - 1;
+                        }
+                    } else if (hat & SDL_HAT_RIGHT) {
+                        // Move right within row
+                        int row = 0;
+                        for (int r = 0; r < 4; r++) {
+                            if (hs_entry->kb_selected_index < row_starts[r+1]) {
+                                row = r;
+                                break;
+                            }
+                        }
+                        int pos_in_row = hs_entry->kb_selected_index - row_starts[row];
+                        if (pos_in_row < row_sizes[row] - 1) {
+                            hs_entry->kb_selected_index++;
+                        } else {
+                            hs_entry->kb_selected_index = row_starts[row];
+                        }
+                    }
+                    break;  // Don't process other input while in high score entry
+                }
+                
                 if (gui->show_menu) {
                     if (gui->menu_state == 0) {
-                        int num_menu_items = 7;
+                        int num_menu_items = 8;
                         int items_per_page = 5;
                         
                         if (hat & SDL_HAT_UP) {
@@ -1491,6 +2049,8 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
                 // Show high score entry dialog
                 hs_entry->state = HIGH_SCORE_ENTRY_ACTIVE;
                 hs_entry->cursor_pos = 0;
+                hs_entry->kb_selected_index = 0;  // Start at first key
+                hs_entry->kb_show = true;         // Show virtual keyboard
                 memset(hs_entry->name_input, 0, sizeof(hs_entry->name_input));
                 SDL_Log("[Comet Busters] [HIGHSCORE] New high score! Score: %d\n", score);
             } else {
@@ -1510,6 +2070,191 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
             SDL_Log("[Comet Busters] [HS_FLOW] Dialog already active, not triggering again\n");
         }
         SDL_Log("[Comet Busters] [HS_FLOW] <<< END GAME OVER HANDLING\n\n");
+    }
+}
+
+// ============================================================
+// VIRTUAL KEYBOARD HELPERS
+// ============================================================
+
+// Get all keyboard buttons for the virtual keyboard
+static KeyboardButton* get_keyboard_buttons(int *out_count) {
+    // Allocate space for all buttons (26 letters + space + backspace + clear + submit)
+    static KeyboardButton buttons[31];
+    int count = 0;
+    
+    // Standard QWERTY Layout:
+    // Row 1: Q W E R T Y U I O P (10 keys)
+    // Row 2: A S D F G H J K L (9 keys)
+    // Row 3: Z X C V B N M (7 keys)
+    // Row 4: SPACE BACK CLEAR DONE (4 keys)
+    
+    int start_x = 550;
+    int start_y = 580;
+    int btn_width = 60;
+    int btn_height = 40;
+    int spacing_x = 65;
+    int spacing_y = 45;
+    
+    // Row 1: Q W E R T Y U I O P (10 keys)
+    const char row1[] = {'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'};
+    for (int i = 0; i < 10; i++) {
+        buttons[count].character = row1[i];
+        buttons[count].label = NULL;
+        buttons[count].is_special = false;
+        buttons[count].x = start_x + (i * spacing_x);
+        buttons[count].y = start_y;
+        buttons[count].width = btn_width;
+        buttons[count].height = btn_height;
+        count++;
+    }
+    
+    // Row 2: A S D F G H J K L (9 keys, offset by 32 pixels)
+    const char row2[] = {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'};
+    for (int i = 0; i < 9; i++) {
+        buttons[count].character = row2[i];
+        buttons[count].label = NULL;
+        buttons[count].is_special = false;
+        buttons[count].x = start_x + 32 + (i * spacing_x);
+        buttons[count].y = start_y + spacing_y;
+        buttons[count].width = btn_width;
+        buttons[count].height = btn_height;
+        count++;
+    }
+    
+    // Row 3: Z X C V B N M (7 keys, offset by 64 pixels)
+    const char row3[] = {'Z', 'X', 'C', 'V', 'B', 'N', 'M'};
+    for (int i = 0; i < 7; i++) {
+        buttons[count].character = row3[i];
+        buttons[count].label = NULL;
+        buttons[count].is_special = false;
+        buttons[count].x = start_x + 64 + (i * spacing_x);
+        buttons[count].y = start_y + (2 * spacing_y);
+        buttons[count].width = btn_width;
+        buttons[count].height = btn_height;
+        count++;
+    }
+    
+    // Row 4: SPACE BACK CLEAR DONE
+    
+    // Space button (wider)
+    buttons[count].character = ' ';
+    buttons[count].label = "SPACE";
+    buttons[count].is_special = false;
+    buttons[count].x = start_x + 100;
+    buttons[count].y = start_y + (3 * spacing_y);
+    buttons[count].width = 120;  // Wider
+    buttons[count].height = btn_height;
+    count++;
+    
+    // Backspace button
+    buttons[count].character = '\b';  // Backspace character
+    buttons[count].label = "BACK";
+    buttons[count].is_special = true;
+    buttons[count].x = start_x + 240;
+    buttons[count].y = start_y + (3 * spacing_y);
+    buttons[count].width = btn_width;
+    buttons[count].height = btn_height;
+    count++;
+    
+    // Clear button
+    buttons[count].character = 'C';
+    buttons[count].label = "CLEAR";
+    buttons[count].is_special = true;
+    buttons[count].x = start_x + 240 + spacing_x;
+    buttons[count].y = start_y + (3 * spacing_y);
+    buttons[count].width = btn_width;
+    buttons[count].height = btn_height;
+    count++;
+    
+    // Submit button
+    buttons[count].character = '\n';  // Newline for submit
+    buttons[count].label = "DONE";
+    buttons[count].is_special = true;
+    buttons[count].x = start_x + 240 + (2 * spacing_x);
+    buttons[count].y = start_y + (3 * spacing_y);
+    buttons[count].width = btn_width;
+    buttons[count].height = btn_height;
+    count++;
+    
+    *out_count = count;
+    return buttons;
+}
+
+// Check if mouse is over a keyboard button
+static int get_keyboard_button_at_pos(int mouse_x, int mouse_y) {
+    int count = 0;
+    KeyboardButton *buttons = get_keyboard_buttons(&count);
+    
+    for (int i = 0; i < count; i++) {
+        if (mouse_x >= buttons[i].x && mouse_x <= buttons[i].x + buttons[i].width &&
+            mouse_y >= buttons[i].y && mouse_y <= buttons[i].y + buttons[i].height) {
+            return i;  // Found button
+        }
+    }
+    return -1;  // No button at this position
+}
+
+// Add a character to the name input
+static void add_character_to_input(HighScoreEntryUI *hs_entry, char c) {
+    if (hs_entry->cursor_pos < 31) {
+        if (c == ' ') {
+            hs_entry->name_input[hs_entry->cursor_pos++] = ' ';
+        } else if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+            hs_entry->name_input[hs_entry->cursor_pos++] = c;
+        }
+        hs_entry->name_input[hs_entry->cursor_pos] = '\0';
+    }
+}
+
+static void render_virtual_keyboard(CometGUI *gui, HighScoreEntryUI *hs_entry, int selected_index) {
+    extern void gl_set_color(float r, float g, float b);
+    extern void gl_draw_rect_filled(float x, float y, float width, float height);
+    extern void gl_draw_text_simple(const char *text, int x, int y, int font_size);
+    
+    int count = 0;
+    KeyboardButton *buttons = get_keyboard_buttons(&count);
+    
+    // Draw all keyboard buttons
+    for (int i = 0; i < count; i++) {
+        KeyboardButton *btn = &buttons[i];
+        
+        // Highlight selected button
+        bool is_selected = (i == selected_index);
+        
+        if (is_selected) {
+            // Yellow highlight for selected - thick border
+            gl_set_color(1.0f, 1.0f, 0.0f);
+            gl_draw_rect_filled(btn->x - 3, btn->y - 3, btn->width + 6, btn->height + 6);
+        }
+        
+        // Button background color
+        if (btn->is_special) {
+            // Special buttons (red) - better contrast
+            gl_set_color(0.9f, 0.2f, 0.2f);
+        } else {
+            // Regular letter buttons (darker blue for contrast)
+            gl_set_color(0.0f, 0.4f, 0.8f);
+        }
+        gl_draw_rect_filled(btn->x, btn->y, btn->width, btn->height);
+        
+        // Button border - darker gold
+        gl_set_color(0.6f, 0.4f, 0.1f);
+        gl_draw_rect_filled(btn->x - 2, btn->y - 2, btn->width + 4, btn->height + 4);
+        
+        // Button text - pure white for maximum contrast
+        gl_set_color(1.0f, 1.0f, 1.0f);
+        
+        if (btn->label != NULL) {
+            // Special button - use label
+            gl_draw_text_simple(btn->label, btn->x + 10, btn->y + 8, 9);
+        } else if (btn->character == ' ') {
+            gl_draw_text_simple("SPACE", btn->x + 20, btn->y + 8, 9);
+        } else if (btn->character != '\b' && btn->character != '\n') {
+            // Regular letter - larger and bold-looking
+            char text[2] = {btn->character, '\0'};
+            gl_draw_text_simple(text, btn->x + 22, btn->y + 8, 14);
+        }
     }
 }
 
@@ -1560,7 +2305,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
             int menu_width = 400;
             int menu_height = 60;
             int items_per_page = 5;
-            int num_menu_items = 7;  // Continue, New Game, High Scores, Audio, Language, Help, Quit
+            int num_menu_items = 8;  // Continue, New Game, High Scores, Audio, Language, Help, Fullscreen, Quit
             
             // Calculate scroll position - keep selected item visible
             int current_selection = gui->menu_selection;
@@ -1867,11 +2612,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
         gl_draw_rect_filled(0, 0, 1920, 1080);
         
-        // Dialog box background - Warm parchment (#F7F3E8)
-        int dialog_x = 560;
-        int dialog_y = 320;
-        int dialog_width = 800;
-        int dialog_height = 420;
+        // Dialog box background - Much larger to accommodate keyboard
+        int dialog_x = 300;
+        int dialog_y = 50;
+        int dialog_width = 1320;
+        int dialog_height = 980;
         
         // Warm parchment background
         gl_set_color(0.968f, 0.953f, 0.91f);  // #F7F3E8
@@ -1886,43 +2631,45 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Title - Dark brown text
         gl_set_color(0.2f, 0.15f, 0.1f);  // Dark brown
-        gl_draw_text_simple(label_new_high_score[gui->visualizer.comet_buster.current_language], 740, 345, 24);
+        gl_draw_text_simple(label_new_high_score[gui->visualizer.comet_buster.current_language], 740, 95, 24);
         
         // Score display - Dark brown
         gl_set_color(0.3f, 0.25f, 0.15f);
         char score_text[128];
         snprintf(score_text, sizeof(score_text), fmt_score_wave[gui->visualizer.comet_buster.current_language],  gui->visualizer.comet_buster.score, gui->visualizer.comet_buster.current_wave);
-        gl_draw_text_simple(score_text, 620, 395, 14);
+        gl_draw_text_simple(score_text, 400, 150, 14);
         
         // Name entry label - Dark brown
         gl_set_color(0.2f, 0.15f, 0.1f);
-        gl_draw_text_simple(label_enter_name[gui->visualizer.comet_buster.current_language], 620, 445, 13);
+        gl_draw_text_simple(label_enter_name[gui->visualizer.comet_buster.current_language], 400, 200, 13);
         
         // Input box background - Slightly off-white
         gl_set_color(0.95f, 0.93f, 0.88f);
-        gl_draw_rect_filled(620, 475, 660, 50);
+        gl_draw_rect_filled(400, 230, 800, 50);
         
         // Input box border - Warm gold
         gl_set_color(0.8f, 0.6f, 0.2f);
-        gl_draw_rect_filled(618, 473, 664, 54);
+        gl_draw_rect_filled(398, 228, 804, 54);
         
         // Display the typed name - Dark brown
         gl_set_color(0.1f, 0.08f, 0.05f);  // Very dark brown
-        gl_draw_text_simple(hs_entry->name_input, 635, 490, 16);
+        gl_draw_text_simple(hs_entry->name_input, 415, 245, 16);
         
         // Cursor (blinking underscore)
         if ((int)(gui->total_time * 2) % 2 == 0) {  // Blink effect
             char cursor_text[] = "_";
-            int cursor_x = 635 + (hs_entry->cursor_pos * 9);
-            gl_draw_text_simple(cursor_text, cursor_x, 490, 16);
+            int cursor_x = 415 + (hs_entry->cursor_pos * 9);
+            gl_draw_text_simple(cursor_text, cursor_x, 245, 16);
         }
         
-        // Instructions - Split into two lines
+        // Instructions - for keyboard
         gl_set_color(0.4f, 0.3f, 0.2f);  // Darker brown for readability
-        gl_draw_text_simple(hint_name_entry[gui->visualizer.comet_buster.current_language], 
-                           580, 550, 11);
-        gl_draw_text_simple(hint_max_chars[gui->visualizer.comet_buster.current_language], 580, 568, 11);
+        gl_draw_text_simple("Click buttons or use keyboard (A-Z, Space, Enter/Done to submit)", 400, 310, 12);
+        
+        // Draw virtual keyboard
+        render_virtual_keyboard(gui, hs_entry, hs_entry->kb_selected_index);
     }
+
     
     // Render pause overlay if game is paused
     if (gui->game_paused && !gui->show_menu && !gui->visualizer.comet_buster.splash_screen_active) {
@@ -2275,14 +3022,16 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     audio_set_music_volume(&gui.audio, gui.music_volume);
     audio_set_sfx_volume(&gui.audio, gui.sfx_volume);
     
-    // Load background music tracks (for when gameplay starts)
+    // Load background music tracks into rotation queue (for when gameplay starts)
 #ifdef ExternalSound
-    audio_play_music(&gui.audio, "music/track1.mp3", false);   // Load track 1
-    audio_play_music(&gui.audio, "music/track2.mp3", false);   // Load track 2
-    audio_play_music(&gui.audio, "music/track3.mp3", false);   // Load track 3
-    audio_play_music(&gui.audio, "music/track4.mp3", false);   // Load track 4
-    audio_play_music(&gui.audio, "music/track5.mp3", false);   // Load track 5
-    audio_play_music(&gui.audio, "music/track6.mp3", false);   // Load track 6
+    audio_queue_music_for_rotation(&gui.audio, "music/track1.mp3");   // Queue track 1
+    audio_queue_music_for_rotation(&gui.audio, "music/track2.mp3");   // Queue track 2
+    audio_queue_music_for_rotation(&gui.audio, "music/track3.mp3");   // Queue track 3
+    audio_queue_music_for_rotation(&gui.audio, "music/track4.mp3");   // Queue track 4
+    audio_queue_music_for_rotation(&gui.audio, "music/track5.mp3");   // Queue track 5
+    audio_queue_music_for_rotation(&gui.audio, "music/track6.mp3");   // Queue track 6
+    
+    SDL_Log("[Comet Busters] [AUDIO] Queued %d background music tracks for rotation\n", gui.audio.music_track_count);
     
     // Set language from preferences BEFORE playing intro
     gui.visualizer.comet_buster.current_language = gui.preferences.language;
@@ -2324,6 +3073,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.last_axis_0_state = 0;      // Initialize axis state tracking
     gui.last_axis_1_state = 0;      // Initialize axis state tracking
     
+    bool splash_was_active = true;  // Track splash screen state for music stop
+    
     // Initialize local high score entry UI
     HighScoreEntryUI hs_entry;
     memset(&hs_entry, 0, sizeof(HighScoreEntryUI));
@@ -2354,6 +3105,25 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
+        
+        // Detect splash screen exit and stop intro music (handles ALL exit methods)
+        if (splash_was_active && !gui.visualizer.comet_buster.splash_screen_active) {
+            SDL_Log("[Comet Busters] [SPLASH] MAIN LOOP DETECTOR: Splash screen exited\n");
+            
+            // Always stop music when splash exits, regardless of what's playing
+            SDL_Log("[Comet Busters] [SPLASH] MAIN LOOP: Stopping intro music...\n");
+            audio_stop_music(&gui.audio);
+            
+            SDL_Log("[Comet Busters] [SPLASH] MAIN LOOP: Starting background music...\n");
+            audio_play_random_music(&gui.audio);
+            
+            SDL_Log("[Comet Busters] [SPLASH] MAIN LOOP: Music transition complete\n");
+            splash_was_active = false;
+        } else if (!splash_was_active && gui.visualizer.comet_buster.splash_screen_active) {
+            // Splash screen reactivated (shouldn't happen normally)
+            SDL_Log("[Comet Busters] [SPLASH] MAIN LOOP: Splash screen reactivated\n");
+            splash_was_active = true;
+        }
         
         // Reset scroll wheel input after processing (for weapon changing)
         gui.visualizer.scroll_direction = 0;

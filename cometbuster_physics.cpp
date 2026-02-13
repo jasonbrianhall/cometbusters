@@ -1827,13 +1827,37 @@ void comet_buster_update_fuel(CometBusterGame *game, double dt, void *vis) {
             generation_interval = 0.8;  // 1/4 speed
         }
         
+        int missiles_added_this_frame = 0;  // Track missiles added for bomb generation
+        
         while (game->missile_generation_timer >= generation_interval && game->missile_ammo < 200) {
             // Check if we're going from 0 to 1 missile
             if (game->missile_ammo == 0) {
                 game->using_missiles = true;  // Auto-toggle when you get first missile
             }
             game->missile_ammo++;
+            missiles_added_this_frame++;
             game->missile_generation_timer -= generation_interval;
+        }
+        
+        // Generate bombs: For every 3 missiles generated, add 1 bomb (unless bombs are full)
+        // This uses a counter to track partial bomb generation
+        if (missiles_added_this_frame > 0 && game->bomb_ammo < MAX_BOMBS) {
+            // Add counter for bomb generation (only tracks leftover from missile batches)
+            if (!game->bomb_generation_counter) {
+                game->bomb_generation_counter = 0;  // Initialize if needed
+            }
+            
+            game->bomb_generation_counter += missiles_added_this_frame;
+            
+            // For every 3 missiles, generate 1 bomb
+            while (game->bomb_generation_counter >= 3 && game->bomb_ammo < MAX_BOMBS) {
+                // Check if we're going from 0 to 1 bomb
+                if (game->bomb_ammo == 0) {
+                    game->using_bombs = true;  // Auto-toggle when you get first bomb
+                }
+                game->bomb_ammo++;
+                game->bomb_generation_counter -= 3;
+            }
         }
         
         // Stop accumulating timer if at max missiles
