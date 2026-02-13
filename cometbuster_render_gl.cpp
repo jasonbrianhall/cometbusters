@@ -150,6 +150,13 @@ void gl_init(void) {
     
     gl_state.program = create_program(vertex_shader, fragment_shader);
     
+    if (!gl_state.program) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "[Comet Busters] [GL] ERROR: create_program failed, program == 0");
+    } else {
+        SDL_Log("[Comet Busters] [GL] Program created: %u\n", gl_state.program);
+    }
+    
+    
     glGenVertexArrays(1, &gl_state.vao);
     glGenBuffers(1, &gl_state.vbo);
     
