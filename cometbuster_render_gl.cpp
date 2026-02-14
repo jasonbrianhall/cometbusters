@@ -82,6 +82,14 @@ typedef struct {
     GLuint vbo;
     Mat4 projection;
     float color[4];
+    
+    // ✅ PERFORMANCE FIX: Cached uniform locations (avoid per-frame glGetUniformLocation)
+    GLint proj_loc;
+    GLint color_loc;
+    
+    // Ring buffer for smooth frame times
+    GLuint ring_buffers[3];
+    int current_ring_buffer;
 } GLRenderState;
 
 static GLRenderState gl_state = {0};
@@ -327,6 +335,12 @@ void gl_init(void) {
     gl_state.color[2] = 1.0f;
     gl_state.color[3] = 1.0f;
     
+    // ✅ PERFORMANCE FIX: Cache uniform locations to avoid per-frame string lookups
+    gl_state.proj_loc = glGetUniformLocation(gl_state.program, "projection");
+    gl_state.color_loc = glGetUniformLocation(gl_state.program, "color");
+    SDL_Log("[Comet Busters] [GL] Cached uniform locations: proj_loc=%d, color_loc=%d\n", 
+            gl_state.proj_loc, gl_state.color_loc);
+    
     // Initialize FreeType font system with base64-encoded TTF
     ft_init_from_base64();
     
@@ -334,10 +348,12 @@ void gl_init(void) {
 }
 
 static void draw_vertices(Vertex *verts, int count, GLenum mode) {
+    if (count <= 0 || !verts) return;
+    
     glUseProgram(gl_state.program);
     
-    GLint proj_loc = glGetUniformLocation(gl_state.program, "projection");
-    glUniformMatrix4fv(proj_loc, 1, GL_FALSE, gl_state.projection.m);
+    // ✅ PERFORMANCE FIX: Use cached uniform location (no per-frame string lookup!)
+    glUniformMatrix4fv(gl_state.proj_loc, 1, GL_FALSE, gl_state.projection.m);
     
     glBindBuffer(GL_ARRAY_BUFFER, gl_state.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(Vertex), verts);
@@ -856,6 +872,75 @@ void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int
     }
 }
 
+// ✅ PERFORMANCE FIX: Batch grid rendering into single draw call
+static void draw_grid_batched(int width, int height) {
+    gl_set_color(0.1f, 0.15f, 0.35f);
+    glLineWidth(0.5f);
+    
+    // Calculate vertices needed
+    int h_lines = (height / 50) + 1;
+    int v_lines = (width / 50) + 2;
+    int total_verts = (h_lines + v_lines) * 2;
+    
+    if (total_verts <= 0 || total_verts > 500) {
+        SDL_Log("[GL] Grid vertex count out of range: %d\n", total_verts);
+        return;
+    }
+    
+    Vertex *grid_verts = (Vertex *)malloc(total_verts * sizeof(Vertex));
+    if (!grid_verts) {
+        SDL_Log("[GL] Failed to allocate memory for grid vertices\n");
+        return;
+    }
+    
+    int idx = 0;
+    
+    // Vertical lines (left to right)
+    for (int i = 0; i <= width + 50; i += 50) {
+        grid_verts[idx].x = (float)i;
+        grid_verts[idx].y = 0.0f;
+        grid_verts[idx].r = 0.1f;
+        grid_verts[idx].g = 0.15f;
+        grid_verts[idx].b = 0.35f;
+        grid_verts[idx].a = 1.0f;
+        idx++;
+        
+        grid_verts[idx].x = (float)i;
+        grid_verts[idx].y = (float)height;
+        grid_verts[idx].r = 0.1f;
+        grid_verts[idx].g = 0.15f;
+        grid_verts[idx].b = 0.35f;
+        grid_verts[idx].a = 1.0f;
+        idx++;
+    }
+    
+    // Horizontal lines (top to bottom)
+    for (int i = 0; i <= height; i += 50) {
+        grid_verts[idx].x = 0.0f;
+        grid_verts[idx].y = (float)i;
+        grid_verts[idx].r = 0.1f;
+        grid_verts[idx].g = 0.15f;
+        grid_verts[idx].b = 0.35f;
+        grid_verts[idx].a = 1.0f;
+        idx++;
+        
+        grid_verts[idx].x = (float)(width + 50);
+        grid_verts[idx].y = (float)i;
+        grid_verts[idx].r = 0.1f;
+        grid_verts[idx].g = 0.15f;
+        grid_verts[idx].b = 0.35f;
+        grid_verts[idx].a = 1.0f;
+        idx++;
+    }
+    
+    // ✅ SINGLE DRAW CALL instead of 60+ individual gl_draw_line() calls!
+    draw_vertices(grid_verts, idx, GL_LINES);
+    
+    free(grid_verts);
+    
+    SDL_Log("[GL] Grid: %d vertices batched into single draw call\n", idx);
+}
+
 void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     if (!visualizer) return;
 
@@ -887,16 +972,8 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     
     // Background is already set in on_realize, no need to draw again
     
-    // Draw grid (extended 50 pixels to the right)
-    gl_set_color(0.1f, 0.15f, 0.35f);
-    glLineWidth(0.5f);
-    
-    for (int i = 0; i <= width + 50; i += 50) {
-        gl_draw_line(i, 0, i, height, 0.5f);
-    }
-    for (int i = 0; i <= height; i += 50) {
-        gl_draw_line(0, i, width + 50, i, 0.5f);
-    }
+    // ✅ PERFORMANCE FIX: Draw grid using batched rendering (single draw call)
+    draw_grid_batched(width, height);
     
     // Draw game elements
     draw_comet_buster_comets_gl(game, cr, width, height);

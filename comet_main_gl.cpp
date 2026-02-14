@@ -108,6 +108,34 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
     SDL_Log("[Comet Busters] [SDL] Window created: %dx%d\n", gui->window_width, gui->window_height);
     
+    // ✅ PERFORMANCE FIX: Handle high-DPI Android devices
+    #ifdef ANDROID
+    int internal_width = gui->window_width;
+    int internal_height = gui->window_height;
+    
+    // Cap to 1440p maximum rendering resolution to avoid excessive GPU load
+    // on high-DPI Android devices (which often request 2160p+)
+    if (internal_width > 1440) {
+        float scale = 1440.0f / internal_width;
+        internal_width = 1440;
+        internal_height = (int)(internal_height * scale);
+        
+        SDL_Log("[Comet Busters] [ANDROID] High-DPI device detected\n");
+        SDL_Log("[Comet Busters] [ANDROID] Scaling resolution from %dx%d to %dx%d\n",
+                gui->window_width, gui->window_height, internal_width, internal_height);
+        
+        glViewport(0, 0, internal_width, internal_height);
+    }
+    
+    gui->visualizer.width = internal_width;
+    gui->visualizer.height = internal_height;
+    SDL_Log("[Comet Busters] [ANDROID] Rendering at %dx%d (physical: %dx%d)\n",
+            internal_width, internal_height, gui->window_width, gui->window_height);
+    #else
+    gui->visualizer.width = gui->window_width;
+    gui->visualizer.height = gui->window_height;
+    #endif
+    
     SDL_Log("[Comet Busters] [INIT] Creating GL context\n");
     gui->gl_context = SDL_GL_CreateContext(gui->window);
     if (!gui->gl_context) {
@@ -925,6 +953,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     // Main loop
     gui.last_frame_ticks = SDL_GetTicks();
     
+    // ✅ PERFORMANCE MONITORING: FPS counter
+    static int fps_frame_count = 0;
+    static uint32_t fps_last_time = 0;
+    
     while (gui.running) {
         uint32_t current_ticks = SDL_GetTicks();
         gui.delta_time = (current_ticks - gui.last_frame_ticks) / 1000.0;
@@ -934,6 +966,15 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         gui.total_time += gui.delta_time;
         gui.frame_count++;
+        
+        // ✅ PERFORMANCE MONITORING: Update FPS counter
+        fps_frame_count++;
+        if (current_ticks - fps_last_time >= 1000) {
+            SDL_Log("[PERF] FPS: %d frames in 1000ms (delta: %.2f ms/frame)\n", 
+                    fps_frame_count, (current_ticks - fps_last_time) / (float)fps_frame_count);
+            fps_frame_count = 0;
+            fps_last_time = current_ticks;
+        }
         
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
