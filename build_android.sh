@@ -381,7 +381,8 @@ mkdir -p android/app/src/jni
 
 cat > android/app/src/jni/Application.mk << 'EOF'
 APP_PLATFORM := android-21
-APP_ABI := armeabi-v7a arm64-v8a x86 x86_64
+#APP_ABI := armeabi-v7a arm64-v8a x86 x86_64
+APP_ABI := armeabi-v7a arm64-v8a
 APP_STL := c++_shared
 APP_OPTIM := release
 NDK_TOOLCHAIN_VERSION := clang

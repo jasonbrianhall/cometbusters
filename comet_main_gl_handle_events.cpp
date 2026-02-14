@@ -531,7 +531,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             const int items_per_page = 5;
                             const int menu_x = (1920 - menu_width) / 2;
                             
-                            for (int i = 0; i < 7; i++) {  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+                            for (int i = 0; i < 10; i++) {  // 0=Continue, 1=New, 2=High Scores, 3=Save, 4=Load, 5=Audio, 6=Language, 7=Help, 8=Fullscreen, 9=Quit
                                 // Only check items that are visible on screen
                                 if (i < gui->main_menu_scroll_offset || i >= gui->main_menu_scroll_offset + items_per_page) {
                                     continue;  // Skip items outside visible area
@@ -557,17 +557,25 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         case 2:  // High Scores
                                             gui->menu_state = 2;
                                             break;
-                                        case 3:  // Audio
+                                        case 3:  // Save
+                                            gui->menu_state = 5;  // Save state menu
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 4:  // Load
+                                            gui->menu_state = 6;  // Load state menu
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 5:  // Audio
                                             menu_open_submenu(gui, 3);
                                             break;
-                                        case 4:  // Language
+                                        case 6:  // Language
                                             menu_open_submenu(gui, 4);
                                             break;
-                                        case 5:  // Help
+                                        case 7:  // Help
                                             gui->show_help_overlay = true;
                                             gui->help_scroll_offset = 0;
                                             break;
-                                        case 6:  // Fullscreen toggle
+                                        case 8:  // Fullscreen toggle
                                             gui->fullscreen = !gui->fullscreen;
                                             if (gui->fullscreen) {
                                                 SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -576,7 +584,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                             }
                                             SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
                                             break;
-                                        case 7:  // Quit
+                                        case 9:  // Quit
                                             gui->running = false;
                                             break;
                                     }
@@ -627,8 +635,8 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         }
                         // Language menu buttons
                         else if (gui->menu_state == 4) {
-                            const int lang_y_start = 350;
-                            const int lang_spacing = 120;
+                            const int lang_y_start = 300;  // MUST MATCH render code
+                            const int lang_spacing = 110;  // MUST MATCH render code
                             const int lang_width = 400;
                             const int lang_height = 60;
                             const int lang_x = (1920 - lang_width) / 2;

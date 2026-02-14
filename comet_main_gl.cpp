@@ -118,10 +118,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     }
     SDL_Log("[Comet Busters] [INIT] GL context created successfully: %p\n", (void*)gui->gl_context);
     
-    // CRITICAL: Make the context current BEFORE calling any GL functions
-    SDL_Log("[Comet Busters] [INIT] Calling SDL_GL_MakeCurrent\n");
     int make_current_result = SDL_GL_MakeCurrent(gui->window, gui->gl_context);
-    SDL_Log("[Comet Busters] [INIT] SDL_GL_MakeCurrent returned: %d\n", make_current_result);
     if (make_current_result != 0) {
         SDL_Log("[Comet Busters] [ERROR] SDL_GL_MakeCurrent failed in init!\n");
     }
@@ -300,29 +297,17 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
 }
 
 static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
-    // Debug: Check what we have
-    SDL_Log("[Comet Busters] [GL] render_frame: gui=%p, window=%p, context=%p\n", 
-            (void*)gui, (void*)(gui ? gui->window : NULL), (void*)(gui ? gui->gl_context : NULL));
-    
-    if (!gui || !gui->window || !gui->gl_context) {
-        SDL_Log("[Comet Busters] [GL] ERROR: gui/window/context is NULL, cannot render\n");
-        return;
-    }
-    
-    // CRITICAL: Ensure GL context is current before ANY GL calls
-    int result = SDL_GL_MakeCurrent(gui->window, gui->gl_context);
-    SDL_Log("[Comet Busters] [GL] SDL_GL_MakeCurrent returned: %d (0=success, -1=error)\n", result);
-    if (result != 0) {
-        SDL_Log("[Comet Busters] [GL] ERROR: SDL_GL_MakeCurrent failed!\n");
-        return;
-    }
-    
-    glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
+        glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
+#ifndef ANDROID
     const float GAME_WIDTH = 1920.0f;
     const float GAME_HEIGHT = 1080.0f;
-    
+#else
+    const float GAME_WIDTH =  720.0f;
+    const float GAME_HEIGHT = 480.0f;
+#endif
+
     // Fill entire window
     glViewport(0, 0, gui->window_width, gui->window_height);
     
@@ -334,8 +319,8 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
     glLoadIdentity();
     
     // Game always in logical space
-    gui->visualizer.width = 1920;
-    gui->visualizer.height = 1080;
+    gui->visualizer.width = int(GAME_WIDTH);
+    gui->visualizer.height = int(GAME_HEIGHT);
     
     // Draw game
     draw_comet_buster_gl(&gui->visualizer, NULL);
