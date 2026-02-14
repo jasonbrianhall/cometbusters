@@ -86,8 +86,11 @@ static void render_main_menu(CometGUI *gui) {
         
         int display_index = i - scroll_offset;
         int menu_y = menu_y_start + (display_index * menu_spacing);
+#ifndef ANDROID
         int menu_x = (1920 - menu_width) / 2;
-        
+#else
+        int menu_x = (720 - menu_width) / 2;
+#endif        
         if (i == 0 && gui->visualizer.comet_buster.ship_lives <= 0) {
             // Disabled / grayed-out look
             gl_set_color(0.3f, 0.3f, 0.3f);   // dark gray border
@@ -143,8 +146,11 @@ static void render_difficulty_menu(CometGUI *gui) {
     
     for (int i = 0; i < 3; i++) {
         int diff_y = diff_y_start + (i * diff_spacing);
+#ifndef ANDROID
         int diff_x = (1920 - diff_width) / 2;
-        
+#else
+        int diff_x = (720 - diff_width) / 2;
+#endif        
         if ((i + 1) == gui->gui_difficulty_level) {
             gl_set_color(1.0f, 1.0f, 0.0f);
             gl_draw_rect_filled(diff_x - 3, diff_y - 3, diff_width + 6, diff_height + 6);
@@ -256,8 +262,11 @@ static void render_save_state_menu(CometGUI *gui, int is_load_menu) {
     
     for (int i = 0; i < 10; i++) {
         int state_y = state_y_start + (i * state_spacing);
+#ifndef ANDROID
         int state_x = (1920 - state_width) / 2;
-        
+#else
+        int state_x = (720 - state_width) / 2;
+#endif        
         if (i == gui->menu_selection) {
             gl_set_color(1.0f, 1.0f, 0.0f);
             gl_draw_rect_filled(state_x - 3, state_y - 3, state_width + 6, state_height + 6);
@@ -329,7 +338,11 @@ static void render_language_menu(CometGUI *gui) {
         
         int display_index = i - scroll_offset;
         int lang_y = lang_y_start + (display_index * lang_spacing);
+#ifndef ANDROID
         int lang_x = (1920 - lang_width) / 2;
+#else
+        int lang_x = (720 - lang_width) / 2;
+#endif
         
         if (i == current_lang) {
             gl_set_color(1.0f, 1.0f, 0.0f);
@@ -370,8 +383,12 @@ void render_menu(CometGUI *gui) {
     
     // Semi-transparent overlay
     gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+#ifndef ANDROID
     gl_draw_rect_filled(0, 0, 1920, 1080);
-    
+#else
+    gl_draw_rect_filled(0, 0, 720, 480);
+#endif
+
     // Dispatch to appropriate menu renderer
     switch (gui->menu_state) {
         case 0:

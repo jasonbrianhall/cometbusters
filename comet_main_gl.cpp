@@ -213,8 +213,11 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
             
             // Advance to next wave
             gui->visualizer.comet_buster.current_wave++;
+#ifndef ANDROID
             comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-            
+#else
+            comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif            
             // Reset flags and input
             gui->finale_music_started = false;
             gui->visualizer.mouse_right_pressed = false;
@@ -340,8 +343,12 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent overlay
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
-        
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif
+
         // Title - bright white for high contrast
         gl_set_color(1.0f, 1.0f, 1.0f);
         //gl_draw_text_simple(help_controls_text[gui->visualizer.comet_buster.current_language], 800, 50, 28);
@@ -389,8 +396,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent overlay
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
-        
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif        
         // Dialog box background - Much larger to accommodate keyboard
         int dialog_x = 300;
         int dialog_y = 50;
@@ -459,8 +469,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent dark overlay (darker than menu to emphasize game pause)
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.5f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
-        
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif        
         // Pause dialog box
         int pause_x = 640;
         int pause_y = 300;
@@ -516,7 +529,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent overlay
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif
         
         // Dialog box background - Warm parchment
         int dialog_x = 460;
@@ -764,8 +781,13 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Initialize visualizer with GAME space (1920x1080), not window size
     memset(&gui.visualizer, 0, sizeof(Visualizer));
+#ifndef ANDROID
     gui.visualizer.width = 1920;
     gui.visualizer.height = 1080;
+#else
+    gui.visualizer.width = 720;
+    gui.visualizer.height = 480;
+#endif
     gui.visualizer.mouse_x = 960;
     gui.visualizer.mouse_y = 540;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
@@ -797,8 +819,13 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     // Initialize visualizer for both Android and Desktop
     if (gui.visualizer.width == 0) {
         memset(&gui.visualizer, 0, sizeof(Visualizer));
+#ifndef ANDROID
         gui.visualizer.width = 1920;
         gui.visualizer.height = 1080;
+#else
+        gui.visualizer.width = 720;
+        gui.visualizer.height = 480;
+#endif
         gui.visualizer.mouse_x = 960;
         gui.visualizer.mouse_y = 540;
         gui.visualizer.scroll_direction = 0;

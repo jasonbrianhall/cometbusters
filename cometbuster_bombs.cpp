@@ -74,7 +74,12 @@ void comet_buster_update_bomb_pickups(CometBusterGame *game, double dt) {
         }
         
         // Apply wrap-around
+#ifndef ANDROID
         comet_buster_wrap_position(&p->x, &p->y, 1920, 1080);
+#else
+        comet_buster_wrap_position(&p->x, &p->y, 720, 480);
+#endif
+
     }
     
     // Remove inactive pickups

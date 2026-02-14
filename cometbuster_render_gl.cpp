@@ -354,8 +354,13 @@ void gl_setup_2d_projection(int width, int height) {
     // Set projection matrix to match the actual viewport dimensions
     // This is CRITICAL to prevent text clipping when viewport != 1920x1080
     // Use the actual viewport width and height passed in
+#ifndef ANDROID
     if (width <= 0) width = 1920;     // Fallback to default if invalid
     if (height <= 0) height = 1080;   // Fallback to default if invalid
+#else
+    if (width <= 0) width = 720;     // Fallback to default if invalid
+    if (height <= 0) height = 480;   // Fallback to default if invalid
+#endif
     gl_state.projection = mat4_ortho(0, width, height, 0, -1, 1);
 }
 
@@ -2872,8 +2877,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double lines_visible = (height + 200.0) / line_height;
         
         // Use actual viewport bounds (1920x1080) since projection is hardcoded to those values
+#ifndef ANDROID
         const int viewport_width = 1920;
-        
+#else
+        const int viewport_width = 720;
+#endif        
         // Draw all lines that could be visible
         for (int i = 0; i < (int)lines_visible + 2; i++) {
             int line_index = (int)current_line_offset + i;
@@ -2913,8 +2921,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double title_alpha = phase_timer / 2.0;
         if (title_alpha > 1.0) title_alpha = 1.0;
         
+#ifndef ANDROID
         const int viewport_width = 1920;
-        
+#else
+        const int viewport_width = 720;
+#endif        
         // Draw glowing text effect
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
@@ -2955,7 +2966,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
     else {
         gl_set_color(0.0f, 1.0f, 1.0f);
         
+#ifndef ANDROID
         const int viewport_width = 1920;
+#else
+        const int viewport_width = 720;
+#endif
         
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
@@ -3007,8 +3022,12 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
     double line_alpha = 1.0 - fmod(timer, line_duration) / (line_duration * 0.3);
     line_alpha = (line_alpha < 0) ? 0 : (line_alpha > 1) ? 1 : line_alpha;
     
+#ifndef ANDROID
     const int viewport_width = 1920;
-    
+#else
+    const int viewport_width = 720;
+#endif    
+
     // Draw visible lines
     int y_pos = height / 3;
     for (int i = 0; i < 8 && start_line + i < num_victory_lines; i++) {

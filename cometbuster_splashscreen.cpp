@@ -388,7 +388,11 @@ void comet_buster_exit_splash_screen(CometBusterGame *game) {
     game->is_boosting = false;
     game->boost_thrust_timer = 0.0;
     
+#ifdef ANDROID
     comet_buster_spawn_wave(game, 1920, 1080);
+#else
+    comet_buster_spawn_wave(game, 720, 480);
+#endif
 }
 
 // ============================================================================
@@ -402,11 +406,6 @@ void comet_buster_show_victory_scroll(CometBusterGame *game) {
     
     game->splash_screen_active = true;  // Reuse splash screen rendering system
     game->splash_timer = 0.0;
-    
-#ifdef ExternalSound
-    // TODO: Play finale music
-    //audio_play_intro_music(&visualizer->audio, "music/finale.mp3");
-#endif
 }
 
 void comet_buster_update_victory_scroll(CometBusterGame *game, double dt) {
