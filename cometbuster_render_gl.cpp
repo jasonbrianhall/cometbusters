@@ -156,15 +156,25 @@ static const char *fragment_shader_es2 =
 static GLuint compile_shader(const char *src, GLenum type) {
     const char *type_str = (type == GL_VERTEX_SHADER) ? "VERTEX" : "FRAGMENT";
     
+    // TEST: Check if we can even call GL functions
+    SDL_Log("[Comet Busters] [GL] About to compile %s shader\n", type_str);
+    
+    GLenum err_before = glGetError();
+    if (err_before != GL_NO_ERROR) {
+        SDL_Log("[Comet Busters] [GL] WARNING: GL error before glCreateShader: 0x%x\n", err_before);
+    }
+    
     // Clear any previous GL errors
     while (glGetError() != GL_NO_ERROR) {}
     
+    SDL_Log("[Comet Busters] [GL] Calling glCreateShader for %s\n", type_str);
     GLuint shader = glCreateShader(type);
+    SDL_Log("[Comet Busters] [GL] glCreateShader returned: %u\n", shader);
     
     // Check for GL errors during shader creation
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
-        SDL_Log("[Comet Busters] [GL] CRITICAL: glCreateShader generated GL error: 0x%x\n", err);
+        SDL_Log("[Comet Busters] [GL] glCreateShader generated GL error: 0x%x\n", err);
     }
     
     if (!shader) {
@@ -236,8 +246,11 @@ void gl_init(void) {
     
     // CRITICAL: Verify GL context is current
     SDL_GLContext current_ctx = SDL_GL_GetCurrentContext();
+    SDL_Log("[Comet Busters] [GL] SDL_GL_GetCurrentContext() returned: %p\n", (void*)current_ctx);
+    
     if (!current_ctx) {
         SDL_Log("[Comet Busters] [GL] CRITICAL: No GL context is current!\n");
+        SDL_Log("[Comet Busters] [GL] This means SDL_GL_MakeCurrent() didn't work or context is null\n");
         return;
     }
     SDL_Log("[Comet Busters] [GL] GL context is current: OK\n");
@@ -843,7 +856,7 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
 
     if (!isGLInitialized) {
         gl_init();
-        SDL_Log("[Comet Busters] Initializing GL Init");
+        SDL_Log("[Comet Busters] [GL] GL Init complete (should only happen once)\n");
         isGLInitialized = 1;
     }
 

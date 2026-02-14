@@ -55,17 +55,21 @@ void play_finale(CometGUI *gui, int language) {
 
 
 static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
+    SDL_Log("[Comet Busters] *** ENTERING init_sdl_and_opengl ***\n");
+    SDL_Log("[Comet Busters] [INIT] Starting init_sdl_and_opengl\n");
+    
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
         SDL_Log("[Comet Busters] [ERROR] SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
+    SDL_Log("[Comet Busters] [INIT] SDL_Init successful\n");
 
 #ifdef ANDROID
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
-    SDL_Log("[Comet Busters] [GL] Requesting OpenGL ES 3.0 context...\n");
+    SDL_Log("[Comet Busters] [INIT] Set GL attributes for ES 3.0\n");
 
 #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -80,6 +84,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     uint32_t flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_RESIZABLE;
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     
+    SDL_Log("[Comet Busters] [INIT] Creating window: %dx%d\n", width, height);
     gui->window = SDL_CreateWindow(
         "Comet Busters",
         SDL_WINDOWPOS_CENTERED,
@@ -93,6 +98,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Quit();
         return false;
     }
+    SDL_Log("[Comet Busters] [INIT] Window created successfully: %p\n", (void*)gui->window);
     
     // Ensure window is visible on all platforms
     SDL_ShowWindow(gui->window);
@@ -102,8 +108,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
     SDL_Log("[Comet Busters] [SDL] Window created: %dx%d\n", gui->window_width, gui->window_height);
     
-
-    
+    SDL_Log("[Comet Busters] [INIT] Creating GL context\n");
     gui->gl_context = SDL_GL_CreateContext(gui->window);
     if (!gui->gl_context) {
         SDL_Log("[Comet Busters] [ERROR] GL context creation failed: %s\n", SDL_GetError());
@@ -111,10 +116,17 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Quit();
         return false;
     }
+    SDL_Log("[Comet Busters] [INIT] GL context created successfully: %p\n", (void*)gui->gl_context);
     
     // CRITICAL: Make the context current BEFORE calling any GL functions
-    SDL_GL_MakeCurrent(gui->window, gui->gl_context);
-    SDL_Log("[Comet Busters] [GL] Context made current\n");
+    SDL_Log("[Comet Busters] [INIT] Calling SDL_GL_MakeCurrent\n");
+    int make_current_result = SDL_GL_MakeCurrent(gui->window, gui->gl_context);
+    SDL_Log("[Comet Busters] [INIT] SDL_GL_MakeCurrent returned: %d\n", make_current_result);
+    if (make_current_result != 0) {
+        SDL_Log("[Comet Busters] [ERROR] SDL_GL_MakeCurrent failed in init!\n");
+    }
+    
+    SDL_Log("[Comet Busters] [INIT] Context made current\n");
     
     // Small delay to ensure context is fully ready
     SDL_Delay(10);
@@ -151,7 +163,10 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
+    SDL_Log("[Comet Busters] [INIT] Initializing joystick\n");
     init_joystick(gui);
+    
+    SDL_Log("[Comet Busters] [INIT] init_sdl_and_opengl completed successfully\n");
     return true;
 }
 
@@ -285,6 +300,23 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
 }
 
 static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
+    // Debug: Check what we have
+    SDL_Log("[Comet Busters] [GL] render_frame: gui=%p, window=%p, context=%p\n", 
+            (void*)gui, (void*)(gui ? gui->window : NULL), (void*)(gui ? gui->gl_context : NULL));
+    
+    if (!gui || !gui->window || !gui->gl_context) {
+        SDL_Log("[Comet Busters] [GL] ERROR: gui/window/context is NULL, cannot render\n");
+        return;
+    }
+    
+    // CRITICAL: Ensure GL context is current before ANY GL calls
+    int result = SDL_GL_MakeCurrent(gui->window, gui->gl_context);
+    SDL_Log("[Comet Busters] [GL] SDL_GL_MakeCurrent returned: %d (0=success, -1=error)\n", result);
+    if (result != 0) {
+        SDL_Log("[Comet Busters] [GL] ERROR: SDL_GL_MakeCurrent failed!\n");
+        return;
+    }
+    
     glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -775,6 +807,32 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     } else {
         SDL_Log("[Comet Busters] [WARNING] Could not load WAD: %s\n", wadPath.c_str());
     }
+#endif
+    
+    // Initialize visualizer for both Android and Desktop
+    if (gui.visualizer.width == 0) {
+        memset(&gui.visualizer, 0, sizeof(Visualizer));
+        gui.visualizer.width = 1920;
+        gui.visualizer.height = 1080;
+        gui.visualizer.mouse_x = 960;
+        gui.visualizer.mouse_y = 540;
+        gui.visualizer.scroll_direction = 0;
+    }
+    
+    // Load high scores (if not already done on desktop)
+    if (gui.visualizer.comet_buster.high_scores[0].score == 0) {
+        high_scores_load(&gui.visualizer.comet_buster);
+        SDL_Log("[Comet Busters] [INIT] High scores loaded\n");
+    }
+    
+    // Initialize SDL/GL on Android if not already done
+#ifdef ANDROID
+    SDL_Log("[Comet Busters] [ANDROID] Initializing SDL/OpenGL\n");
+    if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
+        SDL_Log("[Comet Busters] [ANDROID] Failed to initialize SDL/OpenGL\n");
+        return 1;
+    }
+    SDL_Log("[Comet Busters] [ANDROID] SDL/OpenGL initialized successfully\n");
 #endif
     
     // Copy audio to visualizer so game code can access it
