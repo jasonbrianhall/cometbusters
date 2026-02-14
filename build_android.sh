@@ -485,7 +485,7 @@ docker run --rm \
     -e GRADLE_USER_HOME=/root/.gradle \
     -e JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8" \
     "$DOCKER_IMAGE_NAME" \
-    bash -c "cd /workspace/android && gradle assembleDebug --no-daemon -x lint"
+    bash -c "cd /workspace/android && gradle clean assembleDebug --no-daemon -x lint"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Docker build failed${NC}"

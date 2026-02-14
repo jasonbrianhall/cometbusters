@@ -59,6 +59,20 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Log("[Comet Busters] [ERROR] SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
+
+#ifdef ANDROID
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_Log("[Comet Busters] [GL] Requesting OpenGL ES 3.0 context...\n");
+
+#else
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#endif
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     
     // Enable joystick events
     SDL_JoystickEventState(SDL_ENABLE);
@@ -88,32 +102,37 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
     SDL_Log("[Comet Busters] [SDL] Window created: %dx%d\n", gui->window_width, gui->window_height);
     
-#ifdef ANDROID
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#else
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-#endif
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
     
     gui->gl_context = SDL_GL_CreateContext(gui->window);
     if (!gui->gl_context) {
-        SDL_Log("[Comet Busters] [ERROR] GL context failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] [ERROR] GL context creation failed: %s\n", SDL_GetError());
         SDL_DestroyWindow(gui->window);
         SDL_Quit();
         return false;
     }
-    SDL_Log("[Comet Busters] [GL] VERSION: %s", glGetString(GL_VERSION));
-    SDL_Log("[Comet Busters] [GL] RENDERER: %s", glGetString(GL_RENDERER));
-    SDL_Log("[Comet Busters] [GL] GLSL: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
-
+    
+    // CRITICAL: Make the context current BEFORE calling any GL functions
     SDL_GL_MakeCurrent(gui->window, gui->gl_context);
+    SDL_Log("[Comet Busters] [GL] Context made current\n");
+    
+    // Small delay to ensure context is fully ready
+    SDL_Delay(10);
+    
+    // Query actual context version created
+    int major, minor;
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
+    SDL_Log("[Comet Busters] [GL] GL context created: ES %d.%d\n", major, minor);
+    
+    // Now it's safe to query GL info
+    SDL_Log("[Comet Busters] [GL] VERSION: %s\n", glGetString(GL_VERSION));
+    SDL_Log("[Comet Busters] [GL] RENDERER: %s\n", glGetString(GL_RENDERER));
+    SDL_Log("[Comet Busters] [GL] GLSL: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     
     SDL_GL_SetSwapInterval(1);
     
+#ifndef ANDROID
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
         SDL_Log("[Comet Busters] [ERROR] GLEW init failed\n");
@@ -122,6 +141,8 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Quit();
         return false;
     }
+#endif
+
     
     SDL_Log("[Comet Busters] [INIT] SDL2, OpenGL %s, GLEW OK\n", glGetString(GL_VERSION));
     

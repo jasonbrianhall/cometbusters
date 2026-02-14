@@ -130,15 +130,46 @@ static const char *fragment_shader =
     "void main() {\n"
     "    FragColor = vertexColor;\n"
     "}\n";
+
+// Fallback for ES 2.0 (older Android devices)
+static const char *vertex_shader_es2 = 
+    "precision mediump float;\n"
+    "attribute vec2 position;\n"
+    "attribute vec4 color;\n"
+    "uniform mat4 projection;\n"
+    "varying vec4 vertexColor;\n"
+    "void main() {\n"
+    "    vertexColor = color;\n"
+    "    gl_Position = projection * vec4(position, 0.0, 1.0);\n"
+    "}\n";
+
+static const char *fragment_shader_es2 =
+    "precision mediump float;\n"
+    "varying vec4 vertexColor;\n"
+    "void main() {\n"
+    "    gl_FragColor = vertexColor;\n"
+    "}\n";
+
 #endif
 
 
 static GLuint compile_shader(const char *src, GLenum type) {
     const char *type_str = (type == GL_VERTEX_SHADER) ? "VERTEX" : "FRAGMENT";
+    
+    // Clear any previous GL errors
+    while (glGetError() != GL_NO_ERROR) {}
+    
     GLuint shader = glCreateShader(type);
     
+    // Check for GL errors during shader creation
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: glCreateShader generated GL error: 0x%x\n", err);
+    }
+    
     if (!shader) {
-        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create %s shader object\n", type_str);
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create %s shader object (returned 0)\n", type_str);
+        SDL_Log("[Comet Busters] [GL] This usually means GL context is not current or shaders not supported\n");
         return 0;
     }
     
@@ -202,14 +233,62 @@ void gl_init(void) {
     if (gl_state.program) return;
     
     SDL_Log("[Comet Busters] [GL] Initializing GL Renderer\n");
+    
+    // CRITICAL: Verify GL context is current
+    SDL_GLContext current_ctx = SDL_GL_GetCurrentContext();
+    if (!current_ctx) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: No GL context is current!\n");
+        return;
+    }
+    SDL_Log("[Comet Busters] [GL] GL context is current: OK\n");
+    
+    // DELAY before querying - let context fully initialize
+    SDL_Delay(50);
+    
+    // Test if glCreateShader works at all
+    SDL_Log("[Comet Busters] [GL] Testing glCreateShader capability...\n");
+    GLuint test_shader = glCreateShader(GL_VERTEX_SHADER);
+    GLenum test_err = glGetError();
+    SDL_Log("[Comet Busters] [GL] glCreateShader returned: %u, GL error: 0x%x\n", test_shader, test_err);
+    
+    if (test_shader) {
+        glDeleteShader(test_shader);
+        SDL_Log("[Comet Busters] [GL] Shader creation works!\n");
+    } else {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: glCreateShader returned 0!\n");
+        SDL_Log("[Comet Busters] [GL] Device does not support shader compilation\n");
+        SDL_Log("[Comet Busters] [GL] GL_VERSION: %s\n", (const char*)glGetString(GL_VERSION));
+        SDL_Log("[Comet Busters] [GL] GL_RENDERER: %s\n", (const char*)glGetString(GL_RENDERER));
+        return;
+    }
+    
+    // Safely query GL info
+    SDL_Log("[Comet Busters] [GL] GL_VERSION: %s\n", (const char*)glGetString(GL_VERSION));
+    SDL_Log("[Comet Busters] [GL] GL_RENDERER: %s\n", (const char*)glGetString(GL_RENDERER));
+    SDL_Log("[Comet Busters] [GL] GL_SHADING_LANGUAGE_VERSION: %s\n", (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+    
     glGenVertexArrays(1, &global_vao);
     
+    // Try ES 3.0/3.3 shaders first
+    SDL_Log("[Comet Busters] [GL] Attempting ES 3.0 shaders...\n");
     gl_state.program = create_program(vertex_shader, fragment_shader);
     
+    // On Android, if ES 3.0 failed, try ES 2.0 fallback
+    #ifdef ANDROID
     if (!gl_state.program) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "[Comet Busters] [GL] ERROR: create_program failed, program == 0");
+        SDL_Log("[Comet Busters] [GL] ES 3.0 shaders failed, attempting ES 2.0 fallback...\n");
+        gl_state.program = create_program(vertex_shader_es2, fragment_shader_es2);
+        if (gl_state.program) {
+            SDL_Log("[Comet Busters] [GL] ES 2.0 fallback successful!\n");
+        }
+    }
+    #endif
+    
+    if (!gl_state.program) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "[Comet Busters] [GL] ERROR: Shader compilation failed on both ES 3.0 and ES 2.0");
+        return;
     } else {
-        SDL_Log("[Comet Busters] [GL] Program created: %u\n", gl_state.program);
+        SDL_Log("[Comet Busters] [GL] Shader program created: %u\n", gl_state.program);
     }
     
     
@@ -764,7 +843,7 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
 
     if (!isGLInitialized) {
         gl_init();
-        SDL_Log("[Comet Busters] [Comet Busters] Initializing GL Init (should only happen once)");
+        SDL_Log("[Comet Busters] Initializing GL Init");
         isGLInitialized = 1;
     }
 
