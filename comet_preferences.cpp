@@ -31,7 +31,22 @@ static void build_preferences_path(void) {
         return;  // Already built
     }
 
-#ifdef _WIN32
+#ifdef ANDROID
+    // Android: Use SDL's application storage directory
+    // SDL_GetPrefPath creates the directory automatically and handles
+    // app-specific storage permissions correctly on Android
+    const char *base_path = SDL_GetPrefPath("CometBuster", "CometBuster");
+    if (base_path) {
+        snprintf(preferences_path, sizeof(preferences_path), 
+                 "%spreferences.cfg", base_path);
+        SDL_free((void *)base_path);
+        SDL_Log("[Comet Busters] [PREFS] Android preferences path initialized\n");
+    } else {
+        // Fallback if SDL_GetPrefPath fails
+        SDL_Log("[Comet Busters] [PREFS] WARNING: SDL_GetPrefPath failed, using fallback\n");
+        strcpy(preferences_path, "preferences.cfg");
+    }
+#elif defined(_WIN32)
     // Windows: Use AppData\Local\CometBuster
     char appdata[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, appdata))) {

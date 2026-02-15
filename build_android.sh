@@ -54,14 +54,46 @@ mkdir -p android/app/src/main/java/org/libsdl/app
 mkdir -p android/app/src/main/res/values
 mkdir -p android/app/src/main/res/layout
 mkdir -p android/app/src/main/res/drawable
+mkdir -p android/app/src/main/res/drawable-ldpi
+mkdir -p android/app/src/main/res/drawable-mdpi
+mkdir -p android/app/src/main/res/drawable-hdpi
+mkdir -p android/app/src/main/res/drawable-xhdpi
+mkdir -p android/app/src/main/res/drawable-xxhdpi
+mkdir -p android/app/src/main/res/drawable-xxxhdpi
 mkdir -p android/app/src/jni/src
 mkdir -p android/app/src/main/assets
 mkdir -p build/android
 
-cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp jni_wad_loading.cpp android/app/src/jni/src/ 2>/dev/null || true
+cp -f comet_main_gl.cpp wad.cpp audio_wad.cpp cometbuster_*.cpp comet_*.cpp joystick.cpp jni_wad_loading.cpp comet_main_gl_handle_events.cpp comet_main_gl_menu.cpp android/app/src/jni/src/ 2>/dev/null || true
 cp -f miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c android/app/src/jni/src/ 2>/dev/null || true
 cp -f SDLActivity.java android/app/src/main/java/org/libsdl/app/SDLActivity.java
 cp -f *.h android/app/src/jni/src/ 2>/dev/null || true
+
+# Handle app icon
+if [ -f "icon.png" ]; then
+    echo -e "${YELLOW}Processing app icon...${NC}"
+    
+    # Check if ImageMagick is available for scaling
+    if command -v convert &> /dev/null; then
+        # Scale icon to different densities (Android best practice)
+        # ldpi: 36x36, mdpi: 48x48, hdpi: 72x72, xhdpi: 96x96, xxhdpi: 144x144, xxxhdpi: 192x192
+        convert icon.png -resize 36x36 android/app/src/main/res/drawable-ldpi/ic_launcher.png
+        convert icon.png -resize 48x48 android/app/src/main/res/drawable-mdpi/ic_launcher.png
+        convert icon.png -resize 72x72 android/app/src/main/res/drawable-hdpi/ic_launcher.png
+        convert icon.png -resize 96x96 android/app/src/main/res/drawable-xhdpi/ic_launcher.png
+        convert icon.png -resize 144x144 android/app/src/main/res/drawable-xxhdpi/ic_launcher.png
+        convert icon.png -resize 192x192 android/app/src/main/res/drawable-xxxhdpi/ic_launcher.png
+        echo -e "${GREEN}✓ App icon scaled for all device densities${NC}"
+    else
+        # Fallback: just copy the icon as-is
+        echo -e "${YELLOW}⚠ ImageMagick not found, copying icon without scaling${NC}"
+        echo -e "${YELLOW}  Install with: apt-get install imagemagick${NC}"
+        cp -f icon.png android/app/src/main/res/drawable/ic_launcher.png
+    fi
+else
+    echo -e "${YELLOW}⚠ Warning: icon.png not found in project root${NC}"
+    echo -e "${YELLOW}  Place your icon.png in the project root directory to use it${NC}"
+fi
 
 # Copy SDL2 Java files (SDLActivity and support classes)
 if [ -d "android/app/src/jni/SDL2/android-project/app/src/main/java/org/libsdl/app" ]; then
@@ -112,6 +144,7 @@ cat > android/app/src/main/AndroidManifest.xml << 'EOF'
     <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
@@ -348,7 +381,8 @@ mkdir -p android/app/src/jni
 
 cat > android/app/src/jni/Application.mk << 'EOF'
 APP_PLATFORM := android-21
-APP_ABI := armeabi-v7a arm64-v8a x86 x86_64
+#APP_ABI := armeabi-v7a arm64-v8a x86 x86_64
+APP_ABI := armeabi-v7a arm64-v8a
 APP_STL := c++_shared
 APP_OPTIM := release
 NDK_TOOLCHAIN_VERSION := clang
@@ -399,6 +433,8 @@ LOCAL_SRC_FILES := \
     src/comet_highscores.cpp \
     src/comet_preferences.cpp \
     src/jni_wad_loading.cpp \
+    src/comet_main_gl_menu.cpp \
+    src/comet_main_gl_handle_events.cpp \
     src/miniz.c \
     src/miniz_tdef.c \
     src/miniz_tinfl.c \
@@ -483,7 +519,7 @@ docker run --rm \
     -e GRADLE_USER_HOME=/root/.gradle \
     -e JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8" \
     "$DOCKER_IMAGE_NAME" \
-    bash -c "cd /workspace/android && gradle assembleDebug --no-daemon -x lint"
+    bash -c "cd /workspace/android && gradle clean assembleDebug --no-daemon -x lint"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Docker build failed${NC}"

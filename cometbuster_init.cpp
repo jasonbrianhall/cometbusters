@@ -194,7 +194,11 @@ void comet_buster_reset_game_with_splash(CometBusterGame *game, bool show_splash
     
     if (show_splash) {
 #ifdef ExternalSound
+#ifndef ANDROID
         comet_buster_init_splash_screen(game, 1920, 1080);
+#else 
+        comet_buster_init_splash_screen(game, 720, 480);
+#endif
 #endif
     }
     

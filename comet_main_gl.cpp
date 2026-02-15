@@ -55,10 +55,28 @@ void play_finale(CometGUI *gui, int language) {
 
 
 static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
+    SDL_Log("[Comet Busters] *** ENTERING init_sdl_and_opengl ***\n");
+    SDL_Log("[Comet Busters] [INIT] Starting init_sdl_and_opengl\n");
+    
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
         SDL_Log("[Comet Busters] [ERROR] SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
+    SDL_Log("[Comet Busters] [INIT] SDL_Init successful\n");
+
+#ifdef ANDROID
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_Log("[Comet Busters] [INIT] Set GL attributes for ES 3.0\n");
+
+#else
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+#endif
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     
     // Enable joystick events
     SDL_JoystickEventState(SDL_ENABLE);
@@ -66,6 +84,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     uint32_t flags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_MAXIMIZED | SDL_WINDOW_RESIZABLE;
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     
+    SDL_Log("[Comet Busters] [INIT] Creating window: %dx%d\n", width, height);
     gui->window = SDL_CreateWindow(
         "Comet Busters",
         SDL_WINDOWPOS_CENTERED,
@@ -79,6 +98,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Quit();
         return false;
     }
+    SDL_Log("[Comet Busters] [INIT] Window created successfully: %p\n", (void*)gui->window);
     
     // Ensure window is visible on all platforms
     SDL_ShowWindow(gui->window);
@@ -88,21 +108,68 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
     SDL_Log("[Comet Busters] [SDL] Window created: %dx%d\n", gui->window_width, gui->window_height);
     
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    // ✅ PERFORMANCE FIX: Handle high-DPI Android devices
+    #ifdef ANDROID
+    int internal_width = gui->window_width;
+    int internal_height = gui->window_height;
     
+    // Cap to 1440p maximum rendering resolution to avoid excessive GPU load
+    // on high-DPI Android devices (which often request 2160p+)
+    if (internal_width > 1440) {
+        float scale = 1440.0f / internal_width;
+        internal_width = 1440;
+        internal_height = (int)(internal_height * scale);
+        
+        SDL_Log("[Comet Busters] [ANDROID] High-DPI device detected\n");
+        SDL_Log("[Comet Busters] [ANDROID] Scaling resolution from %dx%d to %dx%d\n",
+                gui->window_width, gui->window_height, internal_width, internal_height);
+        
+        glViewport(0, 0, internal_width, internal_height);
+    }
+    
+    gui->visualizer.width = internal_width;
+    gui->visualizer.height = internal_height;
+    SDL_Log("[Comet Busters] [ANDROID] Rendering at %dx%d (physical: %dx%d)\n",
+            internal_width, internal_height, gui->window_width, gui->window_height);
+    #else
+    gui->visualizer.width = gui->window_width;
+    gui->visualizer.height = gui->window_height;
+    #endif
+    
+    SDL_Log("[Comet Busters] [INIT] Creating GL context\n");
     gui->gl_context = SDL_GL_CreateContext(gui->window);
     if (!gui->gl_context) {
-        SDL_Log("[Comet Busters] [ERROR] GL context failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] [ERROR] GL context creation failed: %s\n", SDL_GetError());
         SDL_DestroyWindow(gui->window);
         SDL_Quit();
         return false;
     }
+    SDL_Log("[Comet Busters] [INIT] GL context created successfully: %p\n", (void*)gui->gl_context);
+    
+    int make_current_result = SDL_GL_MakeCurrent(gui->window, gui->gl_context);
+    if (make_current_result != 0) {
+        SDL_Log("[Comet Busters] [ERROR] SDL_GL_MakeCurrent failed in init!\n");
+    }
+    
+    SDL_Log("[Comet Busters] [INIT] Context made current\n");
+    
+    // Small delay to ensure context is fully ready
+    SDL_Delay(10);
+    
+    // Query actual context version created
+    int major, minor;
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
+    SDL_Log("[Comet Busters] [GL] GL context created: ES %d.%d\n", major, minor);
+    
+    // Now it's safe to query GL info
+    SDL_Log("[Comet Busters] [GL] VERSION: %s\n", glGetString(GL_VERSION));
+    SDL_Log("[Comet Busters] [GL] RENDERER: %s\n", glGetString(GL_RENDERER));
+    SDL_Log("[Comet Busters] [GL] GLSL: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     
     SDL_GL_SetSwapInterval(1);
     
+#ifndef ANDROID
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
         SDL_Log("[Comet Busters] [ERROR] GLEW init failed\n");
@@ -111,6 +178,8 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         SDL_Quit();
         return false;
     }
+#endif
+
     
     SDL_Log("[Comet Busters] [INIT] SDL2, OpenGL %s, GLEW OK\n", glGetString(GL_VERSION));
     
@@ -119,7 +188,10 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
+    SDL_Log("[Comet Busters] [INIT] Initializing joystick\n");
     init_joystick(gui);
+    
+    SDL_Log("[Comet Busters] [INIT] init_sdl_and_opengl completed successfully\n");
     return true;
 }
 
@@ -169,8 +241,11 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
             
             // Advance to next wave
             gui->visualizer.comet_buster.current_wave++;
+#ifndef ANDROID
             comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-            
+#else
+            comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif            
             // Reset flags and input
             gui->finale_music_started = false;
             gui->visualizer.mouse_right_pressed = false;
@@ -253,12 +328,17 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
 }
 
 static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
-    glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
+        glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
+#ifndef ANDROID
     const float GAME_WIDTH = 1920.0f;
     const float GAME_HEIGHT = 1080.0f;
-    
+#else
+    const float GAME_WIDTH =  720.0f;
+    const float GAME_HEIGHT = 480.0f;
+#endif
+
     // Fill entire window
     glViewport(0, 0, gui->window_width, gui->window_height);
     
@@ -270,8 +350,8 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
     glLoadIdentity();
     
     // Game always in logical space
-    gui->visualizer.width = 1920;
-    gui->visualizer.height = 1080;
+    gui->visualizer.width = int(GAME_WIDTH);
+    gui->visualizer.height = int(GAME_HEIGHT);
     
     // Draw game
     draw_comet_buster_gl(&gui->visualizer, NULL);
@@ -291,8 +371,12 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent overlay
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
-        
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif
+
         // Title - bright white for high contrast
         gl_set_color(1.0f, 1.0f, 1.0f);
         //gl_draw_text_simple(help_controls_text[gui->visualizer.comet_buster.current_language], 800, 50, 28);
@@ -340,8 +424,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent overlay
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
-        
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif        
         // Dialog box background - Much larger to accommodate keyboard
         int dialog_x = 300;
         int dialog_y = 50;
@@ -410,8 +497,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent dark overlay (darker than menu to emphasize game pause)
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.5f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
-        
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif        
         // Pause dialog box
         int pause_x = 640;
         int pause_y = 300;
@@ -467,7 +557,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Semi-transparent overlay
         gl_set_color_alpha(0.0f, 0.0f, 0.0f, 0.7f);
+#ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
+#else
+        gl_draw_rect_filled(0, 0, 720, 480);
+#endif
         
         // Dialog box background - Warm parchment
         int dialog_x = 460;
@@ -715,8 +809,13 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     
     // Initialize visualizer with GAME space (1920x1080), not window size
     memset(&gui.visualizer, 0, sizeof(Visualizer));
+#ifndef ANDROID
     gui.visualizer.width = 1920;
     gui.visualizer.height = 1080;
+#else
+    gui.visualizer.width = 720;
+    gui.visualizer.height = 480;
+#endif
     gui.visualizer.mouse_x = 960;
     gui.visualizer.mouse_y = 540;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
@@ -743,6 +842,37 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     } else {
         SDL_Log("[Comet Busters] [WARNING] Could not load WAD: %s\n", wadPath.c_str());
     }
+#endif
+    
+    // Initialize visualizer for both Android and Desktop
+    if (gui.visualizer.width == 0) {
+        memset(&gui.visualizer, 0, sizeof(Visualizer));
+#ifndef ANDROID
+        gui.visualizer.width = 1920;
+        gui.visualizer.height = 1080;
+#else
+        gui.visualizer.width = 720;
+        gui.visualizer.height = 480;
+#endif
+        gui.visualizer.mouse_x = 960;
+        gui.visualizer.mouse_y = 540;
+        gui.visualizer.scroll_direction = 0;
+    }
+    
+    // Load high scores (if not already done on desktop)
+    if (gui.visualizer.comet_buster.high_scores[0].score == 0) {
+        high_scores_load(&gui.visualizer.comet_buster);
+        SDL_Log("[Comet Busters] [INIT] High scores loaded\n");
+    }
+    
+    // Initialize SDL/GL on Android if not already done
+#ifdef ANDROID
+    SDL_Log("[Comet Busters] [ANDROID] Initializing SDL/OpenGL\n");
+    if (!init_sdl_and_opengl(&gui, gui.window_width, gui.window_height)) {
+        SDL_Log("[Comet Busters] [ANDROID] Failed to initialize SDL/OpenGL\n");
+        return 1;
+    }
+    SDL_Log("[Comet Busters] [ANDROID] SDL/OpenGL initialized successfully\n");
 #endif
     
     // Copy audio to visualizer so game code can access it
@@ -823,6 +953,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     // Main loop
     gui.last_frame_ticks = SDL_GetTicks();
     
+    // ✅ PERFORMANCE MONITORING: FPS counter
+    static int fps_frame_count = 0;
+    static uint32_t fps_last_time = 0;
+    
     while (gui.running) {
         uint32_t current_ticks = SDL_GetTicks();
         gui.delta_time = (current_ticks - gui.last_frame_ticks) / 1000.0;
@@ -832,6 +966,15 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         gui.total_time += gui.delta_time;
         gui.frame_count++;
+        
+        // ✅ PERFORMANCE MONITORING: Update FPS counter
+        fps_frame_count++;
+        if (current_ticks - fps_last_time >= 1000) {
+            SDL_Log("[PERF] FPS: %d frames in 1000ms (delta: %.2f ms/frame)\n", 
+                    fps_frame_count, (current_ticks - fps_last_time) / (float)fps_frame_count);
+            fps_frame_count = 0;
+            fps_last_time = current_ticks;
+        }
         
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);

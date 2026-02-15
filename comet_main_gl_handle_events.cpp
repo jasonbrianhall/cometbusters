@@ -138,8 +138,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     gui->visualizer.comet_buster.game_won = false;
                     
                     // Spawn wave 1
+#ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-                    
+#else
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     audio_play_random_music(&gui->audio);
@@ -219,7 +222,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     gui->visualizer.comet_buster.missile_count = 0;
                                     
                                     // Spawn the new wave
+#ifndef ANDROID
                                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+#else
+                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif
                                     SDL_Log("[Comet Busters] [CHEAT] Spawned Wave %d\n", new_wave);
                                 } else {
                                     SDL_Log("[Comet Busters] [CHEAT] Wave unchanged (still Wave %d) - just updated Lives/Missiles/Bombs\n", new_wave);
@@ -433,9 +440,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 // Handle high score entry virtual keyboard clicks
                 if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
                     // Convert from window coordinates to game space (1920x1080)
+#ifndef ANDROID
                     int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1920.0f);
                     int mouse_y = (int)((event.button.y / (float)gui->window_height) * 1080.0f);
-                    
+#else
+                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 720.0f);
+                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 480.0f);
+#endif                    
                     if (event.button.button == SDL_BUTTON_LEFT) {
                         int button_idx = get_keyboard_button_at_pos(mouse_x, mouse_y);
                         if (button_idx >= 0) {
@@ -505,8 +516,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     gui->visualizer.comet_buster.game_won = false;
                     
                     // Spawn wave 1
+#ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-                    
+#else
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     audio_play_random_music(&gui->audio);
@@ -518,9 +532,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 if (gui->show_menu) {
                     // Convert from window coordinates to game space (1920x1080)
                     // This matches how render_frame uses glOrtho for scaling
+#ifndef ANDROID
                     int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1920.0f);
                     int mouse_y = (int)((event.button.y / (float)gui->window_height) * 1080.0f);
-                    
+#else
+                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 720.0f);
+                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 480.0f);
+#endif                    
                     if (event.button.button == SDL_BUTTON_LEFT) {
                         // Main menu buttons
                         if (gui->menu_state == 0) {
@@ -529,9 +547,12 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             const int menu_width = 400;
                             const int menu_height = 60;
                             const int items_per_page = 5;
+#ifndef ANDROID
                             const int menu_x = (1920 - menu_width) / 2;
-                            
-                            for (int i = 0; i < 7; i++) {  // 0=Continue, 1=New, 2=High Scores, 3=Audio, 4=Language, 5=Help, 6=Quit
+#else
+                            const int menu_x = (720 - menu_width) / 2;
+#endif                            
+                            for (int i = 0; i < 10; i++) {  // 0=Continue, 1=New, 2=High Scores, 3=Save, 4=Load, 5=Audio, 6=Language, 7=Help, 8=Fullscreen, 9=Quit
                                 // Only check items that are visible on screen
                                 if (i < gui->main_menu_scroll_offset || i >= gui->main_menu_scroll_offset + items_per_page) {
                                     continue;  // Skip items outside visible area
@@ -557,17 +578,25 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         case 2:  // High Scores
                                             gui->menu_state = 2;
                                             break;
-                                        case 3:  // Audio
+                                        case 3:  // Save
+                                            gui->menu_state = 5;  // Save state menu
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 4:  // Load
+                                            gui->menu_state = 6;  // Load state menu
+                                            gui->menu_selection = 0;
+                                            break;
+                                        case 5:  // Audio
                                             menu_open_submenu(gui, 3);
                                             break;
-                                        case 4:  // Language
+                                        case 6:  // Language
                                             menu_open_submenu(gui, 4);
                                             break;
-                                        case 5:  // Help
+                                        case 7:  // Help
                                             gui->show_help_overlay = true;
                                             gui->help_scroll_offset = 0;
                                             break;
-                                        case 6:  // Fullscreen toggle
+                                        case 8:  // Fullscreen toggle
                                             gui->fullscreen = !gui->fullscreen;
                                             if (gui->fullscreen) {
                                                 SDL_SetWindowFullscreen(gui->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
@@ -576,7 +605,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                             }
                                             SDL_Log("[Comet Busters] [INPUT] Fullscreen toggled from menu: %s\n", gui->fullscreen ? "ON" : "OFF");
                                             break;
-                                        case 7:  // Quit
+                                        case 9:  // Quit
                                             gui->running = false;
                                             break;
                                     }
@@ -589,8 +618,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             const int diff_spacing = 120;
                             const int diff_width = 400;
                             const int diff_height = 60;
+#ifndef ANDROID
                             const int diff_x = (1920 - diff_width) / 2;
-                            
+#else
+                            const int diff_x = (720 - diff_width) / 2;
+#endif                            
                             for (int i = 0; i < 3; i++) {
                                 int diff_y = diff_y_start + (i * diff_spacing);
                                 if (mouse_x >= diff_x && mouse_x <= diff_x + diff_width &&
@@ -627,11 +659,15 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         }
                         // Language menu buttons
                         else if (gui->menu_state == 4) {
-                            const int lang_y_start = 350;
-                            const int lang_spacing = 120;
+                            const int lang_y_start = 300;  // MUST MATCH render code
+                            const int lang_spacing = 110;  // MUST MATCH render code
                             const int lang_width = 400;
                             const int lang_height = 60;
+#ifndef ANDROID
                             const int lang_x = (1920 - lang_width) / 2;
+#else
+                            const int lang_x = (720 - lang_width) / 2;
+#endif
                             const int items_per_page = 4;
                             
                             int num_languages = sizeof(wlanguagename) / sizeof(wlanguagename[0]);
@@ -699,9 +735,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 gui->visualizer.mouse_just_moved = true;
                 // Convert window pixel coordinates to game logical coordinates
                 // Window fills entire screen, so scaling is direct
+#ifndef ANDROID
                 gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
                 gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
-
+#else
+                gui->visualizer.mouse_x = (int)(event.motion.x * 720.0f / gui->window_width);
+                gui->visualizer.mouse_y = (int)(event.motion.y * 480.0f / gui->window_height);
+#endif
                 break;
             }
             
@@ -811,7 +851,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                     gui->visualizer.comet_buster.missile_count = 0;
                                     
                                     // Spawn the new wave
+#ifndef ANDROID
                                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
+#else
+                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif
                                     SDL_Log("[Comet Busters] [CHEAT] Spawned Wave %d\n", new_wave);
                                 } else {
                                     SDL_Log("[Comet Busters] [CHEAT] Wave unchanged - just updated Lives/Missiles/Bombs\n");
@@ -868,8 +912,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     gui->visualizer.comet_buster.game_won = false;
                     
                     // Spawn wave 1
+#ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-                    
+#else
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     SDL_Log("[Comet Busters] [SPLASH] Calling audio_play_random_music()...\n");
@@ -1188,8 +1235,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     gui->visualizer.comet_buster.game_won = false;
                     
                     // Spawn wave 1
+#ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-                    
+#else
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     SDL_Log("[Comet Busters] [SPLASH] Calling audio_play_random_music()...\n");
@@ -1486,8 +1536,11 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     gui->visualizer.comet_buster.game_won = false;
                     
                     // Spawn wave 1
+#ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
-                    
+#else
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+#endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
                     SDL_Log("[Comet Busters] [SPLASH] Calling audio_play_random_music()...\n");

@@ -260,7 +260,11 @@ void comet_buster_spawn_bullet(CometBusterGame *game, void *vis) {
     
     // Check if we should fire a bomb instead
     if (game->using_bombs && game->bomb_ammo > 0) {
+#ifndef ANDROID
         comet_buster_drop_bomb(game, 1920, 1080, vis);  // 1920x1080 is standard game resolution
+#else
+        comet_buster_drop_bomb(game, 720, 480, vis);  // 720x480 is standard game resolution for Android
+#endif
         return;
     }
     

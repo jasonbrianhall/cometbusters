@@ -87,6 +87,8 @@ typedef struct {
 static GLRenderState gl_state = {0};
 
 // Shader sources
+#ifndef ANDROID
+// Desktop OpenGL 3.3+
 static const char *vertex_shader = 
     "#version 330 core\n"
     "layout(location = 0) in vec2 position;\n"
@@ -106,17 +108,52 @@ static const char *fragment_shader =
     "    FragColor = vertexColor;\n"
     "}\n";
 
+#else
+// OpenGL ES 3.0+ (Android)
+static const char *vertex_shader = 
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "layout(location = 0) in vec2 position;\n"
+    "layout(location = 1) in vec4 color;\n"
+    "uniform mat4 projection;\n"
+    "out vec4 vertexColor;\n"
+    "void main() {\n"
+    "    vertexColor = color;\n"
+    "    gl_Position = projection * vec4(position, 0.0, 1.0);\n"
+    "}\n";
+
+static const char *fragment_shader =
+    "#version 300 es\n"
+    "precision mediump float;\n"
+    "in vec4 vertexColor;\n"
+    "out vec4 FragColor;\n"
+    "void main() {\n"
+    "    FragColor = vertexColor;\n"
+    "}\n";
+#endif
+
+
 static GLuint compile_shader(const char *src, GLenum type) {
+    const char *type_str = (type == GL_VERTEX_SHADER) ? "VERTEX" : "FRAGMENT";
     GLuint shader = glCreateShader(type);
+    
+    if (!shader) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create %s shader object\n", type_str);
+        return 0;
+    }
+    
     glShaderSource(shader, 1, &src, NULL);
     glCompileShader(shader);
     
     int success;
-    char log[512];
+    char log[1024];
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(shader, 512, NULL, log);
-        SDL_Log("[Comet Busters] [GL] Shader compile error: %s\n", log);
+        glGetShaderInfoLog(shader, sizeof(log), NULL, log);
+        SDL_Log("[Comet Busters] [GL] %s shader compile error: %s\n", type_str, log);
+        SDL_Log("[Comet Busters] [GL] Source:\n%s\n", src);
+        glDeleteShader(shader);
+        return 0;
     }
     return shader;
 }
@@ -124,17 +161,36 @@ static GLuint compile_shader(const char *src, GLenum type) {
 static GLuint create_program(const char *vs_src, const char *fs_src) {
     GLuint vs = compile_shader(vs_src, GL_VERTEX_SHADER);
     GLuint fs = compile_shader(fs_src, GL_FRAGMENT_SHADER);
+    
+    if (!vs || !fs) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Shader compilation failed\n");
+        if (vs) glDeleteShader(vs);
+        if (fs) glDeleteShader(fs);
+        return 0;
+    }
+    
     GLuint prog = glCreateProgram();
+    if (!prog) {
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create program object\n");
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+        return 0;
+    }
+    
     glAttachShader(prog, vs);
     glAttachShader(prog, fs);
     glLinkProgram(prog);
     
     int success;
-    char log[512];
+    char log[1024];
     glGetProgramiv(prog, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(prog, 512, NULL, log);
+        glGetProgramInfoLog(prog, sizeof(log), NULL, log);
         SDL_Log("[Comet Busters] [GL] Program link error: %s\n", log);
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+        glDeleteProgram(prog);
+        return 0;
     }
     
     glDeleteShader(vs);
@@ -145,10 +201,17 @@ static GLuint create_program(const char *vs_src, const char *fs_src) {
 void gl_init(void) {
     if (gl_state.program) return;
     
-    SDL_Log("[Comet Busters] [GL] Initializing modern GL 3.3+ renderer\n");
+    SDL_Log("[Comet Busters] [GL] Initializing GL Renderer\n");
     glGenVertexArrays(1, &global_vao);
     
     gl_state.program = create_program(vertex_shader, fragment_shader);
+    
+    if (!gl_state.program) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "[Comet Busters] [GL] ERROR: create_program failed, program == 0");
+    } else {
+        SDL_Log("[Comet Busters] [GL] Program created: %u\n", gl_state.program);
+    }
+    
     
     glGenVertexArrays(1, &gl_state.vao);
     glGenBuffers(1, &gl_state.vbo);
@@ -175,7 +238,7 @@ void gl_init(void) {
     // Initialize FreeType font system with base64-encoded TTF
     ft_init_from_base64();
     
-    SDL_Log("[Comet Busters] [GL] GL 3.3+ renderer initialized\n");
+    SDL_Log("[Comet Busters] [GL] GL renderer initialized\n");
 }
 
 static void draw_vertices(Vertex *verts, int count, GLenum mode) {
@@ -199,8 +262,13 @@ void gl_setup_2d_projection(int width, int height) {
     // Set projection matrix to match the actual viewport dimensions
     // This is CRITICAL to prevent text clipping when viewport != 1920x1080
     // Use the actual viewport width and height passed in
+#ifndef ANDROID
     if (width <= 0) width = 1920;     // Fallback to default if invalid
     if (height <= 0) height = 1080;   // Fallback to default if invalid
+#else
+    if (width <= 0) width = 720;     // Fallback to default if invalid
+    if (height <= 0) height = 480;   // Fallback to default if invalid
+#endif
     gl_state.projection = mat4_ortho(0, width, height, 0, -1, 1);
 }
 
@@ -2717,7 +2785,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double lines_visible = (height + 200.0) / line_height;
         
         // Use actual viewport bounds (1920x1080) since projection is hardcoded to those values
+#ifndef ANDROID
         const int viewport_width = 1920;
+#else
+        const int viewport_width = 720;
+#endif
         
         // Draw all lines that could be visible
         for (int i = 0; i < (int)lines_visible + 2; i++) {
@@ -2758,8 +2830,11 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double title_alpha = phase_timer / 2.0;
         if (title_alpha > 1.0) title_alpha = 1.0;
         
+#ifndef ANDROID
         const int viewport_width = 1920;
-        
+#else        
+        const int viewport_width = 720;
+#endif
         // Draw glowing text effect
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
@@ -2799,8 +2874,12 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
     // Just show the title and wait for input
     else {
         gl_set_color(0.0f, 1.0f, 1.0f);
-        
+
+#ifndef ANDROID        
         const int viewport_width = 1920;
+#else
+        const int viewport_width = 720;
+#endif
         
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
@@ -2852,7 +2931,11 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
     double line_alpha = 1.0 - fmod(timer, line_duration) / (line_duration * 0.3);
     line_alpha = (line_alpha < 0) ? 0 : (line_alpha > 1) ? 1 : line_alpha;
     
+#ifndef ANDROID
     const int viewport_width = 1920;
+#else
+    const int viewport_width = 720;
+#endif
     
     // Draw visible lines
     int y_pos = height / 3;
