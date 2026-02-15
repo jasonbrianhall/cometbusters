@@ -99,7 +99,22 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED || 
                     event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
-                    SDL_Log("[Comet Busters] [WINDOW] Resized to %dx%d\n", gui->window_width, gui->window_height);
+                    SDL_Log("[Comet Busters] [WINDOW] Physical window resized to %dx%d\n", gui->window_width, gui->window_height);
+                    
+                    // On Android, enforce fixed rendering resolution for performance
+#ifdef ANDROID
+                    // Always render at 720x480 on Android, regardless of device resolution
+                    gui->visualizer.width = 720;
+                    gui->visualizer.height = 480;
+                    glViewport(0, 0, 720, 480);
+                    SDL_Log("[Comet Busters] [ANDROID] Fixed render resolution at 720x480 (physical window: %dx%d)\n",
+                            gui->window_width, gui->window_height);
+#else
+                    // Desktop: render at window resolution
+                    gui->visualizer.width = gui->window_width;
+                    gui->visualizer.height = gui->window_height;
+                    glViewport(0, 0, gui->window_width, gui->window_height);
+#endif
                 }
                 break;
             
