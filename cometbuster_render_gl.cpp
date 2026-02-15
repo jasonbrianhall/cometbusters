@@ -82,6 +82,9 @@ typedef struct {
     GLuint vbo;
     Mat4 projection;
     float color[4];
+    
+    // ✅ PERF FIX: Cache uniform location at init (don't lookup every draw call)
+    GLint proj_loc;
 } GLRenderState;
 
 static GLRenderState gl_state = {0};
@@ -235,6 +238,13 @@ void gl_init(void) {
     gl_state.color[2] = 1.0f;
     gl_state.color[3] = 1.0f;
     
+    // ✅ PERF FIX: Cache the projection uniform location once at init
+    // Instead of calling glGetUniformLocation() 300+ times per frame
+    glUseProgram(gl_state.program);
+    gl_state.proj_loc = glGetUniformLocation(gl_state.program, "projection");
+    glUseProgram(0);
+    SDL_Log("[Comet Busters] [GL] Cached projection uniform location: %d\n", gl_state.proj_loc);
+    
     // Initialize FreeType font system with base64-encoded TTF
     ft_init_from_base64();
     
@@ -242,10 +252,11 @@ void gl_init(void) {
 }
 
 static void draw_vertices(Vertex *verts, int count, GLenum mode) {
+    // ✅ PERF FIX #1: Use cached uniform location instead of glGetUniformLocation()
+    // This function is called 300-500 times per frame!
+    // glGetUniformLocation() is an expensive lookup operation
     glUseProgram(gl_state.program);
-    
-    GLint proj_loc = glGetUniformLocation(gl_state.program, "projection");
-    glUniformMatrix4fv(proj_loc, 1, GL_FALSE, gl_state.projection.m);
+    glUniformMatrix4fv(gl_state.proj_loc, 1, GL_FALSE, gl_state.projection.m);  // Use CACHED location
     
     glBindBuffer(GL_ARRAY_BUFFER, gl_state.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(Vertex), verts);
@@ -457,7 +468,6 @@ static float gl_calculate_text_width(const char *text, int font_size) {
 }
 
 void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
-    return;
     if (!text || !text[0] || !ft_face) return;
     
     // Set font size
