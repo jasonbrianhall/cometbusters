@@ -8,6 +8,7 @@
 #include "cometbuster.h"
 #include "visualization.h"
 #include "comet_preferences.h"
+#include "comet_haptics.h"
 
 typedef enum {
     HIGH_SCORE_ENTRY_NONE = 0,
@@ -49,6 +50,8 @@ typedef struct {
     SDL_GLContext gl_context;
     Visualizer visualizer;
     AudioManager audio;
+    
+    HapticManager haptic_manager;
     
     int window_width;
     int window_height;

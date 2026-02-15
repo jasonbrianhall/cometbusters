@@ -30,6 +30,7 @@
 #include "comet_preferences.h"
 #include "comet_main_gl_gui.h"
 #include "comet_main_gl_menu.h"
+#include "comet_haptics.h"
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -58,7 +59,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_Log("[Comet Busters] *** ENTERING init_sdl_and_opengl ***\n");
     SDL_Log("[Comet Busters] [INIT] Starting init_sdl_and_opengl\n");
     
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
         SDL_Log("[Comet Busters] [ERROR] SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }

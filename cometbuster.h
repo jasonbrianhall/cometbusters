@@ -9,7 +9,6 @@
 #endif
 #include "cometbuster_bossexplosion.h"
 
-
 // Static memory allocation constants
 #define MAX_COMETS 128
 #define MAX_BULLETS 128
@@ -495,7 +494,7 @@ typedef struct {
     // Boss destruction explosion effect
     BossExplosion boss_explosion_effect;
     
-    int current_language;
+    int current_language;    
     
 } CometBusterGame;
 

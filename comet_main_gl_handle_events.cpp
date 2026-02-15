@@ -1844,6 +1844,9 @@ void init_joystick(CometGUI *gui) {
     int num_joysticks = SDL_NumJoysticks();
     if (num_joysticks > 0) {
         gui->joystick = SDL_JoystickOpen(0);
+        SDL_Log("[Comet Busters] [JOYSTICK] Initializing Haptic: %s\n", SDL_JoystickName(gui->joystick));
+        haptic_init(&gui->haptic_manager, gui->joystick);
+
         if (gui->joystick) {
             SDL_Log("[Comet Busters] [JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
             SDL_Log("[Comet Busters] [JOYSTICK] Buttons: %d\n", SDL_JoystickNumButtons(gui->joystick));
@@ -1860,6 +1863,7 @@ void init_joystick(CometGUI *gui) {
             SDL_Log("[Comet Busters] [JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
             SDL_Log("[Comet Busters] [JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
             SDL_Log("[Comet Busters] [JOYSTICK] ============================\n");
+
         }
     } else {
         SDL_Log("[Comet Busters] [JOYSTICK] No joysticks detected\n");
