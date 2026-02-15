@@ -89,6 +89,16 @@ typedef struct {
 
 static GLRenderState gl_state = {0};
 
+// ✅ ANDROID OPTIMIZATION: Cache line width to avoid redundant state changes
+static float g_current_line_width = 1.0f;
+
+static void gl_set_line_width_cached(float width) {
+    if (width != g_current_line_width) {
+        glLineWidth(width);
+        g_current_line_width = width;
+    }
+}
+
 // Shader sources
 #ifndef ANDROID
 // Desktop OpenGL 3.3+
@@ -259,6 +269,15 @@ static void draw_vertices(Vertex *verts, int count, GLenum mode) {
     glUniformMatrix4fv(gl_state.proj_loc, 1, GL_FALSE, gl_state.projection.m);  // Use CACHED location
     
     glBindBuffer(GL_ARRAY_BUFFER, gl_state.vbo);
+    
+    // ✅ PERF FIX #2 (Android): Buffer orphaning to avoid GPU stalls
+    // On Android ES, glBufferSubData is expensive. Orphaning tells GPU
+    // we're done with old data and allocate fresh memory instead of waiting.
+    // Desktop GL ignores this redundant call, so no performance regression.
+    #ifdef ANDROID
+    glBufferData(GL_ARRAY_BUFFER, 1000000 * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
+    #endif
+    
     glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(Vertex), verts);
     
     glBindVertexArray(gl_state.vao);
@@ -277,8 +296,15 @@ void gl_setup_2d_projection(int width, int height) {
     if (width <= 0) width = 1920;     // Fallback to default if invalid
     if (height <= 0) height = 1080;   // Fallback to default if invalid
 #else
-    if (width <= 0) width = 720;     // Fallback to default if invalid
-    if (height <= 0) height = 480;   // Fallback to default if invalid
+    // ✅ PERF FIX #3 (Android): Query actual surface dimensions
+    // Different Android devices have different screen sizes and orientations
+    // Get the ACTUAL framebuffer size instead of hardcoding 720x480
+    if (width <= 0 || height <= 0) {
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
+        width = viewport[2] > 0 ? viewport[2] : 720;
+        height = viewport[3] > 0 ? viewport[3] : 1280;
+    }
 #endif
     gl_state.projection = mat4_ortho(0, width, height, 0, -1, 1);
 }
@@ -1521,7 +1547,7 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
         
         // Draw missile outline for definition
         gl_set_color_alpha(stroke_r, stroke_g, stroke_b, alpha);
-        glLineWidth(1.5f);
+        gl_set_line_width_cached(1.5f);
         
         // Create outline vertices (repeat first to close)
         Vertex outline_verts[11];
@@ -1624,13 +1650,61 @@ void draw_comet_buster_bombs_gl(CometBusterGame *game, void *cr, int width, int 
 
 void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
+    (void)cr;
+    (void)width;
+    (void)height;
+    
+    // ✅ PERF FIX #4 (Android): Batch all particles into single draw call
+    // Instead of 2048 separate glDrawArrays calls, use ONE call with batched geometry
+    // This reduces GPU overhead dramatically on mobile (2000x fewer draw calls!)
+    
+    if (game->particle_count == 0) return;
+    
+    // Static buffer reused each frame (avoids repeated allocation)
+    static Vertex *particle_buffer = NULL;
+    static int buffer_capacity = 0;
+    
+    // First pass: count active vertices needed
+    int total_verts = 0;
+    for (int i = 0; i < game->particle_count; i++) {
+        if (game->particles[i].active) {
+            total_verts += 6;  // 6-sided circle approximation
+        }
+    }
+    
+    if (total_verts == 0) return;
+    
+    // Grow buffer if needed
+    if (total_verts > buffer_capacity) {
+        particle_buffer = (Vertex *)realloc(particle_buffer, total_verts * sizeof(Vertex));
+        buffer_capacity = total_verts;
+    }
+    
+    // Second pass: fill vertex buffer
+    int vert_idx = 0;
     for (int i = 0; i < game->particle_count; i++) {
         Particle *p = &game->particles[i];
         if (!p->active) continue;
+        
         double alpha = p->lifetime / p->max_lifetime;
-        gl_set_color_alpha(p->color[0], p->color[1], p->color[2], alpha);
-        gl_draw_circle(p->x, p->y, p->size, 6);
+        
+        // Generate 6 vertices for circle
+        for (int j = 0; j < 6; j++) {
+            double angle = (j / 6.0) * 2.0 * M_PI;
+            float vx = (float)(p->x + p->size * cos(angle));
+            float vy = (float)(p->y + p->size * sin(angle));
+            
+            particle_buffer[vert_idx++] = (Vertex){
+                vx, vy,
+                (float)p->color[0], (float)p->color[1], (float)p->color[2],
+                (float)alpha
+            };
+        }
     }
+    
+    // Single batched draw call for ALL particles
+    draw_vertices(particle_buffer, total_verts, GL_TRIANGLE_FAN);
+
 }
 
 void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height) {
@@ -1684,7 +1758,7 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
     
     // Draw outline only - NO FILL (just stroke like Cairo version)
     gl_set_color(0.0f, 1.0f, 0.0f);
-    glLineWidth(2.0f);
+    gl_set_line_width_cached(2.0f);
     draw_vertices(ship_verts, 5, GL_LINE_STRIP);
     
     // ========== MUZZLE FLASH ==========
