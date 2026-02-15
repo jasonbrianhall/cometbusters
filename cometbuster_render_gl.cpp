@@ -82,14 +82,6 @@ typedef struct {
     GLuint vbo;
     Mat4 projection;
     float color[4];
-    
-    // ✅ PERFORMANCE FIX: Cached uniform locations (avoid per-frame glGetUniformLocation)
-    GLint proj_loc;
-    GLint color_loc;
-    
-    // Ring buffer for smooth frame times
-    GLuint ring_buffers[3];
-    int current_ring_buffer;
 } GLRenderState;
 
 static GLRenderState gl_state = {0};
@@ -138,56 +130,15 @@ static const char *fragment_shader =
     "void main() {\n"
     "    FragColor = vertexColor;\n"
     "}\n";
-
-// Fallback for ES 2.0 (older Android devices)
-static const char *vertex_shader_es2 = 
-    "precision mediump float;\n"
-    "attribute vec2 position;\n"
-    "attribute vec4 color;\n"
-    "uniform mat4 projection;\n"
-    "varying vec4 vertexColor;\n"
-    "void main() {\n"
-    "    vertexColor = color;\n"
-    "    gl_Position = projection * vec4(position, 0.0, 1.0);\n"
-    "}\n";
-
-static const char *fragment_shader_es2 =
-    "precision mediump float;\n"
-    "varying vec4 vertexColor;\n"
-    "void main() {\n"
-    "    gl_FragColor = vertexColor;\n"
-    "}\n";
-
 #endif
 
 
 static GLuint compile_shader(const char *src, GLenum type) {
     const char *type_str = (type == GL_VERTEX_SHADER) ? "VERTEX" : "FRAGMENT";
-    
-    // TEST: Check if we can even call GL functions
-    SDL_Log("[Comet Busters] [GL] About to compile %s shader\n", type_str);
-    
-    GLenum err_before = glGetError();
-    if (err_before != GL_NO_ERROR) {
-        SDL_Log("[Comet Busters] [GL] WARNING: GL error before glCreateShader: 0x%x\n", err_before);
-    }
-    
-    // Clear any previous GL errors
-    while (glGetError() != GL_NO_ERROR) {}
-    
-    SDL_Log("[Comet Busters] [GL] Calling glCreateShader for %s\n", type_str);
     GLuint shader = glCreateShader(type);
-    SDL_Log("[Comet Busters] [GL] glCreateShader returned: %u\n", shader);
-    
-    // Check for GL errors during shader creation
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        SDL_Log("[Comet Busters] [GL] glCreateShader generated GL error: 0x%x\n", err);
-    }
     
     if (!shader) {
-        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create %s shader object (returned 0)\n", type_str);
-        SDL_Log("[Comet Busters] [GL] This usually means GL context is not current or shaders not supported\n");
+        SDL_Log("[Comet Busters] [GL] CRITICAL: Failed to create %s shader object\n", type_str);
         return 0;
     }
     
@@ -251,65 +202,14 @@ void gl_init(void) {
     if (gl_state.program) return;
     
     SDL_Log("[Comet Busters] [GL] Initializing GL Renderer\n");
-    
-    // CRITICAL: Verify GL context is current
-    SDL_GLContext current_ctx = SDL_GL_GetCurrentContext();
-    SDL_Log("[Comet Busters] [GL] SDL_GL_GetCurrentContext() returned: %p\n", (void*)current_ctx);
-    
-    if (!current_ctx) {
-        SDL_Log("[Comet Busters] [GL] CRITICAL: No GL context is current!\n");
-        SDL_Log("[Comet Busters] [GL] This means SDL_GL_MakeCurrent() didn't work or context is null\n");
-        return;
-    }
-    SDL_Log("[Comet Busters] [GL] GL context is current: OK\n");
-    
-    // DELAY before querying - let context fully initialize
-    SDL_Delay(50);
-    
-    // Test if glCreateShader works at all
-    SDL_Log("[Comet Busters] [GL] Testing glCreateShader capability...\n");
-    GLuint test_shader = glCreateShader(GL_VERTEX_SHADER);
-    GLenum test_err = glGetError();
-    SDL_Log("[Comet Busters] [GL] glCreateShader returned: %u, GL error: 0x%x\n", test_shader, test_err);
-    
-    if (test_shader) {
-        glDeleteShader(test_shader);
-        SDL_Log("[Comet Busters] [GL] Shader creation works!\n");
-    } else {
-        SDL_Log("[Comet Busters] [GL] CRITICAL: glCreateShader returned 0!\n");
-        SDL_Log("[Comet Busters] [GL] Device does not support shader compilation\n");
-        SDL_Log("[Comet Busters] [GL] GL_VERSION: %s\n", (const char*)glGetString(GL_VERSION));
-        SDL_Log("[Comet Busters] [GL] GL_RENDERER: %s\n", (const char*)glGetString(GL_RENDERER));
-        return;
-    }
-    
-    // Safely query GL info
-    SDL_Log("[Comet Busters] [GL] GL_VERSION: %s\n", (const char*)glGetString(GL_VERSION));
-    SDL_Log("[Comet Busters] [GL] GL_RENDERER: %s\n", (const char*)glGetString(GL_RENDERER));
-    SDL_Log("[Comet Busters] [GL] GL_SHADING_LANGUAGE_VERSION: %s\n", (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
-    
     glGenVertexArrays(1, &global_vao);
     
-    // Try ES 3.0/3.3 shaders first
-    SDL_Log("[Comet Busters] [GL] Attempting ES 3.0 shaders...\n");
     gl_state.program = create_program(vertex_shader, fragment_shader);
     
-    // On Android, if ES 3.0 failed, try ES 2.0 fallback
-    #ifdef ANDROID
     if (!gl_state.program) {
-        SDL_Log("[Comet Busters] [GL] ES 3.0 shaders failed, attempting ES 2.0 fallback...\n");
-        gl_state.program = create_program(vertex_shader_es2, fragment_shader_es2);
-        if (gl_state.program) {
-            SDL_Log("[Comet Busters] [GL] ES 2.0 fallback successful!\n");
-        }
-    }
-    #endif
-    
-    if (!gl_state.program) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "[Comet Busters] [GL] ERROR: Shader compilation failed on both ES 3.0 and ES 2.0");
-        return;
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "[Comet Busters] [GL] ERROR: create_program failed, program == 0");
     } else {
-        SDL_Log("[Comet Busters] [GL] Shader program created: %u\n", gl_state.program);
+        SDL_Log("[Comet Busters] [GL] Program created: %u\n", gl_state.program);
     }
     
     
@@ -335,12 +235,6 @@ void gl_init(void) {
     gl_state.color[2] = 1.0f;
     gl_state.color[3] = 1.0f;
     
-    // ✅ PERFORMANCE FIX: Cache uniform locations to avoid per-frame string lookups
-    gl_state.proj_loc = glGetUniformLocation(gl_state.program, "projection");
-    gl_state.color_loc = glGetUniformLocation(gl_state.program, "color");
-    SDL_Log("[Comet Busters] [GL] Cached uniform locations: proj_loc=%d, color_loc=%d\n", 
-            gl_state.proj_loc, gl_state.color_loc);
-    
     // Initialize FreeType font system with base64-encoded TTF
     ft_init_from_base64();
     
@@ -348,12 +242,10 @@ void gl_init(void) {
 }
 
 static void draw_vertices(Vertex *verts, int count, GLenum mode) {
-    if (count <= 0 || !verts) return;
-    
     glUseProgram(gl_state.program);
     
-    // ✅ PERFORMANCE FIX: Use cached uniform location (no per-frame string lookup!)
-    glUniformMatrix4fv(gl_state.proj_loc, 1, GL_FALSE, gl_state.projection.m);
+    GLint proj_loc = glGetUniformLocation(gl_state.program, "projection");
+    glUniformMatrix4fv(proj_loc, 1, GL_FALSE, gl_state.projection.m);
     
     glBindBuffer(GL_ARRAY_BUFFER, gl_state.vbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(Vertex), verts);
@@ -370,13 +262,8 @@ void gl_setup_2d_projection(int width, int height) {
     // Set projection matrix to match the actual viewport dimensions
     // This is CRITICAL to prevent text clipping when viewport != 1920x1080
     // Use the actual viewport width and height passed in
-#ifndef ANDROID
     if (width <= 0) width = 1920;     // Fallback to default if invalid
     if (height <= 0) height = 1080;   // Fallback to default if invalid
-#else
-    if (width <= 0) width = 720;     // Fallback to default if invalid
-    if (height <= 0) height = 480;   // Fallback to default if invalid
-#endif
     gl_state.projection = mat4_ortho(0, width, height, 0, -1, 1);
 }
 
@@ -872,80 +759,12 @@ void draw_comet_buster_comets_gl(CometBusterGame *game, void *cr, int width, int
     }
 }
 
-// ✅ PERFORMANCE FIX: Batch grid rendering into single draw call
-static void draw_grid_batched(int width, int height) {
-    gl_set_color(0.1f, 0.15f, 0.35f);
-    glLineWidth(0.5f);
-    
-    // Calculate vertices needed
-    int h_lines = (height / 50) + 1;
-    int v_lines = (width / 50) + 2;
-    int total_verts = (h_lines + v_lines) * 2;
-    
-    if (total_verts <= 0 || total_verts > 500) {
-        SDL_Log("[GL] Grid vertex count out of range: %d\n", total_verts);
-        return;
-    }
-    
-    Vertex *grid_verts = (Vertex *)malloc(total_verts * sizeof(Vertex));
-    if (!grid_verts) {
-        SDL_Log("[GL] Failed to allocate memory for grid vertices\n");
-        return;
-    }
-    
-    int idx = 0;
-    
-    // Vertical lines (left to right)
-    for (int i = 0; i <= width + 50; i += 50) {
-        grid_verts[idx].x = (float)i;
-        grid_verts[idx].y = 0.0f;
-        grid_verts[idx].r = 0.1f;
-        grid_verts[idx].g = 0.15f;
-        grid_verts[idx].b = 0.35f;
-        grid_verts[idx].a = 1.0f;
-        idx++;
-        
-        grid_verts[idx].x = (float)i;
-        grid_verts[idx].y = (float)height;
-        grid_verts[idx].r = 0.1f;
-        grid_verts[idx].g = 0.15f;
-        grid_verts[idx].b = 0.35f;
-        grid_verts[idx].a = 1.0f;
-        idx++;
-    }
-    
-    // Horizontal lines (top to bottom)
-    for (int i = 0; i <= height; i += 50) {
-        grid_verts[idx].x = 0.0f;
-        grid_verts[idx].y = (float)i;
-        grid_verts[idx].r = 0.1f;
-        grid_verts[idx].g = 0.15f;
-        grid_verts[idx].b = 0.35f;
-        grid_verts[idx].a = 1.0f;
-        idx++;
-        
-        grid_verts[idx].x = (float)(width + 50);
-        grid_verts[idx].y = (float)i;
-        grid_verts[idx].r = 0.1f;
-        grid_verts[idx].g = 0.15f;
-        grid_verts[idx].b = 0.35f;
-        grid_verts[idx].a = 1.0f;
-        idx++;
-    }
-    
-    // ✅ SINGLE DRAW CALL instead of 60+ individual gl_draw_line() calls!
-    draw_vertices(grid_verts, idx, GL_LINES);
-    
-    free(grid_verts);
-    
-}
-
 void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     if (!visualizer) return;
 
     if (!isGLInitialized) {
         gl_init();
-        SDL_Log("[Comet Busters] [GL] GL Init complete (should only happen once)\n");
+        SDL_Log("[Comet Busters] [Comet Busters] Initializing GL Init (should only happen once)");
         isGLInitialized = 1;
     }
 
@@ -971,8 +790,16 @@ void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
     
     // Background is already set in on_realize, no need to draw again
     
-    // ✅ PERFORMANCE FIX: Draw grid using batched rendering (single draw call)
-    draw_grid_batched(width, height);
+    // Draw grid (extended 50 pixels to the right)
+    gl_set_color(0.1f, 0.15f, 0.35f);
+    glLineWidth(0.5f);
+    
+    for (int i = 0; i <= width + 50; i += 50) {
+        gl_draw_line(i, 0, i, height, 0.5f);
+    }
+    for (int i = 0; i <= height; i += 50) {
+        gl_draw_line(0, i, width + 50, i, 0.5f);
+    }
     
     // Draw game elements
     draw_comet_buster_comets_gl(game, cr, width, height);
@@ -2953,11 +2780,8 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double lines_visible = (height + 200.0) / line_height;
         
         // Use actual viewport bounds (1920x1080) since projection is hardcoded to those values
-#ifndef ANDROID
         const int viewport_width = 1920;
-#else
-        const int viewport_width = 720;
-#endif        
+        
         // Draw all lines that could be visible
         for (int i = 0; i < (int)lines_visible + 2; i++) {
             int line_index = (int)current_line_offset + i;
@@ -2997,11 +2821,8 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
         double title_alpha = phase_timer / 2.0;
         if (title_alpha > 1.0) title_alpha = 1.0;
         
-#ifndef ANDROID
         const int viewport_width = 1920;
-#else
-        const int viewport_width = 720;
-#endif        
+        
         // Draw glowing text effect
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
@@ -3042,11 +2863,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
     else {
         gl_set_color(0.0f, 1.0f, 1.0f);
         
-#ifndef ANDROID
         const int viewport_width = 1920;
-#else
-        const int viewport_width = 720;
-#endif
         
         const char *title_text = "COMET BUSTERS";
         float title_width = gl_calculate_text_width(title_text, 120);
@@ -3098,12 +2915,8 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
     double line_alpha = 1.0 - fmod(timer, line_duration) / (line_duration * 0.3);
     line_alpha = (line_alpha < 0) ? 0 : (line_alpha > 1) ? 1 : line_alpha;
     
-#ifndef ANDROID
     const int viewport_width = 1920;
-#else
-    const int viewport_width = 720;
-#endif    
-
+    
     // Draw visible lines
     int y_pos = height / 3;
     for (int i = 0; i < 8 && start_line + i < num_victory_lines; i++) {
