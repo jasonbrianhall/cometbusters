@@ -1648,75 +1648,86 @@ void draw_comet_buster_bombs_gl(CometBusterGame *game, void *cr, int width, int 
     }
 }
 
-void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, int height) {
+void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, int height)
+{
     if (!game) return;
     (void)cr;
     (void)width;
     (void)height;
-    
-#ifdef ANDROID
-    // ✅ PERF FIX #4 (Android): Batch all particles into single draw call
-    // Instead of 2048 separate glDrawArrays calls, use ONE call with batched geometry
-    // This reduces GPU overhead dramatically on mobile (2000x fewer draw calls!)
-    
+
+//#ifdef ANDROID
+    // Android: Batch all particles into one GL_TRIANGLES draw call
+
     if (game->particle_count == 0) return;
-    
-    // Static buffer reused each frame (avoids repeated allocation)
+
     static Vertex *particle_buffer = NULL;
     static int buffer_capacity = 0;
-    
-    // First pass: count active vertices needed
+
+    // Count total vertices needed (6 triangles = 18 verts per particle)
     int total_verts = 0;
     for (int i = 0; i < game->particle_count; i++) {
         if (game->particles[i].active) {
-            total_verts += 6;  // 6-sided circle approximation
+            total_verts += 18;
         }
     }
-    
+
     if (total_verts == 0) return;
-    
+
     // Grow buffer if needed
     if (total_verts > buffer_capacity) {
         particle_buffer = (Vertex *)realloc(particle_buffer, total_verts * sizeof(Vertex));
         buffer_capacity = total_verts;
     }
-    
-    // Second pass: fill vertex buffer
+
     int vert_idx = 0;
+
+    // Fill buffer
     for (int i = 0; i < game->particle_count; i++) {
         Particle *p = &game->particles[i];
         if (!p->active) continue;
-        
-        double alpha = p->lifetime / p->max_lifetime;
-        
-        // Generate 6 vertices for circle
+
+        float r = (float)p->color[0];
+        float g = (float)p->color[1];
+        float b = (float)p->color[2];
+        float alpha = (float)(p->lifetime / p->max_lifetime);
+
+        float cx = (float)p->x;
+        float cy = (float)p->y;
+
+        // 6‑sided circle → 6 triangles
         for (int j = 0; j < 6; j++) {
-            double angle = (j / 6.0) * 2.0 * M_PI;
-            float vx = (float)(p->x + p->size * cos(angle));
-            float vy = (float)(p->y + p->size * sin(angle));
-            
-            particle_buffer[vert_idx++] = (Vertex){
-                vx, vy,
-                (float)p->color[0], (float)p->color[1], (float)p->color[2],
-                (float)alpha
-            };
+            double a0 = (j / 6.0) * 2.0 * M_PI;
+            double a1 = ((j + 1) / 6.0) * 2.0 * M_PI;
+
+            float x0 = (float)(p->x + p->size * cos(a0));
+            float y0 = (float)(p->y + p->size * sin(a0));
+
+            float x1 = (float)(p->x + p->size * cos(a1));
+            float y1 = (float)(p->y + p->size * sin(a1));
+
+            // Triangle: center → v0 → v1
+            particle_buffer[vert_idx++] = (Vertex){cx, cy, r, g, b, alpha};
+            particle_buffer[vert_idx++] = (Vertex){x0, y0, r, g, b, alpha};
+            particle_buffer[vert_idx++] = (Vertex){x1, y1, r, g, b, alpha};
         }
     }
-    
-    // Single batched draw call for ALL particles
-    draw_vertices(particle_buffer, total_verts, GL_TRIANGLE_FAN);
 
-#else
-    // Desktop: Keep simple per-particle rendering (fast enough, no need to batch)
+    // One draw call for all particles
+    draw_vertices(particle_buffer, total_verts, GL_TRIANGLES);
+
+/*#else
+    // Desktop: simple per‑particle draw (fast enough)
     for (int i = 0; i < game->particle_count; i++) {
         Particle *p = &game->particles[i];
         if (!p->active) continue;
+
         double alpha = p->lifetime / p->max_lifetime;
         gl_set_color_alpha(p->color[0], p->color[1], p->color[2], alpha);
         gl_draw_circle(p->x, p->y, p->size, 6);
     }
-#endif
+#endif*/
 }
+
 
 void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height) {
     if (!game) return;
