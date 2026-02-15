@@ -110,27 +110,16 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     
     // ✅ PERFORMANCE FIX: Handle high-DPI Android devices
     #ifdef ANDROID
-    int internal_width = gui->window_width;
-    int internal_height = gui->window_height;
-    
-    // Cap to 1440p maximum rendering resolution to avoid excessive GPU load
-    // on high-DPI Android devices (which often request 2160p+)
-    if (internal_width > 1440) {
-        float scale = 1440.0f / internal_width;
-        internal_width = 1440;
-        internal_height = (int)(internal_height * scale);
-        
-        SDL_Log("[Comet Busters] [ANDROID] High-DPI device detected\n");
-        SDL_Log("[Comet Busters] [ANDROID] Scaling resolution from %dx%d to %dx%d\n",
-                gui->window_width, gui->window_height, internal_width, internal_height);
-        
-        glViewport(0, 0, internal_width, internal_height);
-    }
+    // Always render at 720x480 on Android for consistent performance
+    int internal_width = 720;
+    int internal_height = 480;
     
     gui->visualizer.width = internal_width;
     gui->visualizer.height = internal_height;
-    SDL_Log("[Comet Busters] [ANDROID] Rendering at %dx%d (physical: %dx%d)\n",
-            internal_width, internal_height, gui->window_width, gui->window_height);
+    glViewport(0, 0, internal_width, internal_height);
+    
+    SDL_Log("[Comet Busters] [ANDROID] Fixed render resolution: 720x480 (physical window: %dx%d)\n",
+            gui->window_width, gui->window_height);
     #else
     gui->visualizer.width = gui->window_width;
     gui->visualizer.height = gui->window_height;
