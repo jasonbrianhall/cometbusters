@@ -938,7 +938,6 @@ static void draw_grid_batched(int width, int height) {
     
     free(grid_verts);
     
-    SDL_Log("[GL] Grid: %d vertices batched into single draw call\n", idx);
 }
 
 void draw_comet_buster_gl(Visualizer *visualizer, void *cr) {
