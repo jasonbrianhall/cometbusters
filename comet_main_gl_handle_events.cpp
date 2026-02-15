@@ -101,14 +101,24 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     SDL_GetWindowSize(gui->window, &gui->window_width, &gui->window_height);
                     SDL_Log("[Comet Busters] [WINDOW] Physical window resized to %dx%d\n", gui->window_width, gui->window_height);
                     
-                    // On Android, enforce fixed rendering resolution for performance
+                    // On Android, enforce rendering resolution limits
 #ifdef ANDROID
-                    // Always render at 720x480 on Android, regardless of device resolution
-                    gui->visualizer.width = 720;
-                    gui->visualizer.height = 480;
-                    glViewport(0, 0, 720, 480);
-                    SDL_Log("[Comet Busters] [ANDROID] Fixed render resolution at 720x480 (physical window: %dx%d)\n",
-                            gui->window_width, gui->window_height);
+                    int internal_width = gui->window_width;
+                    int internal_height = gui->window_height;
+                    
+                    // Cap to 1440p maximum rendering resolution
+                    if (internal_width > 1440) {
+                        float scale = 1440.0f / internal_width;
+                        internal_width = 1440;
+                        internal_height = (int)(internal_height * scale);
+                        SDL_Log("[Comet Busters] [ANDROID] Downscaling render resolution to %dx%d\n", internal_width, internal_height);
+                    }
+                    
+                    gui->visualizer.width = internal_width;
+                    gui->visualizer.height = internal_height;
+                    glViewport(0, 0, internal_width, internal_height);
+                    SDL_Log("[Comet Busters] [ANDROID] Rendering at %dx%d (physical window: %dx%d)\n",
+                            internal_width, internal_height, gui->window_width, gui->window_height);
 #else
                     // Desktop: render at window resolution
                     gui->visualizer.width = gui->window_width;

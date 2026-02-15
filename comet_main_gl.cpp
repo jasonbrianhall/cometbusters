@@ -158,9 +158,6 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     
     SDL_GL_SetSwapInterval(1);
     
-    // ✅ PERF FIX: Set clear color once at init, not every frame
-    glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
-    
 #ifndef ANDROID
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
@@ -320,7 +317,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
 }
 
 static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {
-    // ✅ PERF FIX: Don't set clear color every frame - was set at init
+        glClearColor(0.05f, 0.075f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     
 #ifndef ANDROID
@@ -331,30 +328,19 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
     const float GAME_HEIGHT = 480.0f;
 #endif
 
-    // ✅ PERF FIX: Set viewport to match rendering resolution, not physical window
-    // This prevents GPU from doing unnecessary stretching/scaling every frame
-#ifdef ANDROID
-    glViewport(0, 0, 720, 480);
-#else
+    // Fill entire window
     glViewport(0, 0, gui->window_width, gui->window_height);
-#endif
     
-    // ✅ PERF FIX: Only set projection matrix once, not every frame
-    // These are expensive operations that should only happen on initialization/resize
-    static bool matrices_initialized = false;
-    if (!matrices_initialized) {
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glOrtho(0, GAME_WIDTH, GAME_HEIGHT, 0, -1, 1);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        matrices_initialized = true;
-    }
+    // Set projection matrix to scale game space to fill viewport
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, GAME_WIDTH, GAME_HEIGHT, 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
     
-    // ✅ PERF FIX: Don't reassign visualizer dimensions every frame
-    // These are already set correctly in initialization and on resize
-    // gui->visualizer.width = int(GAME_WIDTH);
-    // gui->visualizer.height = int(GAME_HEIGHT);
+    // Game always in logical space
+    gui->visualizer.width = int(GAME_WIDTH);
+    gui->visualizer.height = int(GAME_HEIGHT);
     
     // Draw game
     draw_comet_buster_gl(&gui->visualizer, NULL);

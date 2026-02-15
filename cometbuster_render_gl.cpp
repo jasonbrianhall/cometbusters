@@ -457,6 +457,7 @@ static float gl_calculate_text_width(const char *text, int font_size) {
 }
 
 void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
+    return;
     if (!text || !text[0] || !ft_face) return;
     
     // Set font size
