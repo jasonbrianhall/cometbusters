@@ -1654,6 +1654,7 @@ void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, 
     (void)width;
     (void)height;
     
+#ifdef ANDROID
     // ✅ PERF FIX #4 (Android): Batch all particles into single draw call
     // Instead of 2048 separate glDrawArrays calls, use ONE call with batched geometry
     // This reduces GPU overhead dramatically on mobile (2000x fewer draw calls!)
@@ -1705,6 +1706,16 @@ void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, 
     // Single batched draw call for ALL particles
     draw_vertices(particle_buffer, total_verts, GL_TRIANGLE_FAN);
 
+#else
+    // Desktop: Keep simple per-particle rendering (fast enough, no need to batch)
+    for (int i = 0; i < game->particle_count; i++) {
+        Particle *p = &game->particles[i];
+        if (!p->active) continue;
+        double alpha = p->lifetime / p->max_lifetime;
+        gl_set_color_alpha(p->color[0], p->color[1], p->color[2], alpha);
+        gl_draw_circle(p->x, p->y, p->size, 6);
+    }
+#endif
 }
 
 void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int height) {
