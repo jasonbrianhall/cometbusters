@@ -11,6 +11,51 @@
 #include "audio_wad.h"
 
 // ============================================================
+// TOUCH GESTURE SUPPORT
+// ============================================================
+
+typedef struct {
+    float start_x;              // Initial touch position
+    float start_y;
+    float current_x;            // Current touch position
+    float current_y;
+    float vx;                   // Velocity for gesture detection
+    float vy;
+    double touch_duration;      // How long finger has been down
+    bool is_valid;              // Is this a valid ongoing touch?
+    int touch_id;               // SDL touch ID for multi-touch tracking
+} TouchGesture;
+
+typedef enum {
+    TOUCH_STATE_IDLE,
+    TOUCH_STATE_SHIP_FOLLOW,    // Tracking ship position
+    TOUCH_STATE_FIRING,         // Holding to fire
+    TOUCH_STATE_SWIPE,          // Swiping for weapon switch
+    TOUCH_STATE_MENU            // Two-finger or edge tap
+} TouchState;
+
+typedef struct {
+    TouchState state;
+    TouchGesture primary_touch;     // Main finger
+    TouchGesture secondary_touch;   // Secondary finger (for two-finger gestures)
+    bool has_secondary;
+    
+    // Gesture detection thresholds
+    float swipe_threshold;          // Minimum distance for swipe (50 pixels)
+    float swipe_velocity_threshold; // Minimum velocity (200 pixels/sec)
+    
+    // Visual feedback
+    bool show_touch_target;
+    float touch_indicator_x;
+    float touch_indicator_y;
+    double touch_feedback_timer;
+    
+    // Fire control
+    double fire_hold_timer;         // Duration of continuous fire
+    bool fire_on_touch;             // Whether touching fires weapon
+} TouchInputManager;
+
+// ============================================================
 // JOYSTICK SUPPORT STRUCTURES
 // ============================================================
 
@@ -152,9 +197,30 @@ typedef struct {
     bool joystick_button_left_stick;  // Left stick click
     bool joystick_button_right_stick; // Right stick click
     
-    // ====================================================
+    // Touch input handling
+    TouchInputManager touch_manager;
+    bool prefer_touch_input;        // Use touch over mouse/keyboard
     
 } Visualizer;
+
+// ============================================================
+// TOUCH MANAGEMENT FUNCTIONS
+// ============================================================
+
+/**
+ * Initialize the touch input manager
+ */
+void touch_manager_init(TouchInputManager *manager);
+
+/**
+ * Cleanup touch input manager
+ */
+void touch_manager_cleanup(TouchInputManager *manager);
+
+/**
+ * Update touch gestures (call this regularly)
+ */
+void touch_manager_update(TouchInputManager *manager, double dt);
 
 // ============================================================
 // JOYSTICK MANAGEMENT FUNCTIONS
@@ -221,6 +287,7 @@ GameOptions game_options_default(void);
 
 void init_comet_buster_system(Visualizer *vis_ptr);
 void update_comet_buster(Visualizer *vis_ptr, double dt);
+void update_touch_input(Visualizer *vis, CometBusterGame *game, double dt);
 #ifdef CAIROBUILD
 void draw_comet_buster(Visualizer *vis_ptr, cairo_t *cr);
 #endif
