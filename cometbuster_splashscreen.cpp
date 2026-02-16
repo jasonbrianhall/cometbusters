@@ -391,7 +391,7 @@ void comet_buster_exit_splash_screen(CometBusterGame *game) {
 #ifdef ANDROID
     comet_buster_spawn_wave(game, 1920, 1080);
 #else
-    comet_buster_spawn_wave(game, 720, 480);
+    comet_buster_spawn_wave(game, 1280, 720);
 #endif
 }
 

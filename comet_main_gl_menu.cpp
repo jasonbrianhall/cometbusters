@@ -89,7 +89,7 @@ static void render_main_menu(CometGUI *gui) {
 #ifndef ANDROID
         int menu_x = (1920 - menu_width) / 2;
 #else
-        int menu_x = (720 - menu_width) / 2;
+        int menu_x = (1280 - menu_width) / 2;
 #endif        
         if (i == 0 && gui->visualizer.comet_buster.ship_lives <= 0) {
             // Disabled / grayed-out look
@@ -149,7 +149,7 @@ static void render_difficulty_menu(CometGUI *gui) {
 #ifndef ANDROID
         int diff_x = (1920 - diff_width) / 2;
 #else
-        int diff_x = (720 - diff_width) / 2;
+        int diff_x = (1280 - diff_width) / 2;
 #endif        
         if ((i + 1) == gui->gui_difficulty_level) {
             gl_set_color(1.0f, 1.0f, 0.0f);
@@ -240,7 +240,7 @@ static void render_audio_menu(CometGUI *gui) {
     }
     
     gl_set_color(0.8f, 0.8f, 0.8f);
-    gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 480, 950, 10);
+    gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 720, 950, 10);
 }
 
 // ============================================================
@@ -265,7 +265,7 @@ static void render_save_state_menu(CometGUI *gui, int is_load_menu) {
 #ifndef ANDROID
         int state_x = (1920 - state_width) / 2;
 #else
-        int state_x = (720 - state_width) / 2;
+        int state_x = (1280 - state_width) / 2;
 #endif        
         if (i == gui->menu_selection) {
             gl_set_color(1.0f, 1.0f, 0.0f);
@@ -341,7 +341,7 @@ static void render_language_menu(CometGUI *gui) {
 #ifndef ANDROID
         int lang_x = (1920 - lang_width) / 2;
 #else
-        int lang_x = (720 - lang_width) / 2;
+        int lang_x = (1280 - lang_width) / 2;
 #endif
         
         if (i == current_lang) {
@@ -370,7 +370,7 @@ static void render_language_menu(CometGUI *gui) {
     }
     
     gl_set_color(0.8f, 0.8f, 0.8f);
-    gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 480, 950, 10);
+    gl_draw_text_simple(hint_adjust_menu[gui->visualizer.comet_buster.current_language], 720, 950, 10);
 }
 
 // ============================================================
@@ -386,7 +386,7 @@ void render_menu(CometGUI *gui) {
 #ifndef ANDROID
     gl_draw_rect_filled(0, 0, 1920, 1080);
 #else
-    gl_draw_rect_filled(0, 0, 720, 480);
+    gl_draw_rect_filled(0, 0, 1280, 720);
 #endif
 
     // Dispatch to appropriate menu renderer

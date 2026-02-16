@@ -2382,7 +2382,7 @@ int main(int argc, char *argv[]) {
     
     // Initialize visualizer - will be set dynamically by on_draw
     gui.visualizer.width = 640;  // Default, will be updated in on_draw
-    gui.visualizer.height = 480; // Default, will be updated in on_draw
+    gui.visualizer.height = 720; // Default, will be updated in on_draw
     gui.visualizer.volume_level = 0.5;
     gui.visualizer.mouse_x = 400;
     gui.visualizer.mouse_y = 300;

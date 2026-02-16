@@ -77,7 +77,7 @@ void comet_buster_update_bomb_pickups(CometBusterGame *game, double dt) {
 #ifndef ANDROID
         comet_buster_wrap_position(&p->x, &p->y, 1920, 1080);
 #else
-        comet_buster_wrap_position(&p->x, &p->y, 720, 480);
+        comet_buster_wrap_position(&p->x, &p->y, 1280, 720);
 #endif
 
     }
