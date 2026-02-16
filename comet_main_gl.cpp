@@ -86,6 +86,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     
     SDL_Log("[Comet Busters] [INIT] Creating window: %dx%d\n", width, height);
+#ifndef ANDROID
     gui->window = SDL_CreateWindow(
         "Comet Busters",
         SDL_WINDOWPOS_CENTERED,
@@ -93,6 +94,15 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
         width, height,
         flags
     );
+#else
+    gui->window = SDL_CreateWindow(
+        "",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        width, height,
+        flags
+    );
+#endif
     
     if (!gui->window) {
         SDL_Log("[Comet Busters] [ERROR] Window creation failed: %s\n", SDL_GetError());

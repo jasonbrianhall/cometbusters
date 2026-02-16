@@ -462,6 +462,11 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
 
         setContentView(mLayout);
 
+        // Hide action bar to remove title bar on Android
+        if (getActionBar() != null) {
+            getActionBar().hide();
+        }
+
         setWindowStyle(false);
 
         getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(this);
