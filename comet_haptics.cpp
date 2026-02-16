@@ -5,7 +5,8 @@
 
 // Get haptic effect parameters tuned for PS5 DualSense controller
 HapticEffect haptic_get_effect_params(HapticEffectType type) {
-    HapticEffect effect = {0};
+    HapticEffect effect;
+    memset(&effect, 0, sizeof(HapticEffect));
     effect.repeats = 1;
     effect.delay_ms = 0;
     
