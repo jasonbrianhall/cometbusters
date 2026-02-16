@@ -458,6 +458,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 }
                 break;
             
+            case SDL_FINGERDOWN:
             case SDL_MOUSEBUTTONDOWN: {
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
@@ -746,6 +747,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 break;
             }
             
+            case SDL_FINGERUP:
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     gui->visualizer.mouse_left_pressed = false;
@@ -756,6 +758,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 }
                 break;
             
+            case SDL_FINGERMOTION:
             case SDL_MOUSEMOTION: {
                 gui->visualizer.mouse_just_moved = true;
                 // Convert window pixel coordinates to game logical coordinates
