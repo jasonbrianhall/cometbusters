@@ -59,6 +59,7 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
             game->ship_vy -= thrust_vy * dt;
         }
     } else if (mouse_active) {
+        SDL_Log("[Comet Busters] Mouse is active");
         // MOUSE-BASED CONTROLS (Original system - use mouse to aim)
         // Rotate ship to face mouse
         double dx = mouse_x - game->ship_x;
@@ -86,6 +87,9 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
         double mouse_dist = sqrt(dx_move*dx_move + dy_move*dy_move);
         double max_dist = 400.0;
         
+        SDL_Log("[Comet Busters] Mouse pos: (%d, %d), Ship pos: (%.1f, %.1f), Distance: %.1f",
+            mouse_x, mouse_y, game->ship_x, game->ship_y, mouse_dist);
+        
         double acceleration = 1.0;
         if (mouse_dist < 50.0) {
             acceleration = 0.1;
@@ -97,9 +101,14 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
         
         double accel_magnitude = acceleration * 200.0;
         
+        SDL_Log("[Comet Busters] Acceleration: %.2f, Accel magnitude: %.1f, Ship velocity: (%.1f, %.1f)",
+            acceleration, accel_magnitude, game->ship_vx, game->ship_vy);
+        
         if (mouse_dist > 0.1) {
             game->ship_vx += (dx_move / mouse_dist) * accel_magnitude * dt;
             game->ship_vy += (dy_move / mouse_dist) * accel_magnitude * dt;
+            SDL_Log("[Comet Busters] Applied acceleration, new velocity: (%.1f, %.1f)",
+                game->ship_vx, game->ship_vy);
         }
     }
     

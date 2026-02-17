@@ -102,7 +102,9 @@ void touch_manager_update(TouchInputManager *manager, double dt) {
 }
 
 /**
- * Update touch input - call each frame to handle ship following
+ * Update touch input - call each frame
+ * Updates mouse position to match touch position
+ * mouse_just_moved stays true as long as touch is active
  */
 void update_touch_input(Visualizer *vis, CometBusterGame *game, double dt) {
     if (!vis || !game) return;
@@ -112,41 +114,13 @@ void update_touch_input(Visualizer *vis, CometBusterGame *game, double dt) {
     // Update gesture tracking
     touch_manager_update(touch, dt);
     
-    // If in touch-follow mode and primary touch is active
-    if (touch->state == TOUCH_STATE_SHIP_FOLLOW && touch->primary_touch.is_valid) {
-        // Move ship to follow finger position
-        if (game->ship_lives > 0) {
-            float target_x = touch->primary_touch.current_x;
-            float target_y = touch->primary_touch.current_y;
-            
-            // Smooth movement to touch position
-            float speed = 800.0f;  // pixels per second
-            float dx = target_x - game->ship_x;
-            float dy = target_y - game->ship_y;
-            float distance = sqrt(dx*dx + dy*dy);
-            
-            if (distance > 5.0f) {
-                // Calculate movement
-                float move_distance = speed * dt;
-                if (move_distance > distance) {
-                    // Snap to target if very close
-                    game->ship_x = target_x;
-                    game->ship_y = target_y;
-                } else {
-                    // Move smoothly toward target
-                    float nx = dx / distance;
-                    float ny = dy / distance;
-                    game->ship_x += nx * move_distance;
-                    game->ship_y += ny * move_distance;
-                }
-            } else {
-                // Already at target position
-                game->ship_x = target_x;
-                game->ship_y = target_y;
-            }
-        }
+    // If primary touch is active, update mouse position and keep mouse_active flag true
+    if (touch->primary_touch.is_valid) {
+        // Update mouse position to match finger position
+        vis->mouse_x = (int)touch->primary_touch.current_x;
+        vis->mouse_y = (int)touch->primary_touch.current_y;
         
-        // Fire continuously while touching (if enabled)
+        // Fire if enabled
         if (touch->fire_on_touch) {
             vis->mouse_left_pressed = true;
         }
@@ -580,67 +554,6 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 }
                 break;
             
-            case SDL_FINGERDOWN: {
-                gui->visualizer.mouse_just_moved = true;
-                gui->visualizer.mouse_left_pressed = true;
-                
-                float touch_x, touch_y;
-                convert_touch_coords(event.tfinger.x, event.tfinger.y, &touch_x, &touch_y);
-                
-                // Update mouse position
-                gui->visualizer.mouse_x = (int)touch_x;
-                gui->visualizer.mouse_y = (int)touch_y;
-                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
-                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
-                
-                TouchInputManager *touch_mgr = &gui->visualizer.touch_manager;
-                
-                // Detect menu access: top edge tap
-                float game_height = (gui->window_height > 1400) ? GAME_HEIGHT_DESKTOP : GAME_HEIGHT_ANDROID;
-                float menu_edge_threshold = game_height / 10.0f;  // Top 10%
-                
-                if (touch_y < menu_edge_threshold) {
-                    if (touch_mgr->primary_touch.is_valid) {
-                        // Two-finger gesture detected - open menu
-                        touch_mgr->has_secondary = true;
-                        touch_mgr->secondary_touch.is_valid = true;
-                        touch_mgr->secondary_touch.start_x = touch_x;
-                        touch_mgr->secondary_touch.start_y = touch_y;
-                        touch_mgr->secondary_touch.current_x = touch_x;
-                        touch_mgr->secondary_touch.current_y = touch_y;
-                        touch_mgr->secondary_touch.touch_id = event.tfinger.fingerId;
-                        touch_mgr->state = TOUCH_STATE_MENU;
-                        
-                        // Open menu
-                        gui->show_menu = !gui->show_menu;
-                        if (gui->show_menu) {
-                            menu_open_submenu(gui, 0);
-                        }
-                        SDL_Log("[Touch] Menu opened via top edge / two-finger gesture\n");
-                        break;
-                    }
-                }
-                
-                // Register primary touch - track for ship following
-                if (!touch_mgr->primary_touch.is_valid) {
-                    touch_mgr->primary_touch.is_valid = true;
-                    touch_mgr->primary_touch.start_x = touch_x;
-                    touch_mgr->primary_touch.start_y = touch_y;
-                    touch_mgr->primary_touch.current_x = touch_x;
-                    touch_mgr->primary_touch.current_y = touch_y;
-                    touch_mgr->primary_touch.vx = 0.0f;
-                    touch_mgr->primary_touch.vy = 0.0f;
-                    touch_mgr->primary_touch.touch_duration = 0.0;
-                    touch_mgr->primary_touch.touch_id = event.tfinger.fingerId;
-                    touch_mgr->state = TOUCH_STATE_SHIP_FOLLOW;
-                    
-                    SDL_Log("[Touch] Primary touch started at (%.0f, %.0f), ID: %d\n", 
-                            touch_x, touch_y, event.tfinger.fingerId);
-                }
-                
-                // Now handle splash screen and menus (rest of existing logic)
-                // Fall through to existing MOUSEBUTTONDOWN case for compatibility
-            }
             case SDL_MOUSEBUTTONDOWN: {
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
@@ -929,81 +842,57 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 break;
             }
             
-            case SDL_FINGERUP: {
-                gui->visualizer.mouse_left_pressed = false;
-                
-                float touch_x, touch_y;
-                convert_touch_coords(event.tfinger.x, event.tfinger.y, &touch_x, &touch_y);
-                
-                TouchInputManager *touch_mgr = &gui->visualizer.touch_manager;
-                
-                // Check if this is the primary touch ending
-                if (touch_mgr->primary_touch.is_valid && 
-                    touch_mgr->primary_touch.touch_id == event.tfinger.fingerId) {
-                    
-                    // Calculate swipe metrics
-                    float dx = touch_x - touch_mgr->primary_touch.start_x;
-                    float dy = touch_y - touch_mgr->primary_touch.start_y;
-                    float distance = sqrt(dx*dx + dy*dy);
-                    float velocity = sqrt(touch_mgr->primary_touch.vx * touch_mgr->primary_touch.vx + 
-                                         touch_mgr->primary_touch.vy * touch_mgr->primary_touch.vy);
-                    
-                    SDL_Log("[Touch] Primary touch released: distance=%.0f, velocity=%.0f\n", distance, velocity);
-                    
-                    // Detect swipe gestures for weapon switching / menu
-                    if (distance >= touch_mgr->swipe_threshold && 
-                        velocity >= touch_mgr->swipe_velocity_threshold) {
-                        
-                        // Determine swipe direction - check if horizontal or vertical
-                        if (fabs(dx) > fabs(dy)) {
-                            // HORIZONTAL SWIPE - weapon switching
-                            if (dx < 0) {
-                                // Swipe left - switch to previous weapon/mode
-                                gui->visualizer.key_q_pressed = true;
-                                SDL_Log("[Touch] SWIPE LEFT - trigger weapon switch\n");
-                            } else {
-                                // Swipe right - switch to next weapon/mode
-                                gui->visualizer.key_q_pressed = true;
-                                SDL_Log("[Touch] SWIPE RIGHT - trigger weapon switch\n");
-                            }
-                            touch_mgr->state = TOUCH_STATE_IDLE;
-                        }
-                        else if (fabs(dy) > fabs(dx)) {
-                            // VERTICAL SWIPE - menu access or other action
-                            if (dy < 0) {
-                                // Swipe up
-                                SDL_Log("[Touch] SWIPE UP detected\n");
-                            } else {
-                                // Swipe down - open menu
-                                SDL_Log("[Touch] SWIPE DOWN - opening menu\n");
-                                gui->show_menu = !gui->show_menu;
-                                if (gui->show_menu) {
-                                    menu_open_submenu(gui, 0);
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Clear primary touch state
-                    touch_mgr->primary_touch.is_valid = false;
-                    touch_mgr->state = TOUCH_STATE_IDLE;
-                    
-                    SDL_Log("[Touch] Primary touch ended\n");
-                }
-                
-                // Check if this is the secondary touch ending
-                else if (touch_mgr->secondary_touch.is_valid && 
-                    touch_mgr->secondary_touch.touch_id == event.tfinger.fingerId) {
-                    
-                    touch_mgr->secondary_touch.is_valid = false;
-                    touch_mgr->has_secondary = false;
-                    touch_mgr->state = TOUCH_STATE_IDLE;
-                    
-                    SDL_Log("[Touch] Secondary touch ended\n");
-                }
-                
+#ifdef ANDROID
+            case SDL_FINGERDOWN: {
+                gui->visualizer.mouse_just_moved = true;
+
+                gui->visualizer.mouse_x = (int)(event.tfinger.x * 1280.0f);
+                gui->visualizer.mouse_y = (int)(event.tfinger.y * 720.0f);
+
+                SDL_Log("[Comet Busters] Finger Down %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
+                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
+                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+
+                // Treat finger down as left click
+                gui->visualizer.mouse_left_pressed = true;
                 break;
             }
+
+            case SDL_FINGERUP: {
+                SDL_Log("[Comet Busters] Finger Up");
+
+                gui->visualizer.mouse_left_pressed = false;
+                gui->visualizer.mouse_middle_pressed = false;
+                gui->visualizer.mouse_right_pressed = false;
+                break;
+            }
+
+            /*case SDL_MOUSEMOTION: {
+                gui->visualizer.mouse_just_moved = true;
+                // Convert window pixel coordinates to game logical coordinates
+                gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
+                gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
+                SDL_Log("[Comet Busters] Mouse Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
+                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
+                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+
+                break;
+            }*/
+            case SDL_FINGERMOTION: {
+                gui->visualizer.mouse_just_moved = true;
+
+                gui->visualizer.mouse_x = (int)(event.tfinger.x * 1280.0f);
+                gui->visualizer.mouse_y = (int)(event.tfinger.y * 720.0f);
+
+                SDL_Log("[Comet Busters] Finger Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
+                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
+                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+                break;
+            }
+#else
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     gui->visualizer.mouse_left_pressed = false;
@@ -1013,44 +902,19 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     gui->visualizer.mouse_right_pressed = false;
                 }
                 break;
-            
-            case SDL_FINGERMOTION: {
+
+            case SDL_MOUSEMOTION: {
                 gui->visualizer.mouse_just_moved = true;
-                
-                // Convert normalized touch coordinates (0.0-1.0) to game space
-                float touch_x, touch_y;
-                convert_touch_coords(event.tfinger.x, event.tfinger.y, &touch_x, &touch_y);
-                
-                gui->visualizer.mouse_x = (int)touch_x;
-                gui->visualizer.mouse_y = (int)touch_y;
-                
-                // Update touch gesture tracker
-                TouchGesture *touch = &gui->visualizer.touch_manager.primary_touch;
-                if (touch->is_valid) {
-                    // Calculate velocity (will be normalized by time in update function)
-                    float dx = touch_x - touch->current_x;
-                    float dy = touch_y - touch->current_y;
-                    // Store velocity - will be used when touch ends
-                    touch->vx = dx * 60.0f;  // Approximate 60 FPS
-                    touch->vy = dy * 60.0f;
-                    
-                    // Update current position
-                    touch->current_x = touch_x;
-                    touch->current_y = touch_y;
-                    
-                    // Visual feedback
-                    gui->visualizer.touch_manager.touch_indicator_x = touch_x;
-                    gui->visualizer.touch_manager.touch_indicator_y = touch_y;
-                    gui->visualizer.touch_manager.show_touch_target = true;
-                    gui->visualizer.touch_manager.touch_feedback_timer = 0.05;
-                }
-                
-                // Update mouse position for compatibility
+                // Convert window pixel coordinates to game logical coordinates
+                gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
+                gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
+                SDL_Log("[Comet Busters] Mouse Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
                 gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
                 gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+
                 break;
             }
-            
             case SDL_MOUSEWHEEL:
                 gui->visualizer.mouse_just_moved = true;
                 gui->visualizer.scroll_direction = event.wheel.y;
@@ -1115,7 +979,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     }
                 }
                 break;
-            
+#endif            
             // JOYSTICK BUTTON EVENTS
             case SDL_JOYBUTTONDOWN:
             case SDL_JOYBUTTONUP: {

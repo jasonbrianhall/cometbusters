@@ -656,6 +656,9 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
 }
 
 static void cleanup(CometGUI *gui) {
+    // ✅ Cleanup touch input manager
+    touch_manager_cleanup(&gui->visualizer.touch_manager);
+    
     if (gui->joystick) SDL_JoystickClose(gui->joystick);
     if (gui->gl_context) SDL_GL_DeleteContext(gui->gl_context);
     if (gui->window) SDL_DestroyWindow(gui->window);
@@ -815,6 +818,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.visualizer.mouse_y = 360;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
     
+    // ✅ Initialize touch input manager
+    touch_manager_init(&gui.visualizer.touch_manager);
+    gui.visualizer.prefer_touch_input = false;
+    
     SDL_Log("[Comet Busters] [INIT] Game initialized\n");
     
     // Load high scores
@@ -852,6 +859,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         gui.visualizer.mouse_x = 960;
         gui.visualizer.mouse_y = 540;
         gui.visualizer.scroll_direction = 0;
+        
+        // ✅ Initialize touch input manager
+        touch_manager_init(&gui.visualizer.touch_manager);
+        gui.visualizer.prefer_touch_input = false;
     }
     
     // Load high scores (if not already done on desktop)
@@ -973,6 +984,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
+        
+        // ✅ UPDATE TOUCH INPUT - This makes ships follow your finger
+        update_touch_input(&gui.visualizer, &gui.visualizer.comet_buster, gui.delta_time);
         
         // Detect splash screen exit and stop intro music (handles ALL exit methods)
         if (splash_was_active && !gui.visualizer.comet_buster.splash_screen_active) {

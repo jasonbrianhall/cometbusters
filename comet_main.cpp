@@ -22,6 +22,7 @@
 #include "visualization.h"
 #include "audio_wad.h"
 #include "comet_help.h"
+#include "comet_lang.h"
 
 #ifdef ANDROID
 #include <SDL.h>
@@ -100,6 +101,28 @@ typedef struct {
  * Get the settings directory path for the current platform
  * Returns a statically allocated string
  */
+
+static void on_language_selected(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;  // data IS the gui pointer
+    
+    // Get the language index from the menu item's label
+    const char *label = gtk_menu_item_get_label(GTK_MENU_ITEM(widget));
+    
+    // Find which language this matches
+    int language_index = -1;
+    for (int i = 0; i < WNUM_LANGUAGES; i++) {
+        if (strcmp(label, wlanguagename[i]) == 0) {
+            language_index = i;
+            break;
+        }
+    }
+    
+    if (language_index >= 0) {
+        SDL_Log("[Comet Busters] Selected language: %i", language_index);
+        gui->visualizer.comet_buster.current_language = language_index;
+    }
+}
+
 static const char* settings_get_dir(void) {
     static char settings_dir[512] = {0};
     static bool initialized = false;
@@ -2529,6 +2552,20 @@ int main(int argc, char *argv[]) {
     g_signal_connect(new_game_hard_item, "activate", G_CALLBACK(on_new_game_hard), &gui);
     gtk_menu_shell_append(GTK_MENU_SHELL(new_game_submenu), new_game_hard_item);
     
+    GtkWidget *language_submenu = gtk_menu_new();
+    GtkWidget *language_item = gtk_menu_item_new_with_label("Language");
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(language_item), language_submenu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), language_item);
+
+    // Loop through all languages
+    for (int i = 0; i < sizeof(wlanguagename) / sizeof(wlanguagename[0]); i++) {
+        GtkWidget *lang_menu_item = gtk_menu_item_new_with_label(wlanguagename[i]);
+        g_signal_connect(lang_menu_item, "activate", G_CALLBACK(on_language_selected), &gui);
+        gtk_menu_shell_append(GTK_MENU_SHELL(language_submenu), lang_menu_item);
+    }
+
+
+
     GtkWidget *separator1 = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), separator1);
     
