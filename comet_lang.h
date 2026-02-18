@@ -15,6 +15,8 @@ static const char *wlanguagename[] = {
    "Deutsch (German)"
 };
 
+#define WNUM_LANGUAGES (sizeof(wlanguagename) / sizeof(wlanguagename[0]))
+
 static const char *wlanguage_intro_file[] = {
     "music/intro.mp3", // English
     "music/intro_es.mp3", // Spanish

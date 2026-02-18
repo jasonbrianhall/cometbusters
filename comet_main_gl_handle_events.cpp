@@ -32,6 +32,102 @@
 #include "comet_main_gl_menu.h"
 
 // ============================================================
+// TOUCH INPUT HELPER FUNCTIONS
+// ============================================================
+
+#define GAME_WIDTH_DESKTOP 1920.0f
+#define GAME_HEIGHT_DESKTOP 1080.0f
+#define GAME_WIDTH_ANDROID 1280.0f
+#define GAME_HEIGHT_ANDROID 720.0f
+
+static inline void convert_touch_coords(float norm_x, float norm_y,
+                                        float *out_x, float *out_y) {
+#ifndef ANDROID
+    *out_x = norm_x * GAME_WIDTH_DESKTOP;
+    *out_y = norm_y * GAME_HEIGHT_DESKTOP;
+#else
+    *out_x = norm_x * GAME_WIDTH_ANDROID;
+    *out_y = norm_y * GAME_HEIGHT_ANDROID;
+#endif
+}
+
+/**
+ * Initialize the touch input manager
+ */
+void touch_manager_init(TouchInputManager *manager) {
+    if (!manager) return;
+    
+    memset(manager, 0, sizeof(TouchInputManager));
+    manager->state = TOUCH_STATE_IDLE;
+    manager->swipe_threshold = 50.0f;
+    manager->swipe_velocity_threshold = 200.0f;
+    manager->fire_on_touch = true;
+    SDL_Log("[Touch] Touch manager initialized\n");
+}
+
+/**
+ * Cleanup touch manager
+ */
+void touch_manager_cleanup(TouchInputManager *manager) {
+    if (!manager) return;
+    memset(manager, 0, sizeof(TouchInputManager));
+    SDL_Log("[Touch] Touch manager cleaned up\n");
+}
+
+/**
+ * Update touch gestures (call every frame)
+ */
+void touch_manager_update(TouchInputManager *manager, double dt) {
+    if (!manager) return;
+    
+    // Update touch duration
+    if (manager->primary_touch.is_valid) {
+        manager->primary_touch.touch_duration += dt;
+    }
+    if (manager->secondary_touch.is_valid) {
+        manager->secondary_touch.touch_duration += dt;
+    }
+    
+    // Decay touch feedback timer
+    if (manager->touch_feedback_timer > 0) {
+        manager->touch_feedback_timer -= dt;
+    } else {
+        manager->show_touch_target = false;
+    }
+    
+    // Decay fire hold timer
+    if (manager->fire_hold_timer > 0) {
+        manager->fire_hold_timer -= dt;
+    }
+}
+
+/**
+ * Update touch input - call each frame
+ * Updates mouse position to match touch position
+ * mouse_just_moved stays true as long as touch is active
+ */
+void update_touch_input(Visualizer *vis, CometBusterGame *game, double dt) {
+    if (!vis || !game) return;
+    
+    TouchInputManager *touch = &vis->touch_manager;
+    
+    // Update gesture tracking
+    touch_manager_update(touch, dt);
+    
+    // If primary touch is active, update mouse position and keep mouse_active flag true
+    if (touch->primary_touch.is_valid) {
+        // Update mouse position to match finger position
+        vis->mouse_x = (int)touch->primary_touch.current_x;
+        vis->mouse_y = (int)touch->primary_touch.current_y;
+        
+        // Fire if enabled
+        if (touch->fire_on_touch) {
+            vis->mouse_left_pressed = true;
+        }
+    }
+}
+
+// ============================================================
 // QUICK SAVE/LOAD HELPER FUNCTIONS (for F5/F7 - slot 10)
 // ============================================================
 
@@ -166,7 +262,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
@@ -250,7 +346,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif
                                     SDL_Log("[Comet Busters] [CHEAT] Spawned Wave %d\n", new_wave);
                                 } else {
@@ -469,8 +565,8 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1920.0f);
                     int mouse_y = (int)((event.button.y / (float)gui->window_height) * 1080.0f);
 #else
-                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 720.0f);
-                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 480.0f);
+                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1280.0f);
+                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 720.0f);
 #endif                    
                     if (event.button.button == SDL_BUTTON_LEFT) {
                         int button_idx = get_keyboard_button_at_pos(mouse_x, mouse_y);
@@ -544,7 +640,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
@@ -561,8 +657,8 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1920.0f);
                     int mouse_y = (int)((event.button.y / (float)gui->window_height) * 1080.0f);
 #else
-                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 720.0f);
-                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 480.0f);
+                    int mouse_x = (int)((event.button.x / (float)gui->window_width) * 1280.0f);
+                    int mouse_y = (int)((event.button.y / (float)gui->window_height) * 720.0f);
 #endif                    
                     if (event.button.button == SDL_BUTTON_LEFT) {
                         // Main menu buttons
@@ -575,7 +671,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                             const int menu_x = (1920 - menu_width) / 2;
 #else
-                            const int menu_x = (720 - menu_width) / 2;
+                            const int menu_x = (1280 - menu_width) / 2;
 #endif                            
                             for (int i = 0; i < 10; i++) {  // 0=Continue, 1=New, 2=High Scores, 3=Save, 4=Load, 5=Audio, 6=Language, 7=Help, 8=Fullscreen, 9=Quit
                                 // Only check items that are visible on screen
@@ -646,7 +742,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                             const int diff_x = (1920 - diff_width) / 2;
 #else
-                            const int diff_x = (720 - diff_width) / 2;
+                            const int diff_x = (1280 - diff_width) / 2;
 #endif                            
                             for (int i = 0; i < 3; i++) {
                                 int diff_y = diff_y_start + (i * diff_spacing);
@@ -691,7 +787,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                             const int lang_x = (1920 - lang_width) / 2;
 #else
-                            const int lang_x = (720 - lang_width) / 2;
+                            const int lang_x = (1280 - lang_width) / 2;
 #endif
                             const int items_per_page = 4;
                             
@@ -746,6 +842,57 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 break;
             }
             
+#ifdef ANDROID
+            case SDL_FINGERDOWN: {
+                gui->visualizer.mouse_just_moved = true;
+
+                gui->visualizer.mouse_x = (int)(event.tfinger.x * 1280.0f);
+                gui->visualizer.mouse_y = (int)(event.tfinger.y * 720.0f);
+
+                SDL_Log("[Comet Busters] Finger Down %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
+                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
+                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+
+                // Treat finger down as left click
+                gui->visualizer.mouse_left_pressed = true;
+                break;
+            }
+
+            case SDL_FINGERUP: {
+                SDL_Log("[Comet Busters] Finger Up");
+
+                gui->visualizer.mouse_left_pressed = false;
+                gui->visualizer.mouse_middle_pressed = false;
+                gui->visualizer.mouse_right_pressed = false;
+                break;
+            }
+
+            /*case SDL_MOUSEMOTION: {
+                gui->visualizer.mouse_just_moved = true;
+                // Convert window pixel coordinates to game logical coordinates
+                gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
+                gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
+                SDL_Log("[Comet Busters] Mouse Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
+                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
+                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+
+                break;
+            }*/
+            case SDL_FINGERMOTION: {
+                gui->visualizer.mouse_just_moved = true;
+
+                gui->visualizer.mouse_x = (int)(event.tfinger.x * 1280.0f);
+                gui->visualizer.mouse_y = (int)(event.tfinger.y * 720.0f);
+
+                SDL_Log("[Comet Busters] Finger Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
+                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
+                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+                break;
+            }
+#else
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     gui->visualizer.mouse_left_pressed = false;
@@ -755,21 +902,19 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     gui->visualizer.mouse_right_pressed = false;
                 }
                 break;
-            
+
             case SDL_MOUSEMOTION: {
                 gui->visualizer.mouse_just_moved = true;
                 // Convert window pixel coordinates to game logical coordinates
-                // Window fills entire screen, so scaling is direct
-#ifndef ANDROID
                 gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
                 gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
-#else
-                gui->visualizer.mouse_x = (int)(event.motion.x * 720.0f / gui->window_width);
-                gui->visualizer.mouse_y = (int)(event.motion.y * 480.0f / gui->window_height);
-#endif
+                //SDL_Log("[Comet Busters] Mouse Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+
+                gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
+                gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;
+
                 break;
             }
-            
             case SDL_MOUSEWHEEL:
                 gui->visualizer.mouse_just_moved = true;
                 gui->visualizer.scroll_direction = event.wheel.y;
@@ -834,7 +979,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     }
                 }
                 break;
-            
+#endif            
             // JOYSTICK BUTTON EVENTS
             case SDL_JOYBUTTONDOWN:
             case SDL_JOYBUTTONUP: {
@@ -879,7 +1024,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+                                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif
                                     SDL_Log("[Comet Busters] [CHEAT] Spawned Wave %d\n", new_wave);
                                 } else {
@@ -940,7 +1085,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
@@ -1263,7 +1408,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
@@ -1564,7 +1709,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 #ifndef ANDROID
                     comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+                    comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif                    
                     // Start gameplay music rotation
 #ifdef ExternalSound
@@ -1844,6 +1989,9 @@ void init_joystick(CometGUI *gui) {
     int num_joysticks = SDL_NumJoysticks();
     if (num_joysticks > 0) {
         gui->joystick = SDL_JoystickOpen(0);
+        SDL_Log("[Comet Busters] [JOYSTICK] Initializing Haptic: %s\n", SDL_JoystickName(gui->joystick));
+        haptic_init(&gui->visualizer.comet_buster.haptic_manager, gui->joystick);
+
         if (gui->joystick) {
             SDL_Log("[Comet Busters] [JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
             SDL_Log("[Comet Busters] [JOYSTICK] Buttons: %d\n", SDL_JoystickNumButtons(gui->joystick));
@@ -1860,6 +2008,7 @@ void init_joystick(CometGUI *gui) {
             SDL_Log("[Comet Busters] [JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
             SDL_Log("[Comet Busters] [JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
             SDL_Log("[Comet Busters] [JOYSTICK] ============================\n");
+
         }
     } else {
         SDL_Log("[Comet Busters] [JOYSTICK] No joysticks detected\n");

@@ -298,11 +298,11 @@ void gl_setup_2d_projection(int width, int height) {
 #else
     // ✅ PERF FIX #3 (Android): Query actual surface dimensions
     // Different Android devices have different screen sizes and orientations
-    // Get the ACTUAL framebuffer size instead of hardcoding 720x480
+    // Get the ACTUAL framebuffer size instead of hardcoding 1280x720
     if (width <= 0 || height <= 0) {
         GLint viewport[4];
         glGetIntegerv(GL_VIEWPORT, viewport);
-        width = viewport[2] > 0 ? viewport[2] : 720;
+        width = viewport[2] > 0 ? viewport[2] : 1280;
         height = viewport[3] > 0 ? viewport[3] : 1280;
     }
 #endif
@@ -2895,7 +2895,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
 #ifndef ANDROID
         const int viewport_width = 1920;
 #else
-        const int viewport_width = 720;
+        const int viewport_width = 1280;
 #endif
         
         // Draw all lines that could be visible
@@ -2940,7 +2940,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
 #ifndef ANDROID
         const int viewport_width = 1920;
 #else        
-        const int viewport_width = 720;
+        const int viewport_width = 1280;
 #endif
         // Draw glowing text effect
         const char *title_text = "COMET BUSTERS";
@@ -2985,7 +2985,7 @@ void comet_buster_draw_splash_screen_gl(CometBusterGame *game, void *cr, int wid
 #ifndef ANDROID        
         const int viewport_width = 1920;
 #else
-        const int viewport_width = 720;
+        const int viewport_width = 1280;
 #endif
         
         const char *title_text = "COMET BUSTERS";
@@ -3041,7 +3041,7 @@ void comet_buster_draw_victory_scroll_gl(CometBusterGame *game, void *cr, int wi
 #ifndef ANDROID
     const int viewport_width = 1920;
 #else
-    const int viewport_width = 720;
+    const int viewport_width = 1280;
 #endif
     
     // Draw visible lines

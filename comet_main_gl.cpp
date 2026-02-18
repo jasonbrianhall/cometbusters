@@ -30,6 +30,7 @@
 #include "comet_preferences.h"
 #include "comet_main_gl_gui.h"
 #include "comet_main_gl_menu.h"
+#include "comet_haptics.h"
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -58,7 +59,7 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_Log("[Comet Busters] *** ENTERING init_sdl_and_opengl ***\n");
     SDL_Log("[Comet Busters] [INIT] Starting init_sdl_and_opengl\n");
     
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC) < 0) {
         SDL_Log("[Comet Busters] [ERROR] SDL_Init failed: %s\n", SDL_GetError());
         return false;
     }
@@ -85,8 +86,13 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     if (gui->fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     
     SDL_Log("[Comet Busters] [INIT] Creating window: %dx%d\n", width, height);
+#ifdef ANDROID
+    const char* window_title = "";  // No banner on Android
+#else
+    const char* window_title = "Comet Busters";
+#endif
     gui->window = SDL_CreateWindow(
-        "Comet Busters",
+        window_title,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         width, height,
@@ -110,15 +116,15 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     
     // ✅ PERFORMANCE FIX: Handle high-DPI Android devices
     #ifdef ANDROID
-    // Always render at 720x480 on Android for consistent performance
-    int internal_width = 720;
-    int internal_height = 480;
+    // Always render at 1280x1280 (landscape widescreen) on Android for consistent performance
+    int internal_width = 1280;
+    int internal_height = 1280;
     
     gui->visualizer.width = internal_width;
     gui->visualizer.height = internal_height;
     glViewport(0, 0, internal_width, internal_height);
     
-    SDL_Log("[Comet Busters] [ANDROID] Fixed render resolution: 720x480 (physical window: %dx%d)\n",
+    SDL_Log("[Comet Busters] [ANDROID] Fixed render resolution: 1280x1280 landscape (physical window: %dx%d)\n",
             gui->window_width, gui->window_height);
     #else
     gui->visualizer.width = gui->window_width;
@@ -233,7 +239,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
 #ifndef ANDROID
             comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1920, 1080);
 #else
-            comet_buster_spawn_wave(&gui->visualizer.comet_buster, 720, 480);
+            comet_buster_spawn_wave(&gui->visualizer.comet_buster, 1280, 720);
 #endif            
             // Reset flags and input
             gui->finale_music_started = false;
@@ -324,8 +330,8 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
     const float GAME_WIDTH = 1920.0f;
     const float GAME_HEIGHT = 1080.0f;
 #else
-    const float GAME_WIDTH =  720.0f;
-    const float GAME_HEIGHT = 480.0f;
+    const float GAME_WIDTH =  1280.0f;
+    const float GAME_HEIGHT = 720.0f;
 #endif
 
     // Fill entire window
@@ -363,7 +369,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
 #ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
 #else
-        gl_draw_rect_filled(0, 0, 720, 480);
+        gl_draw_rect_filled(0, 0, 1280, 720);
 #endif
 
         // Title - bright white for high contrast
@@ -373,7 +379,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         // Main help text box - large single box with all text
         int box_x = 100;
         int box_y = 130;
-        int box_width = 1720;
+        int box_width = 11280;
         int box_height = 850;
         
         // Text box background
@@ -416,7 +422,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
 #ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
 #else
-        gl_draw_rect_filled(0, 0, 720, 480);
+        gl_draw_rect_filled(0, 0, 1280, 720);
 #endif        
         // Dialog box background - Much larger to accommodate keyboard
         int dialog_x = 300;
@@ -489,13 +495,13 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
 #ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
 #else
-        gl_draw_rect_filled(0, 0, 720, 480);
+        gl_draw_rect_filled(0, 0, 1280, 720);
 #endif        
         // Pause dialog box
         int pause_x = 640;
         int pause_y = 300;
         int pause_width = 640;
-        int pause_height = 480;
+        int pause_height = 720;
         
         // Dialog background - Dark with transparency
         gl_set_color(0.1f, 0.1f, 0.15f);
@@ -517,7 +523,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Game continues in background info - Cyan
         gl_set_color(0.0f, 1.0f, 1.0f);
-        gl_draw_text_simple(label_game_paused[gui->visualizer.comet_buster.current_language], 810, 480, 18);
+        gl_draw_text_simple(label_game_paused[gui->visualizer.comet_buster.current_language], 810, 720, 18);
         
         // Stats while paused - White
         gl_set_color(1.0f, 1.0f, 1.0f);
@@ -549,7 +555,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
 #ifndef ANDROID
         gl_draw_rect_filled(0, 0, 1920, 1080);
 #else
-        gl_draw_rect_filled(0, 0, 720, 480);
+        gl_draw_rect_filled(0, 0, 1280, 720);
 #endif
         
         // Dialog box background - Warm parchment
@@ -650,6 +656,9 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
 }
 
 static void cleanup(CometGUI *gui) {
+    // ✅ Cleanup touch input manager
+    touch_manager_cleanup(&gui->visualizer.touch_manager);
+    
     if (gui->joystick) SDL_JoystickClose(gui->joystick);
     if (gui->gl_context) SDL_GL_DeleteContext(gui->gl_context);
     if (gui->window) SDL_DestroyWindow(gui->window);
@@ -802,12 +811,16 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     gui.visualizer.width = 1920;
     gui.visualizer.height = 1080;
 #else
-    gui.visualizer.width = 720;
-    gui.visualizer.height = 480;
+    gui.visualizer.width = 1280;
+    gui.visualizer.height = 1280;
 #endif
-    gui.visualizer.mouse_x = 960;
-    gui.visualizer.mouse_y = 540;
+    gui.visualizer.mouse_x = 640;
+    gui.visualizer.mouse_y = 360;
     gui.visualizer.scroll_direction = 0;  // Initialize scroll wheel state
+    
+    // ✅ Initialize touch input manager
+    touch_manager_init(&gui.visualizer.touch_manager);
+    gui.visualizer.prefer_touch_input = false;
     
     SDL_Log("[Comet Busters] [INIT] Game initialized\n");
     
@@ -840,12 +853,16 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         gui.visualizer.width = 1920;
         gui.visualizer.height = 1080;
 #else
-        gui.visualizer.width = 720;
-        gui.visualizer.height = 480;
+        gui.visualizer.width = 1280;
+        gui.visualizer.height = 1280;
 #endif
         gui.visualizer.mouse_x = 960;
         gui.visualizer.mouse_y = 540;
         gui.visualizer.scroll_direction = 0;
+        
+        // ✅ Initialize touch input manager
+        touch_manager_init(&gui.visualizer.touch_manager);
+        gui.visualizer.prefer_touch_input = false;
     }
     
     // Load high scores (if not already done on desktop)
@@ -967,6 +984,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
+        
+        // ✅ UPDATE TOUCH INPUT - This makes ships follow your finger
+        update_touch_input(&gui.visualizer, &gui.visualizer.comet_buster, gui.delta_time);
         
         // Detect splash screen exit and stop intro music (handles ALL exit methods)
         if (splash_was_active && !gui.visualizer.comet_buster.splash_screen_active) {

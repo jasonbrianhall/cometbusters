@@ -8,6 +8,7 @@
 #include "cometbuster.h"
 #include "visualization.h"
 #include "comet_preferences.h"
+#include "comet_haptics.h"
 
 typedef enum {
     HIGH_SCORE_ENTRY_NONE = 0,

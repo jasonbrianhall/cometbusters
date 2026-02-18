@@ -1304,7 +1304,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         int pause_x = 640;
         int pause_y = 300;
         int pause_width = 640;
-        int pause_height = 480;
+        int pause_height = 720;
         
         // Dialog background - Dark with transparency
         gl_set_color(0.1f, 0.1f, 0.15f);
@@ -1326,7 +1326,7 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         
         // Game continues in background info - Cyan
         gl_set_color(0.0f, 1.0f, 1.0f);
-        gl_draw_text_simple("The game is paused", 810, 480, 18);
+        gl_draw_text_simple("The game is paused", 810, 720, 18);
         
         // Stats while paused - White
         gl_set_color(1.0f, 1.0f, 1.0f);
