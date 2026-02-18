@@ -1119,7 +1119,8 @@ void on_new_game_easy(GtkWidget *widget, gpointer data) {
     
     // Play intro music
 #ifdef ExternalSound
-    audio_play_intro_music(&gui->audio, "music/intro.mp3");
+    //audio_play_intro_music(&gui->audio, "music/intro.mp3");
+    audio_play_intro_music(&gui->audio, wlanguage_intro_file[gui->visualizer.comet_buster.current_language]);
 #endif
     
     SDL_Log("[Comet Busters] [GAME] New Game Started - Difficulty: EASY (with splash screen)\n");
@@ -1885,7 +1886,8 @@ gboolean game_update_timer(gpointer data) {
             SDL_Log("[Comet Busters] [FINALE] Starting finale music...\n");
             audio_stop_music(&gui->audio);
 #ifdef ExternalSound
-            audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
+            //audio_play_music(&gui->audio, "music/finale.mp3", false);  // Don't loop
+            audio_play_intro_music(&gui->audio, wlanguage_finale_file[gui->visualizer.comet_buster.current_language]);
 #endif
             gui->finale_music_started = true;
         }
