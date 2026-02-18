@@ -57,7 +57,11 @@ static void get_state_filename(int slot, char *filename, int max_len) {
     }
 #endif
     
+#ifndef GLSave
     snprintf(filename, max_len, "%s/comet_state_%d.sav", expanded_dir, slot);
+#else
+    snprintf(filename, max_len, "%s/comet_stategl_%d.sav", expanded_dir, slot);
+#endif
 }
 
 /**
@@ -116,7 +120,12 @@ static void get_quicksave_filename(char *filename, size_t max_len) {
     }
 #endif
     
+#ifndef GLSave
     snprintf(filename, max_len, "%s/comet_state_10.sav", expanded_dir);
+#else
+    snprintf(filename, max_len, "%s/comet_stategl_10.sav", expanded_dir);
+#endif
+
 }
 
 static void ensure_quicksave_dir() {
