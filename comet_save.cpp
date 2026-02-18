@@ -147,3 +147,178 @@ static void ensure_quicksave_dir() {
 #endif
 }
 
+/**
+ * Saves the current game state to a slot (0-9)
+ */
+int menu_save_state(CometGUI *gui, int slot) {
+    SDL_Log("[Comet Busters] [SAVE STATE] saving to slot: %i\n", slot);
+
+    if (slot < 0 || slot > 10) return 0;
+    
+    ensure_save_dir();
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "wb");
+    if (!file) {
+        SDL_Log("[Comet Busters] [SAVE STATE] Failed to open file: %s\n", filename);
+        return 0;
+    }
+    
+    // Write header
+    int version = 1;
+    time_t now = time(NULL);
+    
+    if (fwrite(&version, sizeof(int), 1, file) != 1) {
+        fclose(file);
+        return 0;
+    }
+    if (fwrite(&now, sizeof(time_t), 1, file) != 1) {
+        fclose(file);
+        return 0;
+    }
+    
+    // Save the game structure (CometBusterGame) which contains the actual game data
+    CometBusterGame *game = &gui->visualizer.comet_buster;
+    if (fwrite(game, sizeof(CometBusterGame), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [SAVE STATE] Failed to write game state\n");
+        fclose(file);
+        return 0;
+    }
+    
+    fclose(file);
+    SDL_Log("[Comet Busters] [SAVE STATE] State %d saved to %s (%zu bytes)\n", 
+            slot, filename, sizeof(CometBusterGame) + sizeof(int) + sizeof(time_t));
+    return 1;
+}
+
+/**
+ * Loads a game state from a slot (0-9)
+ */
+int menu_load_state(CometGUI *gui, int slot) {
+    SDL_Log("[Comet Busters] [Load STATE] saving to slot: %i\n", slot);
+
+    if (slot < 0 || slot > 10) return 0;
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to open file: %s\n", filename);
+        return 0;
+    }
+    
+    // Read and verify header
+    int version;
+    time_t timestamp;
+    
+    if (fread(&version, sizeof(int), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to read version\n");
+        fclose(file);
+        return 0;
+    }
+    
+    if (version != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Unsupported save version: %d\n", version);
+        fclose(file);
+        return 0;
+    }
+    
+    if (fread(&timestamp, sizeof(time_t), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to read timestamp\n");
+        fclose(file);
+        return 0;
+    }
+    
+    // Load the game structure
+    CometBusterGame *game = &gui->visualizer.comet_buster;
+
+    int saved_language = game->current_language;
+
+    if (fread(game, sizeof(CometBusterGame), 1, file) != 1) {
+        SDL_Log("[Comet Busters] [LOAD STATE] Failed to read game state\n");
+        fclose(file);
+        return 0;
+    }
+    game->current_language = saved_language;
+    fclose(file);
+    SDL_Log("[Comet Busters] [LOAD STATE] State %d loaded from %s (%zu bytes)\n", 
+            slot, filename, sizeof(CometBusterGame) + sizeof(int) + sizeof(time_t));
+    return 1;
+}
+
+/**
+ * Checks if a save state exists
+ */
+int menu_state_exists(int slot) {
+    if (slot < 0 || slot > 9) return 0;
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "rb");
+    if (file) {
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * Gets human-readable info about a save state
+ */
+static char state_info_buffer[256];
+
+const char* menu_get_state_info(int slot) {
+    if (slot < 0 || slot > 9) {
+        return "Invalid";
+    }
+    
+    if (!menu_state_exists(slot)) {
+        return "Empty";
+    }
+    
+    char filename[256];
+    get_state_filename(slot, filename, sizeof(filename));
+    
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        return "Error";
+    }
+    
+    int version;
+    time_t timestamp;
+    CometBusterGame game;
+    
+    // Read version
+    if (fread(&version, sizeof(int), 1, file) != 1) {
+        fclose(file);
+        return "Error";
+    }
+    
+    // Read timestamp
+    if (fread(&timestamp, sizeof(time_t), 1, file) != 1) {
+        fclose(file);
+        return "Error";
+    }
+    
+    // Read game data
+    if (fread(&game, sizeof(CometBusterGame), 1, file) != 1) {
+        fclose(file);
+        return "Error";
+    }
+    
+    fclose(file);
+    
+    // Format: "Wave X Score Y HH:MM"
+    struct tm *timeinfo = localtime(&timestamp);
+    snprintf(state_info_buffer, sizeof(state_info_buffer), 
+             "Wave %d | Score %d | %02d:%02d",
+             game.current_wave, game.score, timeinfo->tm_hour, timeinfo->tm_min);
+    
+    return state_info_buffer;
+}
+
+
