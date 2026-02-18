@@ -93,6 +93,9 @@ typedef struct {
     
 } CometGUI;
 
+// comet_save.h depends on CometGUI, so it must be included after the struct definition above.
+#include "comet_save.h"
+
 // ============================================================
 // VOLUME SETTINGS PERSISTENCE FUNCTIONS
 // ============================================================
@@ -1662,6 +1665,84 @@ void on_cheat_set_bombs(GtkWidget *widget, gpointer data) {
     gtk_widget_destroy(dialog);
 }
 
+// ============================================================
+// SAVE / LOAD STATE MENU CALLBACKS
+// ============================================================
+
+typedef struct {
+    CometGUI *gui;
+    int slot;
+} SaveLoadSlotData;
+
+/* Saves to an explicit slot (0-9). Shows a brief info/error dialog. */
+static void on_save_state_slot(GtkWidget *widget, gpointer data) {
+    SaveLoadSlotData *sld = (SaveLoadSlotData*)data;
+    if (!sld || !sld->gui) return;
+
+    int result = menu_save_state(sld->gui, sld->slot);
+
+    GtkWidget *dlg = gtk_message_dialog_new(
+        GTK_WINDOW(sld->gui->window),
+        GTK_DIALOG_MODAL,
+        result ? GTK_MESSAGE_INFO : GTK_MESSAGE_ERROR,
+        GTK_BUTTONS_OK,
+        result ? "Game saved to slot %d." : "Failed to save to slot %d!",
+        sld->slot);
+    gtk_dialog_run(GTK_DIALOG(dlg));
+    gtk_widget_destroy(dlg);
+}
+
+/* Loads from an explicit slot (0-9). */
+static void on_load_state_slot(GtkWidget *widget, gpointer data) {
+    SaveLoadSlotData *sld = (SaveLoadSlotData*)data;
+    if (!sld || !sld->gui) return;
+
+    if (!menu_state_exists(sld->slot)) {
+        GtkWidget *dlg = gtk_message_dialog_new(
+            GTK_WINDOW(sld->gui->window),
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_WARNING,
+            GTK_BUTTONS_OK,
+            "Save slot %d is empty.",
+            sld->slot);
+        gtk_dialog_run(GTK_DIALOG(dlg));
+        gtk_widget_destroy(dlg);
+        return;
+    }
+
+    int result = menu_load_state(sld->gui, sld->slot);
+
+    GtkWidget *dlg = gtk_message_dialog_new(
+        GTK_WINDOW(sld->gui->window),
+        GTK_DIALOG_MODAL,
+        result ? GTK_MESSAGE_INFO : GTK_MESSAGE_ERROR,
+        GTK_BUTTONS_OK,
+        result ? "Game loaded from slot %d." : "Failed to load slot %d!",
+        sld->slot);
+    gtk_dialog_run(GTK_DIALOG(dlg));
+    gtk_widget_destroy(dlg);
+}
+
+/* Quick-save (F5) - slot 10, no dialog */
+static void on_quicksave(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    menu_save_state(gui, 10);
+    SDL_Log("[Comet Busters] [SAVE STATE] Quick save done (slot 10)\n");
+}
+
+/* Quick-load (F7) - slot 10, no dialog */
+static void on_quickload(GtkWidget *widget, gpointer data) {
+    CometGUI *gui = (CometGUI*)data;
+    if (!gui) return;
+    menu_load_state(gui, 10);
+    SDL_Log("[Comet Busters] [SAVE STATE] Quick load done (slot 10)\n");
+}
+
+// ============================================================
+// END SAVE / LOAD STATE MENU CALLBACKS
+// ============================================================
+
 void on_toggle_fullscreen(GtkWidget *widget, gpointer data) {
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return;
@@ -2178,6 +2259,14 @@ gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data) {
         case GDK_KEY_V:
             on_volume_dialog_open(NULL, gui);
             break;
+        case GDK_KEY_F5:
+            on_quicksave(NULL, gui);
+            return TRUE;
+            break;
+        case GDK_KEY_F7:
+            on_quickload(NULL, gui);
+            return TRUE;
+            break;
         case GDK_KEY_F11:
             on_toggle_fullscreen(NULL, gui);
             return TRUE;
@@ -2576,7 +2665,60 @@ int main(int argc, char *argv[]) {
     GtkWidget *pause_item = gtk_menu_item_new_with_label("Pause/Resume (P)");
     g_signal_connect(pause_item, "activate", G_CALLBACK(on_toggle_pause), &gui);
     gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), pause_item);
-    
+
+    // ------ Save State submenu ------
+    GtkWidget *save_state_submenu = gtk_menu_new();
+    GtkWidget *save_state_item = gtk_menu_item_new_with_label("Save State");
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(save_state_item), save_state_submenu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), save_state_item);
+
+    // Quick Save (slot 10)
+    GtkWidget *quicksave_item = gtk_menu_item_new_with_label("Quick Save (F5)");
+    g_signal_connect(quicksave_item, "activate", G_CALLBACK(on_quicksave), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(save_state_submenu), quicksave_item);
+
+    GtkWidget *save_sep = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(save_state_submenu), save_sep);
+
+    // Slots 0-9 – each item gets a heap-allocated SaveLoadSlotData (lives as long as the menu)
+    for (int _s = 0; _s < 10; _s++) {
+        char slot_label[64];
+        snprintf(slot_label, sizeof(slot_label), "Slot %d", _s);
+        GtkWidget *slot_item = gtk_menu_item_new_with_label(slot_label);
+        SaveLoadSlotData *sdata = g_new(SaveLoadSlotData, 1);
+        sdata->gui  = &gui;
+        sdata->slot = _s;
+        g_signal_connect(slot_item, "activate", G_CALLBACK(on_save_state_slot), sdata);
+        gtk_menu_shell_append(GTK_MENU_SHELL(save_state_submenu), slot_item);
+    }
+
+    // ------ Load State submenu ------
+    GtkWidget *load_state_submenu = gtk_menu_new();
+    GtkWidget *load_state_item = gtk_menu_item_new_with_label("Load State");
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(load_state_item), load_state_submenu);
+    gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), load_state_item);
+
+    // Quick Load (slot 10)
+    GtkWidget *quickload_item = gtk_menu_item_new_with_label("Quick Load (F7)");
+    g_signal_connect(quickload_item, "activate", G_CALLBACK(on_quickload), &gui);
+    gtk_menu_shell_append(GTK_MENU_SHELL(load_state_submenu), quickload_item);
+
+    GtkWidget *load_sep = gtk_separator_menu_item_new();
+    gtk_menu_shell_append(GTK_MENU_SHELL(load_state_submenu), load_sep);
+
+    // Slots 0-9 – show wave/score/time from menu_get_state_info()
+    for (int _l = 0; _l < 10; _l++) {
+        char slot_label[128];
+        const char *info = menu_get_state_info(_l);
+        snprintf(slot_label, sizeof(slot_label), "Slot %d: %s", _l, info);
+        GtkWidget *slot_item = gtk_menu_item_new_with_label(slot_label);
+        SaveLoadSlotData *ldata = g_new(SaveLoadSlotData, 1);
+        ldata->gui  = &gui;
+        ldata->slot = _l;
+        g_signal_connect(slot_item, "activate", G_CALLBACK(on_load_state_slot), ldata);
+        gtk_menu_shell_append(GTK_MENU_SHELL(load_state_submenu), slot_item);
+    }
+
     GtkWidget *separator = gtk_separator_menu_item_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(file_menu), separator);
     
