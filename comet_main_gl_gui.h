@@ -51,8 +51,6 @@ typedef struct {
     Visualizer visualizer;
     AudioManager audio;
     
-    HapticManager haptic_manager;
-    
     int window_width;
     int window_height;
     bool fullscreen;

@@ -8,6 +8,7 @@
 #include <cairo.h>
 #endif
 #include "cometbuster_bossexplosion.h"
+#include "comet_haptics.h"
 
 // Static memory allocation constants
 #define MAX_COMETS 128
@@ -495,6 +496,9 @@ typedef struct {
     BossExplosion boss_explosion_effect;
     
     int current_language;    
+    
+    HapticManager haptic_manager;
+
     
 } CometBusterGame;
 

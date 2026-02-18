@@ -26,6 +26,8 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
     
     // Use keyboard if any movement keys pressed, otherwise use mouse
     if (!mouse_active) {
+        SDL_Log("[Comet Busters] Mouse is not active");
+
         // KEYBOARD-BASED ARCADE CONTROLS
         // Rotation: A=left, D=right
         double rotation_speed = 6.0;  // Radians per second

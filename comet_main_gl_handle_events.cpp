@@ -1990,7 +1990,7 @@ void init_joystick(CometGUI *gui) {
     if (num_joysticks > 0) {
         gui->joystick = SDL_JoystickOpen(0);
         SDL_Log("[Comet Busters] [JOYSTICK] Initializing Haptic: %s\n", SDL_JoystickName(gui->joystick));
-        haptic_init(&gui->haptic_manager, gui->joystick);
+        haptic_init(&gui->visualizer.comet_buster.haptic_manager, gui->joystick);
 
         if (gui->joystick) {
             SDL_Log("[Comet Busters] [JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
