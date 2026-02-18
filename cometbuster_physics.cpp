@@ -2904,10 +2904,15 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     if (game->game_over) {
         game->game_over_timer -= dt;
         
+#ifndef ExternalSound  // Needed for Zenamp
+ 
+        SDL_Log("Checking if Right click is pressed");
         // Handle right-click restart
-        /*if (game->mouse_right_pressed) {
+        if (game->mouse_right_pressed) {
             comet_buster_reset_game(game);
-        }*/
+        }
+#endif
+
     }
 }
 
