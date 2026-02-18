@@ -247,19 +247,19 @@ const char* high_scores_get_path(void) {
 #ifdef _WIN32
     char appdata_path[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appdata_path))) {
-        snprintf(scores_path, sizeof(scores_path), "%s\\CometBuster\\highscores.txt", appdata_path);
+        snprintf(scores_path, sizeof(scores_path), "%s\\CometBusters\\highscores.txt", appdata_path);
     } else {
         const char *home = getenv("USERPROFILE");
         if (home) {
-            snprintf(scores_path, sizeof(scores_path), "%s\\CometBuster\\highscores.txt", home);
+            snprintf(scores_path, sizeof(scores_path), "%s\\CometBusters\\highscores.txt", home);
         } else {
-            strcpy(scores_path, ".\\CometBuster\\highscores.txt");
+            strcpy(scores_path, ".\\CometBusters\\highscores.txt");
         }
     }
 #else
     const char *home = getenv("HOME");
     if (home) {
-        snprintf(scores_path, sizeof(scores_path), "%s/.config/cometbuster/highscores.txt", home);
+        snprintf(scores_path, sizeof(scores_path), "%s/.config/cometbusters/highscores.txt", home);
     } else {
         strcpy(scores_path, "./.cometbuster/highscores.txt");
     }

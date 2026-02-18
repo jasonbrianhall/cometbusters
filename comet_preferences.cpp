@@ -51,11 +51,11 @@ static void build_preferences_path(void) {
     char appdata[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, appdata))) {
         snprintf(preferences_path, sizeof(preferences_path), 
-                 "%s\\CometBuster", appdata);
+                 "%s\\CometBusters", appdata);
         // Create directory if it doesn't exist
         CreateDirectoryA(preferences_path, NULL);
         snprintf(preferences_path, sizeof(preferences_path), 
-                 "%s\\CometBuster\\preferences.cfg", appdata);
+                 "%s\\CometBusters\\preferences.cfg", appdata);
     } else {
         // Fallback to current directory
         strcpy(preferences_path, "preferences.cfg");
@@ -65,11 +65,11 @@ static void build_preferences_path(void) {
     const char *home = getenv("HOME");
     if (home) {
         snprintf(preferences_path, sizeof(preferences_path), 
-                 "%s/.config/cometbuster", home);
+                 "%s/.config/cometbusters", home);
         // Create directory if it doesn't exist
         mkdir(preferences_path, 0755);
         snprintf(preferences_path, sizeof(preferences_path), 
-                 "%s/.config/cometbuster/preferences.cfg", home);
+                 "%s/.config/cometbusters/preferences.cfg", home);
     } else {
         // Fallback to current directory
         strcpy(preferences_path, "preferences.cfg");
