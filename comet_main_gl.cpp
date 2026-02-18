@@ -974,14 +974,13 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         gui.frame_count++;
         
         // ✅ PERFORMANCE MONITORING: Update FPS counter
-        fps_frame_count++;
+/*        fps_frame_count++;
         if (current_ticks - fps_last_time >= 1000) {
-            SDL_Log("[PERF] FPS: %d frames in 1000ms (delta: %.2f ms/frame)\n", 
-                    fps_frame_count, (current_ticks - fps_last_time) / (float)fps_frame_count);
+            SDL_Log("[PERF] FPS: %d frames in 1000ms (delta: %.2f ms/frame)\n",  fps_frame_count, (current_ticks - fps_last_time) / (float)fps_frame_count);
             fps_frame_count = 0;
             fps_last_time = current_ticks;
         }
-        
+*/        
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
         
