@@ -438,7 +438,9 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
     
     // Create large explosion
     comet_buster_spawn_explosion(game, boss->x, boss->y, 1, 60);  // HUGE explosion
-    
+    if (haptic_is_available(&game->haptic_manager)) {
+         haptic_trigger_effect(&game->haptic_manager, HAPTIC_BOSS_DEFEATED);
+    }     
     // Create radial neon burst explosion effect
     const char *boss_type = "death_star";  // Default
     if (game->spawn_queen.is_spawn_queen) {

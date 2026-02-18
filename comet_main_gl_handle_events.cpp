@@ -908,7 +908,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 // Convert window pixel coordinates to game logical coordinates
                 gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
                 gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
-                SDL_Log("[Comet Busters] Mouse Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
+                //SDL_Log("[Comet Busters] Mouse Motion %i %i", gui->visualizer.mouse_x, gui->visualizer.mouse_y);
 
                 gui->visualizer.last_mouse_x = gui->visualizer.mouse_x;
                 gui->visualizer.last_mouse_y = gui->visualizer.mouse_y;

@@ -26,7 +26,7 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
     
     // Use keyboard if any movement keys pressed, otherwise use mouse
     if (!mouse_active) {
-        SDL_Log("[Comet Busters] Mouse is not active");
+        //SDL_Log("[Comet Busters] Mouse is not active");
 
         // KEYBOARD-BASED ARCADE CONTROLS
         // Rotation: A=left, D=right
@@ -61,7 +61,7 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
             game->ship_vy -= thrust_vy * dt;
         }
     } else if (mouse_active) {
-        SDL_Log("[Comet Busters] Mouse is active");
+        //SDL_Log("[Comet Busters] Mouse is active");
         // MOUSE-BASED CONTROLS (Original system - use mouse to aim)
         // Rotate ship to face mouse
         double dx = mouse_x - game->ship_x;
@@ -89,8 +89,7 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
         double mouse_dist = sqrt(dx_move*dx_move + dy_move*dy_move);
         double max_dist = 400.0;
         
-        SDL_Log("[Comet Busters] Mouse pos: (%d, %d), Ship pos: (%.1f, %.1f), Distance: %.1f",
-            mouse_x, mouse_y, game->ship_x, game->ship_y, mouse_dist);
+        //SDL_Log("[Comet Busters] Mouse pos: (%d, %d), Ship pos: (%.1f, %.1f), Distance: %.1f", mouse_x, mouse_y, game->ship_x, game->ship_y, mouse_dist);
         
         double acceleration = 1.0;
         if (mouse_dist < 50.0) {
@@ -103,14 +102,12 @@ void comet_buster_update_ship(CometBusterGame *game, double dt, int mouse_x, int
         
         double accel_magnitude = acceleration * 200.0;
         
-        SDL_Log("[Comet Busters] Acceleration: %.2f, Accel magnitude: %.1f, Ship velocity: (%.1f, %.1f)",
-            acceleration, accel_magnitude, game->ship_vx, game->ship_vy);
+        //SDL_Log("[Comet Busters] Acceleration: %.2f, Accel magnitude: %.1f, Ship velocity: (%.1f, %.1f)", acceleration, accel_magnitude, game->ship_vx, game->ship_vy);
         
         if (mouse_dist > 0.1) {
             game->ship_vx += (dx_move / mouse_dist) * accel_magnitude * dt;
             game->ship_vy += (dy_move / mouse_dist) * accel_magnitude * dt;
-            SDL_Log("[Comet Busters] Applied acceleration, new velocity: (%.1f, %.1f)",
-                game->ship_vx, game->ship_vy);
+            //SDL_Log("[Comet Busters] Applied acceleration, new velocity: (%.1f, %.1f)", game->ship_vx, game->ship_vy);
         }
     }
     
@@ -1903,7 +1900,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         // Check for input to start game
         if (comet_buster_splash_screen_input_detected(visualizer)) {
             comet_buster_exit_splash_screen(game);
-            SDL_Log("[Comet Busters] [SPLASH] Splash screen exited, game starting\n");
+            //SDL_Log("[Comet Busters] [SPLASH] Splash screen exited, game starting\n");
         }
         return;  // Don't update game yet
     }
@@ -2147,7 +2144,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check if Wave 30 Singularity explosion is done - if so, show finale splash
     if (game->current_wave == 30 && !game->boss_active && !boss_explosion_is_active(&game->boss_explosion_effect)) {
         if (!game->finale_splash_active && !game->game_won) {
-            SDL_Log("[Comet Busters] [FINALE] Wave 30 Singularity explosion complete! Showing victory splash...\n");
+            //SDL_Log("[Comet Busters] [FINALE] Wave 30 Singularity explosion complete! Showing victory splash...\n");
             game->finale_splash_active = true;
             game->finale_splash_boss_paused = true;
             game->finale_splash_timer = 0.0;
@@ -2175,7 +2172,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
 #ifdef ExternalSound
             if (visualizer && visualizer->audio.sfx_wave_complete && !game->splash_screen_active) {
                 audio_play_sound(&visualizer->audio, visualizer->audio.sfx_wave_complete);
-                SDL_Log("[Comet Busters] [AUDIO] Playing wave complete sound\n");
+                //SDL_Log("[Comet Busters] [AUDIO] Playing wave complete sound\n");
             }
 #endif
         }
@@ -2456,7 +2453,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     // Check enemy bullet-ship collisions
     for (int i = 0; i < game->enemy_bullet_count; i++) {
         if (comet_buster_check_enemy_bullet_ship(game, &game->enemy_bullets[i])) {
-            SDL_Log("[Comet Busters] [COLLISION] Enemy bullet hit player ship! Bullet removed.\n");
+            //SDL_Log("[Comet Busters] [COLLISION] Enemy bullet hit player ship! Bullet removed.\n");
             comet_buster_on_ship_hit(game, visualizer);
             // Bullet disappears on impact with player ship
             game->enemy_bullets[i].active = false;
@@ -2511,7 +2508,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         
         // Collision radius for player ship
         if (dist < 15.0) {
-            SDL_Log("[Comet Busters] [COLLISION] Enemy missile hit player ship!\n");
+            //SDL_Log("[Comet Busters] [COLLISION] Enemy missile hit player ship!\n");
             
             // Missiles do same damage as bullets (1 to shield/health)
             comet_buster_on_ship_hit(game, visualizer);
@@ -2728,8 +2725,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                         game->spawn_queen.health--;
                     }
                     
-                    SDL_Log("[Comet Busters] [COLLISION] Spawn Queen hit! Health: %d, Shield: %d\n", 
-                            game->spawn_queen.health, game->spawn_queen.shield_health);
+                    //SDL_Log("[Comet Busters] [COLLISION] Spawn Queen hit! Health: %d, Shield: %d\n",  game->spawn_queen.health, game->spawn_queen.shield_health);
                     
                     if (game->spawn_queen.health <= 0) {
                         comet_buster_destroy_spawn_queen(game, width, height, visualizer);
