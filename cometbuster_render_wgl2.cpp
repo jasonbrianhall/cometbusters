@@ -15,6 +15,46 @@
 #include "cometbuster.h"
 #include "visualization.h"
 
+static bool wgl_bootstrap_glew()
+{
+    // Create a throwaway window just to bootstrap GLEW
+    HWND dummy_hwnd = CreateWindowExW(
+        0, L"CometBusterWGL", L"",
+        WS_OVERLAPPED,
+        0, 0, 1, 1,
+        NULL, NULL, GetModuleHandleW(NULL), NULL
+    );
+    if (!dummy_hwnd) return false;
+
+    HDC dummy_hdc = GetDC(dummy_hwnd);
+
+    PIXELFORMATDESCRIPTOR pfd = {};
+    pfd.nSize      = sizeof(pfd);
+    pfd.nVersion   = 1;
+    pfd.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    pfd.iPixelType = PFD_TYPE_RGBA;
+    pfd.cColorBits = 32;
+    pfd.cDepthBits = 24;
+    pfd.iLayerType = PFD_MAIN_PLANE;
+
+    int fmt = ChoosePixelFormat(dummy_hdc, &pfd);
+    SetPixelFormat(dummy_hdc, fmt, &pfd);
+    HGLRC dummy_ctx = wglCreateContext(dummy_hdc);
+    wglMakeCurrent(dummy_hdc, dummy_ctx);
+
+    glewExperimental = GL_TRUE;
+    GLenum err = glewInit();
+    SDL_Log("[WGL] glewInit (bootstrap): %s\n", glewGetErrorString(err));
+
+    wglMakeCurrent(NULL, NULL);
+    wglDeleteContext(dummy_ctx);
+    ReleaseDC(dummy_hwnd, dummy_hdc);
+    DestroyWindow(dummy_hwnd);
+
+    return (err == GLEW_OK);
+}
+
+
 // ============================================================================
 // INTERNAL STATE
 // ============================================================================
@@ -117,7 +157,6 @@ bool wgl_init_context(GtkWidget *placeholder)
 
     // ------------------------------------------------------------------ 1.
     // Get the Win32 HWND that GDK assigned to the placeholder widget.
-    // The placeholder must be a GtkDrawingArea (or any realized native widget).
     GdkWindow *gdk_win = gtk_widget_get_window(placeholder);
     if (!gdk_win) {
         SDL_Log("[WGL] placeholder GdkWindow is NULL – is the widget realized?\n");
@@ -141,7 +180,50 @@ bool wgl_init_context(GtkWidget *placeholder)
     RegisterClassExW(&wc);   // ignore ERROR_CLASS_ALREADY_EXISTS
 
     // ------------------------------------------------------------------ 3.
-    // Create the child window, initially same size as placeholder.
+    // Bootstrap GLEW using a completely separate throwaway window.
+    // CRITICAL: SetPixelFormat can only be called ONCE per HDC on Windows.
+    // If we bootstrap on our real HWND, we can never set a better pixel
+    // format on it afterwards. Use a dummy HWND so our real one stays clean.
+    {
+        HWND dummy_hwnd = CreateWindowExW(
+            0, L"CometBusterWGL", L"",
+            WS_OVERLAPPED,
+            0, 0, 1, 1,
+            NULL, NULL, GetModuleHandleW(NULL), NULL
+        );
+        if (!dummy_hwnd) {
+            SDL_Log("[WGL] Failed to create dummy window: %lu\n", GetLastError());
+            return false;
+        }
+
+        HDC dummy_hdc = GetDC(dummy_hwnd);
+
+        PIXELFORMATDESCRIPTOR pfd_tmp = {};
+        pfd_tmp.nSize      = sizeof(pfd_tmp);
+        pfd_tmp.nVersion   = 1;
+        pfd_tmp.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd_tmp.iPixelType = PFD_TYPE_RGBA;
+        pfd_tmp.cColorBits = 32;
+        pfd_tmp.cDepthBits = 24;
+        pfd_tmp.iLayerType = PFD_MAIN_PLANE;
+
+        int tmp_fmt = ChoosePixelFormat(dummy_hdc, &pfd_tmp);
+        SetPixelFormat(dummy_hdc, tmp_fmt, &pfd_tmp);
+        HGLRC tmp_ctx = wglCreateContext(dummy_hdc);
+        wglMakeCurrent(dummy_hdc, tmp_ctx);
+
+        glewExperimental = GL_TRUE;
+        GLenum glew_err = glewInit();
+        SDL_Log("[WGL] glewInit (bootstrap): %s\n", glewGetErrorString(glew_err));
+
+        wglMakeCurrent(NULL, NULL);
+        wglDeleteContext(tmp_ctx);
+        ReleaseDC(dummy_hwnd, dummy_hdc);
+        DestroyWindow(dummy_hwnd);
+    }
+
+    // ------------------------------------------------------------------ 4.
+    // Create the real child window, initially same size as placeholder.
     GtkAllocation alloc;
     gtk_widget_get_allocation(placeholder, &alloc);
 
@@ -167,37 +249,8 @@ bool wgl_init_context(GtkWidget *placeholder)
         return false;
     }
 
-    // ------------------------------------------------------------------ 4.
-    // Create a temporary dummy context to bootstrap GLEW / WGL extensions.
-    g_wgl.hdc = GetDC(g_wgl.hwnd);
-
-    // Temporary context (needed before wglChoosePixelFormatARB exists)
-    PIXELFORMATDESCRIPTOR pfd_tmp = {};
-    pfd_tmp.nSize      = sizeof(pfd_tmp);
-    pfd_tmp.nVersion   = 1;
-    pfd_tmp.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd_tmp.iPixelType = PFD_TYPE_RGBA;
-    pfd_tmp.cColorBits = 32;
-    pfd_tmp.cDepthBits = 24;
-    pfd_tmp.iLayerType = PFD_MAIN_PLANE;
-
-    int tmp_fmt = ChoosePixelFormat(g_wgl.hdc, &pfd_tmp);
-    SetPixelFormat(g_wgl.hdc, tmp_fmt, &pfd_tmp);
-    HGLRC tmp_ctx = wglCreateContext(g_wgl.hdc);
-    wglMakeCurrent(g_wgl.hdc, tmp_ctx);
-
-    // Init GLEW so ARB extensions become available
-    glewExperimental = GL_TRUE;
-    GLenum glew_err = glewInit();
-    SDL_Log("[WGL] glewInit (bootstrap): %s\n", glewGetErrorString(glew_err));
-
-    // Destroy dummy context, release DC, then recreate properly
-    wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(tmp_ctx);
-    ReleaseDC(g_wgl.hwnd, g_wgl.hdc);
-
     // ------------------------------------------------------------------ 5.
-    // Now create the REAL context with a good pixel format.
+    // Set pixel format on the real window's fresh HDC and create real context.
     g_wgl.hdc = GetDC(g_wgl.hwnd);
 
     if (!wgl_choose_pixel_format(g_wgl.hdc)) {
@@ -214,11 +267,15 @@ bool wgl_init_context(GtkWidget *placeholder)
             0
         };
         g_wgl.hglrc = wglCreateContextAttribsARB(g_wgl.hdc, NULL, ctx_attribs);
+        if (g_wgl.hglrc) {
+            SDL_Log("[WGL] Created OpenGL 3.3 core profile context\n");
+        }
     }
 
     // Fallback: compatibility context
     if (!g_wgl.hglrc) {
         g_wgl.hglrc = wglCreateContext(g_wgl.hdc);
+        SDL_Log("[WGL] Fell back to compatibility context\n");
     }
 
     if (!g_wgl.hglrc) {
@@ -229,18 +286,20 @@ bool wgl_init_context(GtkWidget *placeholder)
     wglMakeCurrent(g_wgl.hdc, g_wgl.hglrc);
 
     // Re-init GLEW with the real context
-    glew_err = glewInit();
+    GLenum glew_err = glewInit();
     SDL_Log("[WGL] glewInit (real ctx): %s\n", glewGetErrorString(glew_err));
     g_wgl.glew_ok = (glew_err == GLEW_OK);
 
     // ------------------------------------------------------------------ 6.
-    // Basic GL state (mirrors on_realize from cometbuster_render_gl2.cpp)
+    // Basic GL state
     glClearColor(0.04f, 0.06f, 0.15f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_MULTISAMPLE);
+
+    gl_init();
 
     g_wgl.initialized = true;
     SDL_Log("[WGL] Context initialized OK, HWND=%p\n", (void*)g_wgl.hwnd);
@@ -329,9 +388,10 @@ void wgl_cleanup(void)
 void wgl_render_frame(Visualizer *vis)
 {
     if (!g_wgl.initialized || !vis) return;
-
+    if (g_wgl.w < 10 || g_wgl.h < 10) return; 
+    
     wgl_make_current();
-
+    //SDL_Log("[WGL] render w=%d h=%d initialized=%d\n", g_wgl.w, g_wgl.h, g_wgl.initialized);
     int w = g_wgl.w;
     int h = g_wgl.h;
 
