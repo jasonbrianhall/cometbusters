@@ -1,5 +1,3 @@
-#ifndef WIN32
-
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <math.h>
@@ -40,6 +38,8 @@ gboolean on_realize(GtkGLArea *area, gpointer data) {
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_MULTISAMPLE);
+
+    gl_init();
     
     SDL_Log("[Comet Busters] [GL] GL Context initialized\n");
     return TRUE;
@@ -85,6 +85,3 @@ gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
     
     return TRUE;
 }
-
-#endif
-
