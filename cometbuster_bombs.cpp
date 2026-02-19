@@ -115,6 +115,9 @@ bool comet_buster_check_ship_bomb_pickup(CometBusterGame *game, BombPickup *p, V
         comet_buster_spawn_floating_text(game, game->ship_x, game->ship_y - 30, text, 
                                         1.0, 0.8, 0.0);  // Gold color
         
+        // Haptic: pickup feedback
+        haptic_trigger_effect(&game->haptic_manager, HAPTIC_CANISTER_COLLECT);
+        
         return true;
     }
     
@@ -219,6 +222,9 @@ void comet_buster_update_bombs(CometBusterGame *game, double dt, int width, int 
                     audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
                 }
 #endif
+                
+                // Haptic: heavy directional burst for bomb detonation
+                haptic_trigger_effect(&game->haptic_manager, HAPTIC_BOMB_EXPLOSION);
                 
                 // Create particles at bomb location
                 comet_buster_spawn_explosion(game, bomb->x, bomb->y, 1, 20);

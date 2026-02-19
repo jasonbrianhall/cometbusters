@@ -158,8 +158,6 @@ void comet_buster_destroy_comet(CometBusterGame *game, int comet_index, int widt
     
     comet_buster_spawn_explosion(game, c->x, c->y, c->frequency_band, particle_count);
     
-    // No explosion sound - removed as requested
-    
     // Award points
     int points = 0;
     switch (c->size) {
@@ -511,6 +509,9 @@ void comet_buster_destroy_boss(CometBusterGame *game, int width, int height, voi
 void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
     if (game->invulnerability_time > 0) return;
     
+    // Haptic: player ship takes a hit
+    haptic_trigger_effect(&game->haptic_manager, HAPTIC_PLAYER_HIT);
+    
     // Priority 1: Try to use 80% energy to absorb the hit
     if (game->energy_amount >= 80.0) {
         // Create impact explosion at ship location
@@ -623,9 +624,15 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
         }
         #endif
         
+        // Haptic: full game over - max intensity, sustained, three pulses
+        haptic_trigger_custom(&game->haptic_manager, 255, 255, 300, 3);
+        
         // Don't add high score here - let the GUI dialog handle player name entry
         // The high score will be added when player submits their name in the dialog
     } else {
+        // Haptic: lost a life - heavy, but one pulse (not game over intensity)
+        haptic_trigger_custom(&game->haptic_manager, 255, 220, 250, 1);
+        
         // Move ship to center (like classic Asteroids) - resolution aware
         if (visualizer && visualizer->width > 0 && visualizer->height > 0) {
             game->ship_x = visualizer->width / 2.0;
