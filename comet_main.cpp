@@ -34,6 +34,18 @@
 gboolean on_realize(GtkGLArea *area, gpointer data);
 gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data);
 
+#ifdef _WIN32
+// Win32/WGL child window – declarations (implemented in cometbuster_render_wgl.cpp)
+bool wgl_init_context(GtkWidget *placeholder);
+void wgl_resize(GtkWidget *placeholder);
+void wgl_make_current(void);
+void wgl_swap_buffers(void);
+void wgl_cleanup(void);
+void wgl_render_frame(Visualizer *vis);
+void on_wgl_placeholder_realize(GtkWidget *widget, gpointer user_data);
+void on_wgl_placeholder_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data);
+#endif
+
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -1833,7 +1845,11 @@ gboolean game_update_timer(gpointer data) {
         
         // Redraw and return early (don't update normal game during splash)
         if (gui->rendering_engine == 1) {
+#ifdef _WIN32
+            wgl_render_frame(&gui->visualizer);
+#else
             gtk_widget_queue_draw(gui->gl_area);
+#endif
         } else {
             gtk_widget_queue_draw(gui->drawing_area);
         }
@@ -1872,7 +1888,11 @@ gboolean game_update_timer(gpointer data) {
         
         // Redraw and return early (don't update normal game during victory scroll)
         if (gui->rendering_engine == 1) {
+#ifdef _WIN32
+            wgl_render_frame(&gui->visualizer);
+#else
             gtk_widget_queue_draw(gui->gl_area);
+#endif
         } else {
             gtk_widget_queue_draw(gui->drawing_area);
         }
@@ -1939,7 +1959,11 @@ gboolean game_update_timer(gpointer data) {
         
         // Redraw and return early (don't update normal game during finale splash)
         if (gui->rendering_engine == 1) {
+#ifdef _WIN32
+            wgl_render_frame(&gui->visualizer);
+#else
             gtk_widget_queue_draw(gui->gl_area);
+#endif
         } else {
             gtk_widget_queue_draw(gui->drawing_area);
         }
@@ -1986,7 +2010,11 @@ gboolean game_update_timer(gpointer data) {
         
         // Redraw
         if (gui->rendering_engine == 1) {
+#ifdef _WIN32
+            wgl_render_frame(&gui->visualizer);
+#else
             gtk_widget_queue_draw(gui->gl_area);
+#endif
         } else {
             gtk_widget_queue_draw(gui->drawing_area);
         }
@@ -2445,7 +2473,9 @@ void on_rendering_opengl(GtkWidget *widget, gpointer data) {
     
     gtk_widget_grab_focus(gui->gl_area);
     gui->rendering_engine = 1;
+#ifndef _WIN32
     gtk_widget_queue_draw(gui->gl_area);
+#endif
 }
 
 // ============================================================
@@ -2877,6 +2907,35 @@ int main(int argc, char *argv[]) {
     g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
     
     // Create OpenGL area
+#ifdef _WIN32
+    // Win32: use a plain GtkDrawingArea as a layout/input placeholder.
+    // A native Win32 child HWND with a WGL context is created on top of it
+    // by cometbuster_render_wgl.cpp once the widget is realized.
+    gui.gl_area = gtk_drawing_area_new();
+    gtk_widget_set_size_request(gui.gl_area, -1, -1);
+    gtk_widget_set_can_focus(gui.gl_area, TRUE);
+    gtk_widget_add_events(gui.gl_area,
+                         GDK_BUTTON_PRESS_MASK |
+                         GDK_BUTTON_RELEASE_MASK |
+                         GDK_POINTER_MOTION_MASK |
+                         GDK_KEY_PRESS_MASK |
+                         GDK_KEY_RELEASE_MASK |
+                         GDK_SCROLL_MASK);
+
+    // WGL lifecycle: realize creates the child HWND + context; size-allocate keeps it in sync
+    g_signal_connect(gui.gl_area, "realize",
+                     G_CALLBACK(on_wgl_placeholder_realize), &gui.visualizer);
+    g_signal_connect(gui.gl_area, "size-allocate",
+                     G_CALLBACK(on_wgl_placeholder_size_allocate), NULL);
+
+    // Input events are still routed through GTK as normal
+    g_signal_connect(gui.gl_area, "button-press-event",   G_CALLBACK(on_button_press),   &gui);
+    g_signal_connect(gui.gl_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
+    g_signal_connect(gui.gl_area, "scroll-event",         G_CALLBACK(on_scroll),         &gui);
+    g_signal_connect(gui.gl_area, "motion-notify-event",  G_CALLBACK(on_motion_notify),  &gui);
+    g_signal_connect(gui.gl_area, "key-press-event",      G_CALLBACK(on_key_press),      &gui);
+    g_signal_connect(gui.gl_area, "key-release-event",    G_CALLBACK(on_key_release),    &gui);
+#else
     gui.gl_area = gtk_gl_area_new();
     gtk_widget_set_size_request(gui.gl_area, -1, -1);
     gtk_widget_set_can_focus(gui.gl_area, TRUE);
@@ -2897,6 +2956,7 @@ int main(int argc, char *argv[]) {
     g_signal_connect(gui.gl_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
     g_signal_connect(gui.gl_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
     g_signal_connect(gui.gl_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
+#endif // _WIN32
     
     // Create GtkStack to manage widget switching (preserves state and GL context)
     GtkWidget *rendering_stack = gtk_stack_new();
@@ -2942,6 +3002,9 @@ int main(int argc, char *argv[]) {
     comet_buster_cleanup(&gui.visualizer.comet_buster);
     joystick_manager_cleanup(&gui.visualizer.joystick_manager);
     audio_cleanup(&gui.audio);
+#ifdef _WIN32
+    wgl_cleanup();
+#endif
     
     return 0;
 }
