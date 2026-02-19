@@ -1962,11 +1962,12 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     bool joystick_any_input = false;
     if (joystick_connected) {
         // Check stick movement
-        if (fabs(active_joystick->axis_x) > 0.3 || fabs(active_joystick->axis_y) > 0.3) {
+        if (fabs(active_joystick->axis_x) > 0.5 || fabs(active_joystick->axis_y) > 0.5) {
             joystick_any_input = true;
         }
-        // Check triggers
-        if (active_joystick->axis_lt > 0.1 || active_joystick->axis_rt > 0.1) {
+        // Check triggers - use a higher deadzone (0.5) for mode-switching purposes so
+        // DualSense adaptive triggers don't report false input at rest (they idle ~0.05-0.15)
+        if (active_joystick->axis_lt > 0.5 || active_joystick->axis_rt > 0.5) {
             joystick_any_input = true;
         }
         // Check any button
