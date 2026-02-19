@@ -1979,7 +1979,6 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             joystick_any_input = true;
         }
     }
-  
     bool joy_active=false;  
     if (joystick_connected && joystick_any_input) {
          joy_active=true;
@@ -2217,6 +2216,7 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             }
 #endif
             // Haptic: scale intensity based on comet size
+          
             {
                 Comet *hit_comet = &game->comets[i];
                 switch (hit_comet->size) {

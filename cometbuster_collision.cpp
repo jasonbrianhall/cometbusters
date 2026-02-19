@@ -630,6 +630,7 @@ void comet_buster_on_ship_hit(CometBusterGame *game, Visualizer *visualizer) {
         // Don't add high score here - let the GUI dialog handle player name entry
         // The high score will be added when player submits their name in the dialog
     } else {
+
         // Haptic: lost a life - heavy, but one pulse (not game over intensity)
         haptic_trigger_custom(&game->haptic_manager, 255, 220, 250, 1);
         
