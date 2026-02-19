@@ -126,61 +126,6 @@ void update_touch_input(Visualizer *vis, CometBusterGame *game, double dt) {
         }
     }
 }
-
-// ============================================================
-// QUICK SAVE/LOAD HELPER FUNCTIONS (for F5/F7 - slot 10)
-// ============================================================
-
-static void get_quicksave_filename(char *filename, size_t max_len) {
-    char expanded_dir[512];
-    
-#ifdef _WIN32
-    const char *appdata = getenv("APPDATA");
-    if (appdata) {
-        snprintf(expanded_dir, sizeof(expanded_dir), "%s\\Local\\CometBusters\\savedata", appdata);
-    } else {
-        snprintf(expanded_dir, sizeof(expanded_dir), "CometBusters\\savedata");
-    }
-#else
-    const char *home = getenv("HOME");
-    if (home) {
-        snprintf(expanded_dir, sizeof(expanded_dir), "%s/.local/share/cometbusters/savedata", home);
-    } else {
-        snprintf(expanded_dir, sizeof(expanded_dir), "./.cometbusters/savedata");
-    }
-#endif
-    
-    snprintf(filename, max_len, "%s/comet_state_10.sav", expanded_dir);
-}
-
-static void ensure_quicksave_dir() {
-    char expanded_dir[512];
-    
-#ifdef _WIN32
-    const char *appdata = getenv("APPDATA");
-    if (appdata) {
-        snprintf(expanded_dir, sizeof(expanded_dir), "%s\\Local\\CometBusters\\savedata", appdata);
-    } else {
-        snprintf(expanded_dir, sizeof(expanded_dir), "CometBusters\\savedata");
-    }
-    
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "mkdir \"%s\" 2>nul", expanded_dir);
-    system(cmd);
-#else
-    const char *home = getenv("HOME");
-    if (home) {
-        snprintf(expanded_dir, sizeof(expanded_dir), "%s/.local/share/cometbusters/savedata", home);
-    } else {
-        snprintf(expanded_dir, sizeof(expanded_dir), "./.cometbusters/savedata");
-    }
-    
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "mkdir -p \"%s\" 2>/dev/null", expanded_dir);
-    system(cmd);
-#endif
-}
-
 // ============================================================
 
 void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat_menu) {

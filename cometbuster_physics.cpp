@@ -1572,6 +1572,12 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                         audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
                     }
 #endif
+                    // Haptic: spread fire hits harder than normal bullets
+                    if (game->using_spread_fire) {
+                        haptic_trigger_custom(&game->haptic_manager, 210, 180, 110, 1);
+                    } else {
+                        haptic_trigger_effect(&game->haptic_manager, HAPTIC_PLAYER_SHOOT);
+                    }
                 }
             }
         }
@@ -1612,6 +1618,12 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                         audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
                     }
 #endif
+                    // Haptic: spread fire hits harder than normal bullets
+                    if (game->using_spread_fire) {
+                        haptic_trigger_custom(&game->haptic_manager, 210, 180, 110, 1);
+                    } else {
+                        haptic_trigger_effect(&game->haptic_manager, HAPTIC_PLAYER_SHOOT);
+                    }
                 }
             }
         }
@@ -1640,6 +1652,8 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
                 }
 #endif
+                // Haptic: full-ring burst - heavier than spread, two pulses
+                haptic_trigger_custom(&game->haptic_manager, 230, 200, 130, 2);
             }
         }
     }
@@ -1775,6 +1789,8 @@ void comet_buster_update_shooting(CometBusterGame *game, double dt, void *vis) {
                     audio_play_sound(&visualizer->audio, visualizer->audio.sfx_fire);
                 }
 #endif
+                // Haptic: full-ring burst - heavier than spread, two pulses
+                haptic_trigger_custom(&game->haptic_manager, 230, 200, 130, 2);
             }
         }
     }
@@ -1946,11 +1962,12 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
     bool joystick_any_input = false;
     if (joystick_connected) {
         // Check stick movement
-        if (fabs(active_joystick->axis_x) > 0.3 || fabs(active_joystick->axis_y) > 0.3) {
+        if (fabs(active_joystick->axis_x) > 0.5 || fabs(active_joystick->axis_y) > 0.5) {
             joystick_any_input = true;
         }
-        // Check triggers
-        if (active_joystick->axis_lt > 0.1 || active_joystick->axis_rt > 0.1) {
+        // Check triggers - use a higher deadzone (0.5) for mode-switching purposes so
+        // DualSense adaptive triggers don't report false input at rest (they idle ~0.05-0.15)
+        if (active_joystick->axis_lt > 0.5 || active_joystick->axis_rt > 0.5) {
             joystick_any_input = true;
         }
         // Check any button
@@ -1962,7 +1979,6 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             joystick_any_input = true;
         }
     }
-  
     bool joy_active=false;  
     if (joystick_connected && joystick_any_input) {
          joy_active=true;
@@ -2199,6 +2215,26 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 audio_play_sound(&visualizer->audio, visualizer->audio.sfx_explosion);
             }
 #endif
+            // Haptic: scale intensity based on comet size
+          
+            {
+                Comet *hit_comet = &game->comets[i];
+                switch (hit_comet->size) {
+                    case COMET_SMALL:
+                        haptic_trigger_custom(&game->haptic_manager, 140, 100, 80,  1);  // Small - light thud
+                        break;
+                    case COMET_MEDIUM:
+                        haptic_trigger_custom(&game->haptic_manager, 200, 150, 120, 1);  // Medium
+                        break;
+                    case COMET_LARGE:
+                        haptic_trigger_custom(&game->haptic_manager, 240, 190, 160, 1);  // Large - heavy
+                        break;
+                    case COMET_MEGA:
+                    case COMET_SPECIAL:
+                        haptic_trigger_custom(&game->haptic_manager, 255, 220, 200, 2);  // Mega - two-pulse wallop
+                        break;
+                }
+            }
             
             // Always destroy the comet on collision
             comet_buster_destroy_comet(game, i, width, height, visualizer);
@@ -2252,6 +2288,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
             }
 #endif
             
+            // Haptic: pleasant buzz for canister pickup
+            haptic_trigger_effect(&game->haptic_manager, HAPTIC_CANISTER_COLLECT);
+            
             // Remove canister
             game->canisters[i].active = false;
             break;  // Exit loop
@@ -2287,6 +2326,9 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
                 audio_play_sound(&visualizer->audio, visualizer->audio.sfx_wave_complete);
             }
 #endif
+            
+            // Haptic: pickup feedback, same feel as canister
+            haptic_trigger_effect(&game->haptic_manager, HAPTIC_CANISTER_COLLECT);
             
             game->missile_pickups[i].active = false;
             break;
@@ -2906,7 +2948,6 @@ void update_comet_buster(Visualizer *visualizer, double dt) {
         
 #ifndef ExternalSound  // Needed for Zenamp
  
-        SDL_Log("Checking if Right click is pressed");
         // Handle right-click restart
         if (game->mouse_right_pressed) {
             comet_buster_reset_game(game);
@@ -3664,6 +3705,9 @@ void comet_buster_fire_missile(CometBusterGame *game, void *vis) {
         }
     }
 #endif
+    
+    // Haptic: firm burst for missile launch
+    haptic_trigger_effect(&game->haptic_manager, HAPTIC_MISSILE_FIRE);
     
     if (game->missile_ammo <= 0) {
         game->using_missiles = false;

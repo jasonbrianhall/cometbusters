@@ -51,8 +51,8 @@ SDL2_MIXER_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags SDL2_mixer 2>/de
 SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
 # Normal dynamic build
-CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
-CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX
+CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
+CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX
 LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
 
 # Static build flags for Linux deployment
@@ -60,8 +60,8 @@ LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINU
 # Note: glibc (libc.so.6) will remain dynamic as per glibc license requirements
 STATIC_FLAGS_LINUX = -static-libstdc++ -static-libgcc
 
-CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
-CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
+CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
+CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
 LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW $(STATIC_FLAGS_LINUX)
 
 # Optimization flags for normal build
@@ -78,8 +78,8 @@ SDL2_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs sdl2 2>/dev/null || echo "-lSD
 SDL2_MIXER_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
-CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
-CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DExternalSound -DWIN32 -D_WIN32
+CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DGLSave -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
+CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DGLSave -DExternalSound -DWIN32 -D_WIN32
 LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(FREETYPE_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
 
 CXXFLAGS_WIN += -O2 -ffunction-sections -fdata-sections
@@ -99,7 +99,7 @@ SOURCES_CPP_COMMON = comet_main_gl.cpp comet_main_gl_handle_events.cpp  wad.cpp 
 	cometbuster_util.cpp cometbuster_splashscreen.cpp joystick.cpp \
 	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_highscores.cpp \
 	comet_preferences.cpp cometbuster_spawn.cpp comet_main_gl_menu.cpp \
-	comet_haptics.cpp
+	comet_haptics.cpp comet_save.cpp
 
 # Source files - Miniz WAD system (C files)
 SOURCES_C = miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c
