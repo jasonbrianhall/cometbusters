@@ -1,3 +1,5 @@
+#ifndef WIN32
+
 #include <GL/glew.h>
 #include <GL/gl.h>
 #include <math.h>
@@ -83,3 +85,6 @@ gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data) {
     
     return TRUE;
 }
+
+#endif
+

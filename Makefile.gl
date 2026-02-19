@@ -21,8 +21,8 @@ CXX_WIN = x86_64-w64-mingw32-g++
 CC_WIN = x86_64-w64-mingw32-gcc
 
 # Common flags
-CXXFLAGS_COMMON = -Wall -Wextra -g -std=c++11 -fpermissive
-CFLAGS_COMMON = -Wall -Wextra -g
+CXXFLAGS_COMMON = -Wall -Wextra -std=c++11 -fpermissive
+CFLAGS_COMMON = -Wall -Wextra
 
 # Platform-specific package config commands
 PKG_CONFIG_LINUX = pkg-config
@@ -82,8 +82,8 @@ CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(
 CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DGLSave -DExternalSound -DWIN32 -D_WIN32
 LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(FREETYPE_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
 
-CXXFLAGS_WIN += -O2 -ffunction-sections -fdata-sections
-LDFLAGS_WIN += -s -Wl,--gc-sections
+CXXFLAGS_WIN += -O5 -ffunction-sections -fdata-sections -flto
+LDFLAGS_WIN += -Wl,-Bdynamic -s -Wl,--gc-sections -flto -mwindows
 
 # Debug flags
 DEBUG_FLAGS = -DDEBUG

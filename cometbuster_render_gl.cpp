@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-//#include <pango/pango.h>
+#include <vector>
 #include "cometbuster.h"
 #include "visualization.h"
 #include "cometbuster_splashscreen.h"
@@ -511,9 +511,10 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     float line_height = (float)font_size * 1.2f;  // Line height with 20% spacing
     
     // Build vertex array
-    static Vertex verts[20000000];
+    static std::vector<Vertex> verts;
+    if (verts.empty()) verts.resize(100000);
     int vert_count = 0;
-    const int MAX_VERTS = 19999999;
+    const int MAX_VERTS = 99999;
     
     // Process UTF-8 text
     for (int i = 0; text[i] && vert_count < MAX_VERTS - 6; ) {
@@ -590,7 +591,7 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     if (vert_count > 0) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        draw_vertices(verts, vert_count, GL_TRIANGLES);
+        draw_vertices(verts.data(), vert_count, GL_TRIANGLES);
     }
 }
 

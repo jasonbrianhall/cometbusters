@@ -19,8 +19,8 @@ CXX_WIN = x86_64-w64-mingw32-g++
 CC_WIN = x86_64-w64-mingw32-gcc
 
 # Common flags
-CXXFLAGS_COMMON = -Wall -Wextra -g -std=c++11 -fpermissive
-CFLAGS_COMMON = -Wall -Wextra -g
+CXXFLAGS_COMMON = -Wall -Wextra -std=c++11 -fpermissive
+CFLAGS_COMMON = -Wall -Wextra
 
 # Platform-specific package config commands
 PKG_CONFIG_LINUX = pkg-config
@@ -36,9 +36,12 @@ GTK_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs gtk+-3.0 2>/dev/null || ech
 SDL2_MIXER_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
-CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DCAIROBUILD -DLINUX -DVERSION=\"$(VERSION)\" `freetype-config --cflags --libs` -lm
+FREETYPE_CFLAGS_LINUX := $(shell pkg-config --cflags freetype2 2>/dev/null || freetype-config --cflags 2>/dev/null || echo "")
+FREETYPE_LIBS_LINUX := $(shell pkg-config --libs freetype2 2>/dev/null || freetype-config --libs 2>/dev/null || echo "-lfreetype")
+
+CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DExternalSound -DCAIROBUILD -DLINUX -DVERSION=\"$(VERSION)\"
 CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(GTK_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) -DExternalSound -DCAIROBUILD -DLINUX
-LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
+LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(GTK_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
 
 # Optimization flags
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
@@ -51,16 +54,22 @@ GTK_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags gtk+-3.0 2>/dev/null || ech
 GTK_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs gtk+-3.0 2>/dev/null || echo "")
 SDL2_MIXER_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
+FREETYPE_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags freetype2 2>/dev/null || echo "-I/usr/x86_64-w64-mingw32/sys-root/mingw/include/freetype2")
+FREETYPE_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs freetype2 2>/dev/null || echo "-lfreetype")
 
-CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DCAIROBUILD -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
+CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DExternalSound -DCAIROBUILD -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
 CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(GTK_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) -DExternalSound -DCAIROBUILD -DWIN32 -D_WIN32
-LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
+# -Wl,-Bdynamic ensures the linker prefers .dll.a import libs over .a static archives
+LDFLAGS_WIN = -Wl,-Bdynamic $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(FREETYPE_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
 
 CXXFLAGS_WIN += -O2 -ffunction-sections -fdata-sections
 LDFLAGS_WIN += -s -Wl,--gc-sections
 
-# Debug flags
-DEBUG_FLAGS = -DDEBUG
+# Debug linker flags: same libraries but no strip, keeps debug info readable
+LDFLAGS_WIN_DEBUG = -Wl,-Bdynamic $(SDL2_LIBS_WIN) $(GTK_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(FREETYPE_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
+
+# Debug flags - -g only added here, never in release CXXFLAGS_COMMON
+DEBUG_FLAGS = -DDEBUG -g
 CXXFLAGS_LINUX_DEBUG = $(CXXFLAGS_LINUX) $(DEBUG_FLAGS)
 CFLAGS_LINUX_DEBUG = $(CFLAGS_LINUX) $(DEBUG_FLAGS)
 CXXFLAGS_WIN_DEBUG = $(CXXFLAGS_WIN) $(DEBUG_FLAGS)
@@ -73,7 +82,7 @@ SOURCES_CPP_COMMON = comet_main.cpp wad.cpp audio_wad.cpp cometbuster_spawn.cpp 
 	cometbuster_util.cpp cometbuster_splashscreen.cpp joystick.cpp \
 	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp comet_help.cpp \
 	cometbuster_render_gl.cpp cometbuster_render_gl2.cpp comet_highscores.cpp \
-	comet_haptics.cpp comet_save.cpp
+	comet_haptics.cpp comet_save.cpp cometbuster_render_wgl2.cpp
 
 # Source files - Miniz WAD system (C files)
 SOURCES_C = miniz.c miniz_tdef.c miniz_tinfl.c miniz_zip.c
@@ -140,7 +149,7 @@ cometbuster-linux: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 
 $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX): $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS)
 	@echo "Linking Linux executable: $@"
-	$(CXX_LINUX) $(CXXFLAGS_LINUX) $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
+	$(CXX_LINUX) $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Build complete: $@"
 
 # Linux compilation rules - C++ files
@@ -161,7 +170,7 @@ cometbuster-linux-debug: $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)
 
 $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG): $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS)
 	@echo "Linking Linux debug executable: $@"
-	$(CXX_LINUX) $(CXXFLAGS_LINUX_DEBUG) $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
+	$(CXX_LINUX) $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_LINUX)
 	@echo "✓ Debug build complete: $@"
 
 # Linux debug compilation rules - C++ files
@@ -182,7 +191,7 @@ cometbuster-windows: $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)
 
 $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN): $(addprefix $(BUILD_DIR_WIN)/,$(OBJECTS_WIN)) $(EXTRA_OBJS)
 	@echo "Linking Windows executable: $@"
-	$(CXX_WIN) $(CXXFLAGS_WIN) $(addprefix $(BUILD_DIR_WIN)/,$(OBJECTS_WIN)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_WIN)
+	$(CXX_WIN) $(addprefix $(BUILD_DIR_WIN)/,$(OBJECTS_WIN)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_WIN)
 	@echo "✓ Windows build complete: $@"
 
 # Windows compilation rules - C++ files
@@ -203,7 +212,7 @@ cometbuster-windows-debug: $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)
 
 $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG): $(addprefix $(BUILD_DIR_WIN_DEBUG)/,$(OBJECTS_WIN_DEBUG)) $(EXTRA_OBJS)
 	@echo "Linking Windows debug executable: $@"
-	$(CXX_WIN) $(CXXFLAGS_WIN_DEBUG) $(addprefix $(BUILD_DIR_WIN_DEBUG)/,$(OBJECTS_WIN_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_WIN)
+	$(CXX_WIN) $(addprefix $(BUILD_DIR_WIN_DEBUG)/,$(OBJECTS_WIN_DEBUG)) $(EXTRA_OBJS) -o $@ $(LDFLAGS_WIN_DEBUG)
 	@echo "✓ Windows debug build complete: $@"
 
 # Windows debug compilation rules - C++ files
