@@ -1,5 +1,12 @@
-// cometbuster_render_wgl.cpp
-// Win32 child window with WGL OpenGL context embedded in GTK3
+// cometbuster_render_wgl2.cpp
+// Raw WGL OpenGL context embedded in a GTK3 GtkDrawingArea on Win32.
+//
+// Key design decisions:
+//   - Pure WGL — no SDL involved in context creation or swap
+//   - The placeholder GtkDrawingArea's "draw" signal returns TRUE (no-op)
+//     to suppress GTK painting white over our GL surface each frame
+//   - GTK owns all input and focus events — we never touch the Win32 message loop
+//   - Child HWND is always at position (0,0) within its native parent HWND
 
 #ifdef _WIN32
 
@@ -7,7 +14,8 @@
 #include <GL/glew.h>
 #include <GL/wglew.h>
 #include <gtk/gtk.h>
-#include <gdk/gdkwin32.h>   // GDK Win32 backend
+#include <gdk/gdkwin32.h>
+#define SDL_MAIN_HANDLED  // Prevent SDL from redefining main() on Windows
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <math.h>
@@ -20,26 +28,22 @@
 // ============================================================================
 
 static struct {
-    HWND   hwnd;          // Our child HWND
-    HDC    hdc;           // Device context for child window
+    HWND   hwnd;          // Child HWND parented to GTK placeholder
+    HDC    hdc;           // CS_OWNDC device context — stays valid for window lifetime
     HGLRC  hglrc;         // WGL rendering context
-    HWND   parent_hwnd;   // The GTK placeholder's HWND
 
     bool   initialized;
-    bool   glew_ok;
-
-    int    x, y, w, h;   // Last known geometry (GDK coords)
+    int    w, h;          // Last known size (always at 0,0 within parent)
 } g_wgl;
 
 // ============================================================================
-// WIN32 WINDOW PROC  (minimal – we only need WM_PAINT suppressed)
+// WIN32 WINDOW PROC — suppress WM_PAINT so Win32 doesn't clear the GL surface
 // ============================================================================
 
 static LRESULT CALLBACK WGLChildWndProc(HWND hwnd, UINT msg,
                                          WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
-        // Prevent Win32 from painting over our GL surface
         case WM_PAINT: {
             PAINTSTRUCT ps;
             BeginPaint(hwnd, &ps);
@@ -47,165 +51,155 @@ static LRESULT CALLBACK WGLChildWndProc(HWND hwnd, UINT msg,
             return 0;
         }
         case WM_ERASEBKGND:
-            return 1;  // claim we erased it (suppress flicker)
+            return 1;
         default:
             return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
 }
 
 // ============================================================================
-// PIXEL FORMAT / CONTEXT CREATION
+// PUBLIC API
 // ============================================================================
 
-static bool wgl_choose_pixel_format(HDC hdc)
-{
-    // Try WGL_ARB_pixel_format for multisampling first
-    if (wglewIsSupported("WGL_ARB_pixel_format")) {
-        int attribs[] = {
-            WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-            WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-            WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
-            WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-            WGL_COLOR_BITS_ARB,     32,
-            WGL_DEPTH_BITS_ARB,     24,
-            WGL_STENCIL_BITS_ARB,   8,
-            WGL_SAMPLE_BUFFERS_ARB, 1,
-            WGL_SAMPLES_ARB,        4,   // 4x MSAA
-            0
-        };
-        int  fmt = 0;
-        UINT num = 0;
-        if (wglChoosePixelFormatARB(hdc, attribs, NULL, 1, &fmt, &num) && num > 0) {
-            PIXELFORMATDESCRIPTOR pfd = {};
-            DescribePixelFormat(hdc, fmt, sizeof(pfd), &pfd);
-            return SetPixelFormat(hdc, fmt, &pfd) == TRUE;
-        }
-    }
-
-    // Fallback: legacy PIXELFORMATDESCRIPTOR
-    PIXELFORMATDESCRIPTOR pfd = {};
-    pfd.nSize        = sizeof(pfd);
-    pfd.nVersion     = 1;
-    pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd.iPixelType   = PFD_TYPE_RGBA;
-    pfd.cColorBits   = 32;
-    pfd.cDepthBits   = 24;
-    pfd.cStencilBits = 8;
-    pfd.iLayerType   = PFD_MAIN_PLANE;
-
-    int fmt = ChoosePixelFormat(hdc, &pfd);
-    if (!fmt) return false;
-    return SetPixelFormat(hdc, fmt, &pfd) == TRUE;
-}
-
-// ============================================================================
-// PUBLIC API – called from comet_main.cpp (Win32 path)
-// ============================================================================
-
-/**
- * wgl_init_context()
- *
- * Call this from on_realize-equivalent, after the GTK placeholder widget
- * has been mapped and its HWND is available.
- *
- * @param placeholder  GtkWidget* used as the size/position anchor in GTK
- */
-bool wgl_init_context(GtkWidget *placeholder)
+bool sdl_wgl_init(GtkWidget *placeholder)
 {
     if (g_wgl.initialized) return true;
     memset(&g_wgl, 0, sizeof(g_wgl));
 
     // ------------------------------------------------------------------ 1.
-    // Get the Win32 HWND that GDK assigned to the placeholder widget.
-    // The placeholder must be a GtkDrawingArea (or any realized native widget).
+    // Get the native HWND of the GTK placeholder widget.
     GdkWindow *gdk_win = gtk_widget_get_window(placeholder);
     if (!gdk_win) {
-        SDL_Log("[WGL] placeholder GdkWindow is NULL – is the widget realized?\n");
+        SDL_Log("[WGL] placeholder GdkWindow is NULL\n");
         return false;
     }
-    g_wgl.parent_hwnd = (HWND)GDK_WINDOW_HWND(gdk_win);
-    if (!g_wgl.parent_hwnd) {
+    HWND parent_hwnd = (HWND)GDK_WINDOW_HWND(gdk_win);
+    if (!parent_hwnd) {
         SDL_Log("[WGL] GDK_WINDOW_HWND returned NULL\n");
         return false;
     }
 
     // ------------------------------------------------------------------ 2.
-    // Register a minimal window class for our child.
-    WNDCLASSEXW wc  = {};
+    // Register window class (CS_OWNDC so HDC stays valid permanently)
+    // and create child HWND at (0,0) filling parent.
+    WNDCLASSEXW wc = {};
     wc.cbSize        = sizeof(wc);
     wc.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc   = WGLChildWndProc;
     wc.hInstance     = GetModuleHandleW(NULL);
     wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
     wc.lpszClassName = L"CometBusterWGL";
-    RegisterClassExW(&wc);   // ignore ERROR_CLASS_ALREADY_EXISTS
+    RegisterClassExW(&wc);  // safe to call multiple times
 
-    // ------------------------------------------------------------------ 3.
-    // Create the child window, initially same size as placeholder.
     GtkAllocation alloc;
     gtk_widget_get_allocation(placeholder, &alloc);
-
-    g_wgl.x = alloc.x;
-    g_wgl.y = alloc.y;
     g_wgl.w = (alloc.width  < 1) ? 640 : alloc.width;
     g_wgl.h = (alloc.height < 1) ? 480 : alloc.height;
 
+    // Position is (0,0) — child coords are relative to the native parent HWND,
+    // not the GTK container. alloc.x/y are GTK coords and must not be used here.
     g_wgl.hwnd = CreateWindowExW(
         0,
-        L"CometBusterWGL",
-        L"",
+        L"CometBusterWGL", L"",
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-        g_wgl.x, g_wgl.y, g_wgl.w, g_wgl.h,
-        g_wgl.parent_hwnd,
-        NULL,
-        GetModuleHandleW(NULL),
-        NULL
+        0, 0, g_wgl.w, g_wgl.h,
+        parent_hwnd,
+        NULL, GetModuleHandleW(NULL), NULL
     );
-
     if (!g_wgl.hwnd) {
         SDL_Log("[WGL] CreateWindowExW failed: %lu\n", GetLastError());
         return false;
     }
 
-    // ------------------------------------------------------------------ 4.
-    // Create a temporary dummy context to bootstrap GLEW / WGL extensions.
+    // CS_OWNDC: GetDC returns the same HDC every time; no need to release it.
     g_wgl.hdc = GetDC(g_wgl.hwnd);
 
-    // Temporary context (needed before wglChoosePixelFormatARB exists)
-    PIXELFORMATDESCRIPTOR pfd_tmp = {};
-    pfd_tmp.nSize      = sizeof(pfd_tmp);
-    pfd_tmp.nVersion   = 1;
-    pfd_tmp.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-    pfd_tmp.iPixelType = PFD_TYPE_RGBA;
-    pfd_tmp.cColorBits = 32;
-    pfd_tmp.cDepthBits = 24;
-    pfd_tmp.iLayerType = PFD_MAIN_PLANE;
+    // ------------------------------------------------------------------ 3.
+    // Bootstrap GLEW via a throwaway window so wglChoosePixelFormatARB
+    // and wglCreateContextAttribsARB are available.
+    // CRITICAL: SetPixelFormat can only be called ONCE per HDC on Windows.
+    // We must not call it on our real HDC during bootstrap.
+    {
+        HWND dummy = CreateWindowExW(0, L"CometBusterWGL", L"",
+                                      WS_OVERLAPPED, 0, 0, 1, 1,
+                                      NULL, NULL, GetModuleHandleW(NULL), NULL);
+        HDC dummy_dc = GetDC(dummy);
 
-    int tmp_fmt = ChoosePixelFormat(g_wgl.hdc, &pfd_tmp);
-    SetPixelFormat(g_wgl.hdc, tmp_fmt, &pfd_tmp);
-    HGLRC tmp_ctx = wglCreateContext(g_wgl.hdc);
-    wglMakeCurrent(g_wgl.hdc, tmp_ctx);
+        PIXELFORMATDESCRIPTOR pfd = {};
+        pfd.nSize      = sizeof(pfd);
+        pfd.nVersion   = 1;
+        pfd.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd.iPixelType = PFD_TYPE_RGBA;
+        pfd.cColorBits = 32;
+        pfd.cDepthBits = 24;
+        pfd.iLayerType = PFD_MAIN_PLANE;
 
-    // Init GLEW so ARB extensions become available
-    glewExperimental = GL_TRUE;
-    GLenum glew_err = glewInit();
-    SDL_Log("[WGL] glewInit (bootstrap): %s\n", glewGetErrorString(glew_err));
+        int fmt = ChoosePixelFormat(dummy_dc, &pfd);
+        SetPixelFormat(dummy_dc, fmt, &pfd);
+        HGLRC dummy_ctx = wglCreateContext(dummy_dc);
+        wglMakeCurrent(dummy_dc, dummy_ctx);
 
-    // Destroy dummy context, release DC, then recreate properly
-    wglMakeCurrent(NULL, NULL);
-    wglDeleteContext(tmp_ctx);
-    ReleaseDC(g_wgl.hwnd, g_wgl.hdc);
+        glewExperimental = GL_TRUE;
+        glewInit();  // populate wglew extension pointers; errors OK here
 
-    // ------------------------------------------------------------------ 5.
-    // Now create the REAL context with a good pixel format.
-    g_wgl.hdc = GetDC(g_wgl.hwnd);
-
-    if (!wgl_choose_pixel_format(g_wgl.hdc)) {
-        SDL_Log("[WGL] wgl_choose_pixel_format failed\n");
-        return false;
+        wglMakeCurrent(NULL, NULL);
+        wglDeleteContext(dummy_ctx);
+        ReleaseDC(dummy, dummy_dc);
+        DestroyWindow(dummy);
     }
 
-    // Try core profile 3.3 first via WGL_ARB_create_context
+    // ------------------------------------------------------------------ 4.
+    // Set pixel format on our real HDC.
+    // Try ARB (MSAA) first, fall back to legacy.
+    {
+        bool fmt_set = false;
+
+        if (wglewIsSupported("WGL_ARB_pixel_format")) {
+            int attribs[] = {
+                WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+                WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+                WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+                WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+                WGL_COLOR_BITS_ARB,     32,
+                WGL_DEPTH_BITS_ARB,     24,
+                WGL_STENCIL_BITS_ARB,   8,
+                WGL_SAMPLE_BUFFERS_ARB, 1,
+                WGL_SAMPLES_ARB,        4,
+                0
+            };
+            int  chosen = 0;
+            UINT num    = 0;
+            if (wglChoosePixelFormatARB(g_wgl.hdc, attribs, NULL, 1, &chosen, &num) && num > 0) {
+                PIXELFORMATDESCRIPTOR pfd = {};
+                DescribePixelFormat(g_wgl.hdc, chosen, sizeof(pfd), &pfd);
+                fmt_set = (SetPixelFormat(g_wgl.hdc, chosen, &pfd) == TRUE);
+                SDL_Log("[WGL] ARB pixel format %d set: %s\n", chosen, fmt_set ? "OK" : "FAILED");
+            }
+        }
+
+        if (!fmt_set) {
+            PIXELFORMATDESCRIPTOR pfd = {};
+            pfd.nSize        = sizeof(pfd);
+            pfd.nVersion     = 1;
+            pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+            pfd.iPixelType   = PFD_TYPE_RGBA;
+            pfd.cColorBits   = 32;
+            pfd.cDepthBits   = 24;
+            pfd.cStencilBits = 8;
+            pfd.iLayerType   = PFD_MAIN_PLANE;
+            int fmt = ChoosePixelFormat(g_wgl.hdc, &pfd);
+            fmt_set = (SetPixelFormat(g_wgl.hdc, fmt, &pfd) == TRUE);
+            SDL_Log("[WGL] Legacy pixel format %d set: %s\n", fmt, fmt_set ? "OK" : "FAILED");
+        }
+
+        if (!fmt_set) {
+            SDL_Log("[WGL] Failed to set any pixel format\n");
+            return false;
+        }
+    }
+
+    // ------------------------------------------------------------------ 5.
+    // Create WGL context. Try core 3.3 first, fall back to compatibility.
     if (wglewIsSupported("WGL_ARB_create_context")) {
         int ctx_attribs[] = {
             WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
@@ -214,13 +208,13 @@ bool wgl_init_context(GtkWidget *placeholder)
             0
         };
         g_wgl.hglrc = wglCreateContextAttribsARB(g_wgl.hdc, NULL, ctx_attribs);
+        if (g_wgl.hglrc)
+            SDL_Log("[WGL] Created OpenGL 3.3 core profile context\n");
     }
-
-    // Fallback: compatibility context
     if (!g_wgl.hglrc) {
         g_wgl.hglrc = wglCreateContext(g_wgl.hdc);
+        SDL_Log("[WGL] Using compatibility context\n");
     }
-
     if (!g_wgl.hglrc) {
         SDL_Log("[WGL] wglCreateContext failed: %lu\n", GetLastError());
         return false;
@@ -228,13 +222,14 @@ bool wgl_init_context(GtkWidget *placeholder)
 
     wglMakeCurrent(g_wgl.hdc, g_wgl.hglrc);
 
-    // Re-init GLEW with the real context
-    glew_err = glewInit();
-    SDL_Log("[WGL] glewInit (real ctx): %s\n", glewGetErrorString(glew_err));
-    g_wgl.glew_ok = (glew_err == GLEW_OK);
-
     // ------------------------------------------------------------------ 6.
-    // Basic GL state (mirrors on_realize from cometbuster_render_gl2.cpp)
+    // Re-init GLEW with the real context active.
+    glewExperimental = GL_TRUE;
+    GLenum glew_err = glewInit();
+    SDL_Log("[WGL] glewInit (real ctx): %s\n", glewGetErrorString(glew_err));
+
+    // ------------------------------------------------------------------ 7.
+    // Basic GL state — mirrors on_realize() in cometbuster_render_gl2.cpp.
     glClearColor(0.04f, 0.06f, 0.15f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -242,72 +237,81 @@ bool wgl_init_context(GtkWidget *placeholder)
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_MULTISAMPLE);
 
+    gl_init();
+
     g_wgl.initialized = true;
-    SDL_Log("[WGL] Context initialized OK, HWND=%p\n", (void*)g_wgl.hwnd);
+    SDL_Log("[WGL] Initialized OK — HWND=%p HDC=%p HGLRC=%p\n",
+            (void*)g_wgl.hwnd, (void*)g_wgl.hdc, (void*)g_wgl.hglrc);
     return true;
 }
 
-/**
- * wgl_resize()
- *
- * Keep the child HWND in sync with the GTK placeholder's allocation.
- * Connect this to the placeholder's "size-allocate" signal.
- */
-void wgl_resize(GtkWidget *placeholder)
+void sdl_wgl_resize(GtkWidget *placeholder)
 {
     if (!g_wgl.hwnd) return;
 
     GtkAllocation alloc;
     gtk_widget_get_allocation(placeholder, &alloc);
 
-    if (alloc.width  == g_wgl.w  &&
-        alloc.height == g_wgl.h  &&
-        alloc.x      == g_wgl.x  &&
-        alloc.y      == g_wgl.y)
-        return;  // nothing changed
+    int new_w = (alloc.width  < 1) ? 1 : alloc.width;
+    int new_h = (alloc.height < 1) ? 1 : alloc.height;
 
-    g_wgl.x = alloc.x;
-    g_wgl.y = alloc.y;
-    g_wgl.w = (alloc.width  < 1) ? 1 : alloc.width;
-    g_wgl.h = (alloc.height < 1) ? 1 : alloc.height;
+    if (new_w == g_wgl.w && new_h == g_wgl.h) return;
+
+    g_wgl.w = new_w;
+    g_wgl.h = new_h;
 
     SetWindowPos(g_wgl.hwnd, HWND_TOP,
-                 g_wgl.x, g_wgl.y,
-                 g_wgl.w, g_wgl.h,
+                 0, 0, g_wgl.w, g_wgl.h,
                  SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
-/**
- * wgl_make_current()
- * Bind the WGL context before any GL calls.
- */
-void wgl_make_current(void)
+void sdl_wgl_render_frame(Visualizer *vis)
 {
-    if (g_wgl.hdc && g_wgl.hglrc)
-        wglMakeCurrent(g_wgl.hdc, g_wgl.hglrc);
+    if (!g_wgl.initialized || !vis) return;
+    if (g_wgl.w < 10 || g_wgl.h < 10) return;
+
+    static int count = 0;
+    if (count++ < 5) SDL_Log("[WGL] render_frame #%d w=%d h=%d hdc=%p hglrc=%p\n",
+                              count, g_wgl.w, g_wgl.h, (void*)g_wgl.hdc, (void*)g_wgl.hglrc);
+
+    wglMakeCurrent(g_wgl.hdc, g_wgl.hglrc);
+
+    vis->width  = 1920;
+    vis->height = 1080;
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Letterbox viewport — identical logic to cometbuster_render_gl2.cpp
+    double scale_x = (double)g_wgl.w / 1920.0;
+    double scale_y = (double)g_wgl.h / 1080.0;
+    double scale   = (scale_x < scale_y) ? scale_x : scale_y;
+
+    int vp_w = (int)(1920.0 * scale);
+    int vp_h = (int)(1080.0 * scale);
+    int vp_x = 0;
+    int vp_y = (g_wgl.h - vp_h) / 2;
+
+    glViewport(vp_x, vp_y, vp_w, vp_h);
+
+    draw_comet_buster_gl(vis, NULL);
+
+    SwapBuffers(g_wgl.hdc);
+
+    // GTK's GdkWindow compositor repaints on top of our child HWND after each
+    // swap. Force our window back to the top of the Z-order every frame so it
+    // always sits above whatever GTK just painted.
+    SetWindowPos(g_wgl.hwnd, HWND_TOP, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
-/**
- * wgl_swap_buffers()
- * Present the frame.
- */
-void wgl_swap_buffers(void)
-{
-    if (g_wgl.hdc)
-        SwapBuffers(g_wgl.hdc);
-}
-
-/**
- * wgl_cleanup()
- * Destroy context and child window.
- */
-void wgl_cleanup(void)
+void sdl_wgl_cleanup(void)
 {
     if (g_wgl.hglrc) {
         wglMakeCurrent(NULL, NULL);
         wglDeleteContext(g_wgl.hglrc);
         g_wgl.hglrc = NULL;
     }
+    // CS_OWNDC: ReleaseDC is a no-op but call it for correctness
     if (g_wgl.hdc && g_wgl.hwnd) {
         ReleaseDC(g_wgl.hwnd, g_wgl.hdc);
         g_wgl.hdc = NULL;
@@ -319,77 +323,36 @@ void wgl_cleanup(void)
     g_wgl.initialized = false;
 }
 
-/**
- * wgl_render_frame()
- *
- * Drop-in equivalent of on_render() for the WGL path.
- * Call this from your game_update_timer callback instead of
- * gtk_widget_queue_draw() when rendering_engine == 1 on Windows.
- */
-void wgl_render_frame(Visualizer *vis)
-{
-    if (!g_wgl.initialized || !vis) return;
-
-    wgl_make_current();
-
-    int w = g_wgl.w;
-    int h = g_wgl.h;
-
-    vis->width  = 1920;
-    vis->height = 1080;
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Letterbox viewport – identical logic to cometbuster_render_gl2.cpp
-    double scale_x = (double)w / 1920.0;
-    double scale_y = (double)h / 1080.0;
-    double scale   = (scale_x < scale_y) ? scale_x : scale_y;
-
-    int vp_w = (int)(1920.0 * scale);
-    int vp_h = (int)(1080.0 * scale);
-    int vp_x = 0;
-    int vp_y = (h - vp_h) / 2;
-
-    glViewport(vp_x, vp_y, vp_w, vp_h);
-
-    draw_comet_buster_gl(vis, NULL);
-
-    wgl_swap_buffers();
-}
-
 // ============================================================================
-// GTK SIGNAL CALLBACKS  (wire these up in comet_main.cpp on Windows)
+// GTK SIGNAL CALLBACKS
 // ============================================================================
 
-/**
- * on_wgl_placeholder_realize()
- * Connect to "realize" signal of the GtkDrawingArea placeholder.
- *
- *   g_signal_connect(gui.gl_area, "realize",
- *                    G_CALLBACK(on_wgl_placeholder_realize), &gui.visualizer);
- */
-void on_wgl_placeholder_realize(GtkWidget *widget, gpointer user_data)
+void on_sdl_placeholder_realize(GtkWidget *widget, gpointer user_data)
 {
     (void)user_data;
-    // Force the GdkWindow to have a native HWND before we grab it
     gdk_window_ensure_native(gtk_widget_get_window(widget));
-    wgl_init_context(widget);
+    sdl_wgl_init(widget);
 }
 
-/**
- * on_wgl_placeholder_size_allocate()
- * Connect to "size-allocate" signal of the placeholder.
- *
- *   g_signal_connect(gui.gl_area, "size-allocate",
- *                    G_CALLBACK(on_wgl_placeholder_size_allocate), NULL);
- */
-void on_wgl_placeholder_size_allocate(GtkWidget *widget,
+void on_sdl_placeholder_size_allocate(GtkWidget *widget,
                                        GdkRectangle *allocation,
                                        gpointer user_data)
 {
     (void)allocation;
     (void)user_data;
-    wgl_resize(widget);
+    sdl_wgl_resize(widget);
+}
+
+// Returns TRUE to suppress GTK's white background fill, which would otherwise
+// paint over our WGL child window on every GTK draw cycle.
+gboolean on_sdl_placeholder_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+{
+    (void)widget;
+    (void)cr;
+    (void)user_data;
+    static int count = 0;
+    if (count++ < 5) SDL_Log("[WGL] on_sdl_placeholder_draw called (suppressing GTK paint) #%d\n", count);
+    return TRUE;
 }
 
 #endif  // _WIN32

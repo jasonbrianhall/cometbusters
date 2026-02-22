@@ -35,15 +35,14 @@ gboolean on_realize(GtkGLArea *area, gpointer data);
 gboolean on_render(GtkGLArea *area, GdkGLContext *context, gpointer data);
 
 #ifdef _WIN32
-// Win32/WGL child window – declarations (implemented in cometbuster_render_wgl.cpp)
-bool wgl_init_context(GtkWidget *placeholder);
-void wgl_resize(GtkWidget *placeholder);
-void wgl_make_current(void);
-void wgl_swap_buffers(void);
-void wgl_cleanup(void);
-void wgl_render_frame(Visualizer *vis);
-void on_wgl_placeholder_realize(GtkWidget *widget, gpointer user_data);
-void on_wgl_placeholder_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data);
+// Win32/SDL child window — declarations (implemented in cometbuster_render_wgl2.cpp)
+bool     sdl_wgl_init(GtkWidget *placeholder);
+void     sdl_wgl_resize(GtkWidget *placeholder);
+void     sdl_wgl_render_frame(Visualizer *vis);
+void     sdl_wgl_cleanup(void);
+void     on_sdl_placeholder_realize(GtkWidget *widget, gpointer user_data);
+void     on_sdl_placeholder_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data);
+gboolean on_sdl_placeholder_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data);
 #endif
 
 
@@ -1846,7 +1845,7 @@ gboolean game_update_timer(gpointer data) {
         // Redraw and return early (don't update normal game during splash)
         if (gui->rendering_engine == 1) {
 #ifdef _WIN32
-            wgl_render_frame(&gui->visualizer);
+            sdl_wgl_render_frame(&gui->visualizer);
 #else
             gtk_widget_queue_draw(gui->gl_area);
 #endif
@@ -1889,7 +1888,7 @@ gboolean game_update_timer(gpointer data) {
         // Redraw and return early (don't update normal game during victory scroll)
         if (gui->rendering_engine == 1) {
 #ifdef _WIN32
-            wgl_render_frame(&gui->visualizer);
+            sdl_wgl_render_frame(&gui->visualizer);
 #else
             gtk_widget_queue_draw(gui->gl_area);
 #endif
@@ -1960,7 +1959,7 @@ gboolean game_update_timer(gpointer data) {
         // Redraw and return early (don't update normal game during finale splash)
         if (gui->rendering_engine == 1) {
 #ifdef _WIN32
-            wgl_render_frame(&gui->visualizer);
+            sdl_wgl_render_frame(&gui->visualizer);
 #else
             gtk_widget_queue_draw(gui->gl_area);
 #endif
@@ -2011,7 +2010,7 @@ gboolean game_update_timer(gpointer data) {
         // Redraw
         if (gui->rendering_engine == 1) {
 #ifdef _WIN32
-            wgl_render_frame(&gui->visualizer);
+            sdl_wgl_render_frame(&gui->visualizer);
 #else
             gtk_widget_queue_draw(gui->gl_area);
 #endif
@@ -2407,6 +2406,11 @@ static void sigint_handler(int sig) {
  * Returns 0 for CAIRO, 1 for OPENGL
  */
 static int parse_command_line_args(int argc, char *argv[]) {
+#ifdef _WIN32
+    // Cairo is not used on Windows — always OpenGL
+    (void)argc; (void)argv;
+    return 1;
+#else
     int rendering_engine = 0;  // Default to Cairo (splash screen rendering)
     
     for (int i = 1; i < argc; i++) {
@@ -2427,6 +2431,7 @@ static int parse_command_line_args(int argc, char *argv[]) {
     }
     
     return rendering_engine;
+#endif
 }
 // ============================================================
 // RENDERING ENGINE SELECTION FUNCTIONS
@@ -2436,6 +2441,10 @@ static int parse_command_line_args(int argc, char *argv[]) {
  * Switch to Cairo rendering engine
  */
 void on_rendering_cairo(GtkWidget *widget, gpointer data) {
+#ifdef _WIN32
+    (void)widget; (void)data;
+    // Cairo not available on Windows
+#else
     CometGUI *gui = (CometGUI*)data;
     if (!gui) return;
     
@@ -2452,6 +2461,7 @@ void on_rendering_cairo(GtkWidget *widget, gpointer data) {
     gtk_widget_grab_focus(gui->drawing_area);
     gui->rendering_engine = 0;
     gtk_widget_queue_draw(gui->drawing_area);
+#endif
 }
 
 /**
@@ -2785,6 +2795,9 @@ int main(int argc, char *argv[]) {
     GtkWidget *rendering_cairo_item = gtk_menu_item_new_with_label("Cairo");
     g_signal_connect(rendering_cairo_item, "activate", G_CALLBACK(on_rendering_cairo), &gui);
     gtk_menu_shell_append(GTK_MENU_SHELL(rendering_submenu), rendering_cairo_item);
+#ifdef _WIN32
+    gtk_widget_set_visible(rendering_cairo_item, FALSE);  // Cairo not available on Windows
+#endif
     
     GtkWidget *rendering_opengl_item = gtk_menu_item_new_with_label("OpenGL");
     g_signal_connect(rendering_opengl_item, "activate", G_CALLBACK(on_rendering_opengl), &gui);
@@ -2884,33 +2897,12 @@ int main(int argc, char *argv[]) {
     gtk_box_pack_start(GTK_BOX(vbox), gui.status_label, FALSE, FALSE, 5);
     update_status_text(&gui);
     
-    // Create BOTH rendering surfaces for switching capability
-    SDL_Log("[Comet Busters] [MAIN] Creating both Cairo and OpenGL rendering surfaces\n");
-    
-    // Create Cairo drawing area
-    gui.drawing_area = gtk_drawing_area_new();
-    gtk_widget_set_size_request(gui.drawing_area, -1, -1);
-    gtk_widget_set_can_focus(gui.drawing_area, TRUE);
-    gtk_widget_add_events(gui.drawing_area, 
-                         GDK_BUTTON_PRESS_MASK | 
-                         GDK_BUTTON_RELEASE_MASK | 
-                         GDK_POINTER_MOTION_MASK |
-                         GDK_KEY_PRESS_MASK |
-                         GDK_KEY_RELEASE_MASK |
-                         GDK_SCROLL_MASK);
-    g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
-    g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
-    g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
-    g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
-    g_signal_connect(gui.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
-    g_signal_connect(gui.drawing_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
-    g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
-    
-    // Create OpenGL area
 #ifdef _WIN32
-    // Win32: use a plain GtkDrawingArea as a layout/input placeholder.
-    // A native Win32 child HWND with a WGL context is created on top of it
-    // by cometbuster_render_wgl.cpp once the widget is realized.
+    // Windows: OpenGL only — no Cairo, no GtkStack, no drawing_area
+    SDL_Log("[Comet Busters] [MAIN] Windows: creating SDL/OpenGL rendering surface\n");
+    gui.rendering_engine = 1;
+    gui.auto_switch_to_opengl = false;
+
     gui.gl_area = gtk_drawing_area_new();
     gtk_widget_set_size_request(gui.gl_area, -1, -1);
     gtk_widget_set_can_focus(gui.gl_area, TRUE);
@@ -2922,32 +2914,59 @@ int main(int argc, char *argv[]) {
                          GDK_KEY_RELEASE_MASK |
                          GDK_SCROLL_MASK);
 
-    // WGL lifecycle: realize creates the child HWND + context; size-allocate keeps it in sync
     g_signal_connect(gui.gl_area, "realize",
-                     G_CALLBACK(on_wgl_placeholder_realize), &gui.visualizer);
+                     G_CALLBACK(on_sdl_placeholder_realize), &gui.visualizer);
     g_signal_connect(gui.gl_area, "size-allocate",
-                     G_CALLBACK(on_wgl_placeholder_size_allocate), NULL);
-
-    // Input events are still routed through GTK as normal
+                     G_CALLBACK(on_sdl_placeholder_size_allocate), NULL);
+    g_signal_connect(gui.gl_area, "draw",
+                     G_CALLBACK(on_sdl_placeholder_draw), NULL);
     g_signal_connect(gui.gl_area, "button-press-event",   G_CALLBACK(on_button_press),   &gui);
     g_signal_connect(gui.gl_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
     g_signal_connect(gui.gl_area, "scroll-event",         G_CALLBACK(on_scroll),         &gui);
     g_signal_connect(gui.gl_area, "motion-notify-event",  G_CALLBACK(on_motion_notify),  &gui);
     g_signal_connect(gui.gl_area, "key-press-event",      G_CALLBACK(on_key_press),      &gui);
     g_signal_connect(gui.gl_area, "key-release-event",    G_CALLBACK(on_key_release),    &gui);
+
+    gtk_box_pack_start(GTK_BOX(vbox), gui.gl_area, TRUE, TRUE, 0);
+
+    gtk_widget_show_all(gui.window);
+    gtk_widget_hide(gui.cheat_menu_item);
+    gtk_widget_grab_focus(gui.gl_area);
+
 #else
-    gui.gl_area = gtk_gl_area_new();
-    gtk_widget_set_size_request(gui.gl_area, -1, -1);
-    gtk_widget_set_can_focus(gui.gl_area, TRUE);
-    gtk_widget_add_events(gui.gl_area, 
-                         GDK_BUTTON_PRESS_MASK | 
-                         GDK_BUTTON_RELEASE_MASK | 
+    // Linux: Cairo + OpenGL with GtkStack for switching
+    SDL_Log("[Comet Busters] [MAIN] Creating both Cairo and OpenGL rendering surfaces\n");
+
+    // Cairo drawing area
+    gui.drawing_area = gtk_drawing_area_new();
+    gtk_widget_set_size_request(gui.drawing_area, -1, -1);
+    gtk_widget_set_can_focus(gui.drawing_area, TRUE);
+    gtk_widget_add_events(gui.drawing_area,
+                         GDK_BUTTON_PRESS_MASK |
+                         GDK_BUTTON_RELEASE_MASK |
                          GDK_POINTER_MOTION_MASK |
                          GDK_KEY_PRESS_MASK |
                          GDK_KEY_RELEASE_MASK |
                          GDK_SCROLL_MASK);
-    
-    // Connect OpenGL callbacks
+    g_signal_connect(gui.drawing_area, "draw", G_CALLBACK(on_draw), &gui);
+    g_signal_connect(gui.drawing_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
+    g_signal_connect(gui.drawing_area, "button-release-event", G_CALLBACK(on_button_release), &gui);
+    g_signal_connect(gui.drawing_area, "scroll-event", G_CALLBACK(on_scroll), &gui);
+    g_signal_connect(gui.drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
+    g_signal_connect(gui.drawing_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
+    g_signal_connect(gui.drawing_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
+
+    // OpenGL area
+    gui.gl_area = gtk_gl_area_new();
+    gtk_widget_set_size_request(gui.gl_area, -1, -1);
+    gtk_widget_set_can_focus(gui.gl_area, TRUE);
+    gtk_widget_add_events(gui.gl_area,
+                         GDK_BUTTON_PRESS_MASK |
+                         GDK_BUTTON_RELEASE_MASK |
+                         GDK_POINTER_MOTION_MASK |
+                         GDK_KEY_PRESS_MASK |
+                         GDK_KEY_RELEASE_MASK |
+                         GDK_SCROLL_MASK);
     g_signal_connect(gui.gl_area, "realize", G_CALLBACK(on_realize), NULL);
     g_signal_connect(gui.gl_area, "render", G_CALLBACK(on_render), &gui.visualizer);
     g_signal_connect(gui.gl_area, "button-press-event", G_CALLBACK(on_button_press), &gui);
@@ -2956,17 +2975,13 @@ int main(int argc, char *argv[]) {
     g_signal_connect(gui.gl_area, "motion-notify-event", G_CALLBACK(on_motion_notify), &gui);
     g_signal_connect(gui.gl_area, "key-press-event", G_CALLBACK(on_key_press), &gui);
     g_signal_connect(gui.gl_area, "key-release-event", G_CALLBACK(on_key_release), &gui);
-#endif // _WIN32
-    
-    // Create GtkStack to manage widget switching (preserves state and GL context)
+
+    // GtkStack for switching between Cairo and OpenGL
     GtkWidget *rendering_stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(rendering_stack), GTK_STACK_TRANSITION_TYPE_NONE);
-    
-    // Add both widgets to the stack
     gtk_stack_add_named(GTK_STACK(rendering_stack), gui.drawing_area, "cairo");
     gtk_stack_add_named(GTK_STACK(rendering_stack), gui.gl_area, "opengl");
-    
-    // Show the appropriate rendering surface
+
     if (gui.rendering_engine == 1) {
         SDL_Log("[Comet Busters] [MAIN] Starting with OpenGL rendering\n");
         gtk_stack_set_visible_child_name(GTK_STACK(rendering_stack), "opengl");
@@ -2974,24 +2989,20 @@ int main(int argc, char *argv[]) {
         SDL_Log("[Comet Busters] [MAIN] Starting with Cairo rendering\n");
         gtk_stack_set_visible_child_name(GTK_STACK(rendering_stack), "cairo");
     }
-    
-    // Pack the stack into the vbox
+
     gtk_box_pack_start(GTK_BOX(vbox), rendering_stack, TRUE, TRUE, 0);
-    
-    // Save stack reference for use in callbacks
     gui.rendering_stack = rendering_stack;
-    
     SDL_Log("[Comet Busters] [MAIN] Using GtkStack for safe widget switching\n");
-    
+
     gtk_widget_show_all(gui.window);
-    gtk_widget_hide(gui.cheat_menu_item);  // Hide the cheat menu by default (after show_all)
-    
-    // Grab keyboard focus on rendering area
+    gtk_widget_hide(gui.cheat_menu_item);
+
     if (gui.rendering_engine == 1) {
         gtk_widget_grab_focus(gui.gl_area);
     } else {
         gtk_widget_grab_focus(gui.drawing_area);
     }
+#endif
     // Start game update timer (approximately 60 FPS)
     gui.update_timer_id = g_timeout_add(17, game_update_timer, &gui);  // ~60 FPS
     
@@ -3003,7 +3014,7 @@ int main(int argc, char *argv[]) {
     joystick_manager_cleanup(&gui.visualizer.joystick_manager);
     audio_cleanup(&gui.audio);
 #ifdef _WIN32
-    wgl_cleanup();
+    sdl_wgl_cleanup();
 #endif
     
     return 0;
