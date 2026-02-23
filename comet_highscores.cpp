@@ -21,6 +21,40 @@
 #include <SDL2/SDL.h>
 #endif
 
+/**
+ * Create all directories leading up to a file path if they don't exist.
+ */
+static void ensure_scores_dir_exists(const char *filepath) {
+#ifdef _WIN32
+    char dir[MAX_PATH];
+    strncpy(dir, filepath, sizeof(dir) - 1);
+    dir[sizeof(dir) - 1] = '\0';
+    char *last_sep = strrchr(dir, '\\');
+    if (last_sep) {
+        *last_sep = '\0';
+        // SHCreateDirectoryExA handles nested directories and returns
+        // ERROR_ALREADY_EXISTS (success) if the path already exists.
+        int result = SHCreateDirectoryExA(NULL, dir, NULL);
+        if (result != ERROR_SUCCESS && result != ERROR_ALREADY_EXISTS) {
+            SDL_Log("[Comet Busters] [HIGH SCORES] Failed to create directory: %s (err=%d)\n", dir, result);
+        } else {
+            SDL_Log("[Comet Busters] [HIGH SCORES] Directory ready: %s\n", dir);
+        }
+    }
+#else
+    char dir[512];
+    strncpy(dir, filepath, sizeof(dir) - 1);
+    dir[sizeof(dir) - 1] = '\0';
+    char *p = dir + 1; // skip leading '/'
+    while ((p = strchr(p, '/')) != NULL) {
+        *p = '\0';
+        mkdir(dir, 0755); // ignore errors; dir may already exist
+        *p = '/';
+        p++;
+    }
+    mkdir(dir, 0755);
+#endif
+}
 
 /**
  * Load high scores from disk (text format)
@@ -65,12 +99,14 @@ void high_scores_load(CometBusterGame *game) {
     char line[256];
     while (game->high_score_count < MAX_HIGH_SCORES && fgets(line, sizeof(line), fp) != NULL) {
         int score, wave;
-        time_t timestamp;
+        long raw_timestamp;  // Use long to match the %ld save format; avoids 32/64-bit
+        time_t timestamp;    // mismatch on Windows where long is 32-bit but time_t is 64-bit.
         char name[32];
         
         // Parse: score wave timestamp name (name can have spaces)
         // Format: 38565 5 1765397762 John Doe
-        int items_read = sscanf(line, "%d %d %ld", &score, &wave, &timestamp);
+        int items_read = sscanf(line, "%d %d %ld", &score, &wave, &raw_timestamp);
+        timestamp = (time_t)raw_timestamp;
         
         SDL_Log("[Comet Busters] [HIGH SCORES DEBUG] Line %d: Read %d items - ", 
                 game->high_score_count + 1, items_read);
@@ -99,9 +135,9 @@ void high_scores_load(CometBusterGame *game) {
         
         name_start = &line[pos];
         
-        // Remove trailing newline from name
+        // Remove trailing newline/carriage-return from name (handles \n and \r\n)
         int name_len = strlen(name_start);
-        if (name_len > 0 && name_start[name_len - 1] == '\n') {
+        while (name_len > 0 && (name_start[name_len - 1] == '\n' || name_start[name_len - 1] == '\r')) {
             name_start[name_len - 1] = '\0';
             name_len--;
         }
@@ -138,6 +174,8 @@ void high_scores_save(CometBusterGame *game) {
 
     const char *path = high_scores_get_path();
     SDL_Log("[Comet Busters] [HIGH SCORES] Saving to: %s\n", path);
+
+    ensure_scores_dir_exists(path);
 
     FILE *fp = fopen(path, "w");
     if (!fp) {
@@ -261,7 +299,7 @@ const char* high_scores_get_path(void) {
     if (home) {
         snprintf(scores_path, sizeof(scores_path), "%s/.config/cometbusters/highscores.txt", home);
     } else {
-        strcpy(scores_path, "./.cometbuster/highscores.txt");
+        strcpy(scores_path, "./.cometbusters/highscores.txt");
     }
 #endif
     
