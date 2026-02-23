@@ -484,8 +484,8 @@ void menu_move_down(CometGUI *gui) {
  */
 void menu_update_difficulty(CometGUI *gui, int direction) {
     gui->gui_difficulty_level += direction;
-    if (gui->gui_difficulty_level < 1) gui->gui_difficulty_level = 1;
-    if (gui->gui_difficulty_level > 3) gui->gui_difficulty_level = 3;
+    if (gui->gui_difficulty_level < 1) gui->gui_difficulty_level = 3;
+    if (gui->gui_difficulty_level > 3) gui->gui_difficulty_level = 1;
 }
 
 /**

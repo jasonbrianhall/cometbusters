@@ -27,6 +27,9 @@
     #define glDeleteVertexArrays(n, arrays) (void)0
 #endif
 
+const int MAX_VERTS = 1000000;
+
+
 static int isGLInitialized = 0;
 
 // FreeType includes for dynamic TTF rendering
@@ -231,8 +234,7 @@ void gl_init(void) {
     
     glBindVertexArray(gl_state.vao);
     glBindBuffer(GL_ARRAY_BUFFER, gl_state.vbo);
-    // INCREASED BUFFER SIZE: 1M vertices instead of 100K to prevent overflow
-    glBufferData(GL_ARRAY_BUFFER, 1000000 * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, MAX_VERTS * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);
     
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));
     glEnableVertexAttribArray(0);
@@ -512,9 +514,9 @@ void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
     
     // Build vertex array
     static std::vector<Vertex> verts;
-    if (verts.empty()) verts.resize(100000);
+
+    if (verts.empty()) verts.resize(MAX_VERTS);
     int vert_count = 0;
-    const int MAX_VERTS = 99999;
     
     // Process UTF-8 text
     for (int i = 0; text[i] && vert_count < MAX_VERTS - 6; ) {
