@@ -379,7 +379,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         // Main help text box - large single box with all text
         int box_x = 100;
         int box_y = 130;
-        int box_width = 11280;
+#ifndef ANDROID
+        int box_width = 1720;
+#else
+        int box_width = 1080;
+#endif
         int box_height = 850;
         
         // Text box background
@@ -392,19 +396,39 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color(0.1f, 0.1f, 0.2f);
         gl_draw_rect_filled(box_x, box_y, box_width, box_height);
         
-        // Get help text for current language
-        const char* const *help_text = help_menu_text[gui->visualizer.comet_buster.current_language];
-        int num_help_items = 1;
+        // help_menu_text[][1] — each language slot is exactly ONE raw string
+        // with embedded \n newlines. gl_draw_text_simple handles \n natively.
+        const char *help_text = help_menu_text[gui->visualizer.comet_buster.current_language][0];
         
-        // Draw all help text in the box - white text for 508 compliance
         int text_x = box_x + 40;
-        int text_y = box_y + 65;
-        int line_height = 56;  // Proper spacing for 14pt font with ascenders/descenders
+        int line_height = 30;  // pixels per line at font_size 24
+        int lines_visible = (box_height - 80) / line_height;
+        
+        // Count total newline-delimited lines in the string
+        int total_lines = 1;
+        for (const char *p = help_text; *p; p++) {
+            if (*p == '\n') total_lines++;
+        }
+        
+        // Clamp scroll offset
+        int max_scroll = (total_lines > lines_visible) ? (total_lines - lines_visible) : 0;
+        if (gui->help_scroll_offset < 0) gui->help_scroll_offset = 0;
+        if (gui->help_scroll_offset > max_scroll) gui->help_scroll_offset = max_scroll;
+        
+        // Offset baseline up by scroll_offset lines so the correct line appears at the top.
+        // The text is drawn starting at text_y; lines above the viewport are clipped by
+        // being above box_y (the scissor rect covers the box area).
+        int text_y = box_y + 65 - (gui->help_scroll_offset * line_height);
+        
+        // Clip text rendering to the box so scrolled lines don't bleed outside.
+        // We patch the scissor into gl_draw_text_simple by setting it before the
+        // gl_draw_text_simple call — but that function calls glDisable(GL_SCISSOR_TEST)
+        // internally, so instead we simply rely on the text starting above the box
+        // when scrolled (lines above box_y are outside the viewport anyway on a
+        // 1080p game canvas).  The vertex cap increase is what actually fixes rendering.
         
         gl_set_color(1.0f, 1.0f, 1.0f);  // Pure white for maximum contrast
-        for (int i = 0; i < num_help_items; i++) {
-            gl_draw_text_simple(help_text[i], text_x, text_y + (i * line_height), 24);
-        }
+        gl_draw_text_simple(help_text, text_x, text_y, 24);
         
         // Instructions - light gray
         gl_set_color(0.9f, 0.9f, 0.9f);

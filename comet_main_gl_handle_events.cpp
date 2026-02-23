@@ -237,6 +237,15 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     }
                     break;
                 }
+                // Handle help overlay scroll (UP/DOWN) before normal menu input
+                if (gui->show_help_overlay) {
+                    if (event.key.keysym.sym == SDLK_UP) {
+                        if (gui->help_scroll_offset > 0) gui->help_scroll_offset--;
+                    } else if (event.key.keysym.sym == SDLK_DOWN) {
+                        gui->help_scroll_offset++;
+                    }
+                    break;  // Don't fall through to menu input while help overlay is open
+                }
                 // Handle cheat menu and menu input
                 if (gui->show_menu) {
                     // Handle cheat menu input first (takes priority)
@@ -367,7 +376,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                 gui->main_menu_scroll_offset = max_scroll;
                             }
                         } else if (gui->menu_state == 1) {
-                            menu_move_down(gui);
+                            menu_update_difficulty(gui, 1);
                         } else if (gui->menu_state == 3) {
                             menu_move_down(gui);
                         } else if (gui->menu_state == 4) {
