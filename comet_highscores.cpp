@@ -261,7 +261,7 @@ const char* high_scores_get_path(void) {
     if (home) {
         snprintf(scores_path, sizeof(scores_path), "%s/.config/cometbusters/highscores.txt", home);
     } else {
-        strcpy(scores_path, "./.cometbuster/highscores.txt");
+        strcpy(scores_path, "./.cometbusters/highscores.txt");
     }
 #endif
     
