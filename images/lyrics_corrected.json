@@ -1,0 +1,449 @@
+{
+  "song_duration": 147,
+  "title": "Comet Buster",
+  "_notes": {
+    "overview": "147-second video. Song has lyrics from 22s-100s, leaving a long instrumental intro (0-22s), a bridge gap (47-52s), and a long outro (100-147s). Media timeline covers all of it. Gaps auto-fill black per smoothie.py logic.",
+    "file_naming": "All image files are AI-generated stills. All video files are gameplay recordings. Suggested filenames are descriptive — rename to match whatever you actually generate.",
+    "image_style_prompt": "Use this base style for ALL AI images for consistency: 'cinematic space opera, dramatic lighting, deep space background, painterly digital art, dark color palette, high detail, 16:9 aspect ratio'",
+    "video_clips": "Gameplay clips should be 1920x1080 screen recordings. Trim them to roughly the durations listed — smoothie.py will loop or trim automatically.",
+    "ken_burns": "smoothie.py does not auto-apply Ken Burns (pan/zoom) on still images — they will be static. If you want slow zooms, either pre-process the images in your video editor first, or add that effect to the ImageClip section in smoothie.py.",
+    "song_structure": {
+      "0-22": "Instrumental intro — no lyrics. Build atmosphere slowly.",
+      "22-47": "Verse 1 — storytelling, world-building. AI images shine here.",
+      "47-52": "Instrumental bridge — short gap between verse and chorus. Single punchy image.",
+      "52-77": "Chorus — action and energy. Mix gameplay clips with AI images.",
+      "77-100": "Verse 2 / Hook — 'Comet Buster' chant. Title card energy, gameplay.",
+      "100-147": "Instrumental outro — 47 seconds. End on game logo or credits hold."
+    }
+  },
+  "media": [
+    {
+      "_note": "Opening Crawl",
+      "file": "opening_crawl.mp4",
+      "type": "video",
+      "start": 0,
+      "end": 22
+    },
+    {
+      "_note": "INTRO FLASH 1 (5-8s): First gameplay — comet cluster tumbling. Teases what's coming before a single lyric is sung.",
+      "file": "001.mp4",
+      "type": "video",
+      "start": 22,
+      "end": 25,
+      "_capture_note": "NEW RECORDING. 4-6 comets tumbling and slowly rotating together in a cluster. No enemies, no shooting. Clean and atmospheric — this is still the intro. Record 4-5s and trim to 3s."
+    },
+    {
+      "_note": "INTRO 8-14s: Kepler system reveal. Gas giant, asteroid field. Majestic.",
+      "file": "img_02_kepler_system.jpg",
+      "start": 25,
+      "end": 25.5,
+      "prompt": "Massive ringed gas giant filling the right third of frame, asteroid field in foreground, deep blue and purple space, dramatic rim lighting on planet, cinematic space opera, painterly, no ships"
+    },
+    {
+      "_note": "INTRO FLASH 2 (14-17s): Ship drifting with engines cold — directly sets up the dormant Destiny image that follows.",
+      "file": "002.mp4",
+      "type": "video",
+      "start": 25.5,
+      "end": 28.5,
+      "_capture_note": "NEW RECORDING. Your ship coasting with absolutely no thrust — slowly rotating or just gliding. No enemies, no fire, no action. Pure drift. Should feel lonely and dormant. Record 4s and trim to 3s."
+    },
+    {
+      "_note": "INTRO 17-19s: Destiny dormant — brief hold on the sleeping ship before it wakes. Trimmed to 2s because the flash that follows is the payoff.",
+      "file": "img_03_destiny_dormant.jpg",
+      "type": "image",
+      "start": 28.5,
+      "end": 29,
+      "prompt": "A lone triangular fighter spacecraft drifting powerless among asteroids, engines dark, battle-scarred hull, asteroids surrounding it, eerie silence implied, deep space background, cinematic side lighting, painterly"
+    },
+    {
+      "_note": "INTRO FLASH 3 (19-22s): Engines igniting — the moment just before vocals hit at 22.06s. Payoff for the dormant image. This flash IS the waking moment.",
+      "file": "003.mp4",
+      "type": "video",
+      "start": 29,
+      "end": 32,
+      "_capture_note": "NEW RECORDING. Activate thrust from a dead stop — capture the thruster flame bursting to life and the ship starting to accelerate. Get the muzzle/engine glow flaring on. Record 3-4s, use the best 3s."
+    },
+    {
+      "_note": "VERSE 1 LINES 1-2 (22-28.88s): 'In the shadow of Kepler's sky / the asteroids start to scream'",
+      "file": "img_04_asteroids_screaming.jpg",
+      "type": "image",
+      "start": 32,
+      "end": 32.5,
+      "prompt": "Dense asteroid field in chaotic motion, rocks tumbling and colliding, glowing impact sparks, massive gas giant visible in background casting long shadows, sense of danger and movement, cinematic, painterly, deep blues and oranges"
+    },
+    {
+      "_note": "VERSE 1 LINES 3-4 (28.88-32.2s): 'The Destiny wakes from a war-torn past' — trimmed slightly to make room for the pre-action flash.",
+      "file": "img_05_destiny_awakens.jpg",
+      "type": "image",
+      "start": 32.5,
+      "end": 35.5,
+      "prompt": "Battle-worn triangular fighter with engines igniting, bright cyan-white thruster flame erupting, rising upward through debris, hull showing scorch marks, dramatic upward angle, god-rays of engine light, cinematic space opera, painterly, heroic"
+    },
+    {
+      "_note": "PRE-VERSE FLASH (32.2-35.2s): 'rising out of a broken dream' — first shot fired. Bridges the Destiny AI image directly into the verse gameplay section.",
+      "file": "004.mp4",
+      "type": "video",
+      "start": 35.5,
+      "end": 38.5,
+      "_capture_note": "NEW RECORDING. Your ship fires its very first bullet — hold on the muzzle flash for a beat, then watch the bullet streak out across space. Should feel like the moment the ship wakes up and fights back. Record 4s, use best 3s."
+    },
+    {
+      "_note": "VERSE 1 LINE 5 (35.2-37.2s): Red warships gameplay — trimmed to 2s to make room for dogfight image.",
+      "file": "005.mp4",
+      "type": "video",
+      "start": 38.5,
+      "end": 40.5,
+      "_capture_note": "EXISTING CLIP. Red enemy ships (type 1) chasing your ship, firing. Orange/red combat lighting. Fast and dangerous."
+    },
+    {
+      "_note": "VERSE 1 LINES 5-6 BRIDGE (37.2-39.2s): AI dogfight image — red and blue ships together in the asteroid field, fires exchanged. Sits exactly at the lyric break between \"Red warships hunt\" and \"Blue patrols hold the line\". Cinematic punctuation between the two gameplay clips.",
+      "file": "img_04_redbluedogfight.jpg",
+      "type": "image",
+      "start": 40.5,
+      "end": 41,
+      "source": "004.png"
+    },
+    {
+      "_note": "VERSE 1 LINE 6 (39.2-41.02s): Blue patrols gameplay — shifted 0.24s to follow dogfight image.",
+      "file": "006.mp4",
+      "type": "video",
+      "start": 41,
+      "end": 43,
+      "_capture_note": "EXISTING CLIP. Blue patrol ships (type 0) flying sine-wave formation. Calm but menacing."
+    },
+    {
+      "_note": "VERSE 1 LINE 7 (41.02-43.02s): AI green drones image — three green hunter ships with glowing engine trails carving through asteroid field. Painted version of the scene before showing real gameplay. Lyric: \"Green drones carve through the drifting stone.\"",
+      "file": "img_05_greendrones.jpg",
+      "type": "image",
+      "start": 43,
+      "end": 43.5,
+      "source": "005.png"
+    },
+    {
+      "_note": "VERSE 1 LINE 7 cont (43.02-44.44s): Green drones gameplay — 1.42s flash after the AI image. Short but impactful, shows the real game immediately after the painted version.",
+      "file": "007.mp4",
+      "type": "video",
+      "start": 43.5,
+      "end": 44.5,
+      "_capture_note": "EXISTING CLIP. Green hunter ships weaving through a dense comet field."
+    },
+    {
+      "_note": "VERSE 1 LINE 8 (44.44-47.54s): 'and the void begins to shine' — full 3.1s.",
+      "file": "img_06_void_shines.jpg",
+      "type": "image",
+      "start": 44.5,
+      "end": 47.54,
+      "prompt": "The void of space beginning to glow with eerie cyan-blue light, a massive dark entity barely visible at center radiating energy, asteroids being pulled toward it, ominous and beautiful, cinematic space opera, painterly"
+    },
+    {
+      "_note": "BRIDGE FLASH (47.54-50.54s): UFO streaking across screen — punchy opener to the instrumental pause. Unexpected cameo.",
+      "file": "008.mp4",
+      "type": "video",
+      "start": 47.54,
+      "end": 50.54,
+      "_capture_note": "NEW RECORDING. UFO entering from one screen edge and crossing fast. Should feel like a brief alarming cameo — here and gone. Record 4s, use best 3s."
+    },
+    {
+      "_note": "BRIDGE (50.54-52.62s): Dramatic low-angle juggernaut image (010) — engine fire, enormous scale against the asteroid. The most imposing shot of the pair, used here as the tease right before the chorus hits.",
+      "file": "img_10_juggernaut_drama.jpg",
+      "type": "image",
+      "start": 50.54,
+      "end": 52.62,
+      "prompt": "A colossal gold-armored warship emerging from behind an asteroid, engines burning bright amber, dwarfing everything around it, sense of unstoppable weight and power, dramatic low angle, cinematic space opera, painterly",
+      "source": "010.png"
+    },
+    {
+      "_note": "CHORUS LINE 1 (52.62-54.62s): Second juggernaut AI image (009, side view) — golden juggernaut in the amber haze, full side profile showing its bulk. Paired with the low-angle image before it: drama then scale. Lyric: \"Juggernauts roar in the golden haze.\"",
+      "file": "img_09_juggernaut_side.jpg",
+      "type": "image",
+      "start": 52.62,
+      "end": 54.62,
+      "source": "009.png"
+    },
+    {
+      "_note": "CHORUS LINE 1 cont (54.62-56.82s): Juggernaut gameplay — 2.2s flash of the actual in-game Juggernaut entering after two AI images build it up. Short and punchy, chorus energy.",
+      "file": "009.mp4",
+      "type": "video",
+      "start": 54.62,
+      "end": 56.82,
+      "_capture_note": "EXISTING CLIP. Juggernaut ship (type 5, gold) entering from screen edge. Show its scale."
+    },
+    {
+      "_note": "CHORUS LINE 2 (56.82-59.7s): 'missiles tracing every turn'",
+      "file": "010.mp4",
+      "type": "video",
+      "start": 56.82,
+      "end": 59.7,
+      "_capture_note": "EXISTING CLIP. Fire homing missiles and watch them curve toward targets."
+    },
+    {
+      "_note": "CHORUS LINE 3 (59.7-62.54s): Purple eyes",
+      "prompt": "Deep space starfield, thousands of stars, complettch from the silent dark' — AI image, full 2.84s.",
+      "file": "img_08_purple_sentinels.jpg",
+      "type": "image",
+      "start": 59.7,
+      "end": 62.54,
+      "prompt": "Three purple sentinel spacecraft in tight formation, barely visible in shadow, only glowing purple engine cores visible in the darkness, watching, waiting, silent menace, deep black space, cinematic, painterly"
+    },
+    {
+      "_note": "CHORUS FLASH between scenes 12 and 15 (62.54-65.44s): 'where forgotten engines burn' — gameplay flash replaces the AI engines image here. Sentinels just fired in the lyric — now we see the real aftermath. NOTE: the AI image img_09_forgotten_engines is still worth generating and keeping as a backup still, it just plays better as gameplay at this beat.",
+      "file": "011.mp4",
+      "type": "video",
+      "start": 62.54,
+      "end": 65.44,
+      "_capture_note": "NEW RECORDING. Purple sentinel ships (type 3) actively firing in formation — coordinated shot pattern. Should feel like an immediate continuation of the AI sentinel image that preceded it. Real sentinels in action. Record 4s, use best ~2.9s."
+    },
+    {
+      "_note": "CHORUS LINES 5-6 (65.44-68.44s): 'No banner, no master / no warning—' — sentinel formation flash (existing, upgraded to 3s).",
+      "file": "012.mp4",
+      "type": "video",
+      "start": 65.44,
+      "end": 68.44,
+      "_capture_note": "NEW RECORDING (replaces old flash_sentinel_formation). Sentinels in tight formation moving as a unit — not firing, just the imposing V-shape formation crossing the screen. Distinct from the firefight clip above. Record 4s, use best 3s."
+    },
+    {
+      "_note": "CHORUS LINE 6 cont + LINE 7 (68.44-74.68s): 'just fire and fractured space / You're the pilot of an ancient ghost' — bomb explosion is the peak visual moment, runs into the ancient ghost image.",
+      "file": "013.mp4",
+      "type": "video",
+      "start": 68.44,
+      "end": 71.5,
+      "_capture_note": "EXISTING CLIP. Drop a bomb in a dense cluster — full shockwave expanding and destroying everything. Maximum chaos."
+    },
+    {
+      "_note": "CHORUS LINE 7 (71.5-74.68s): 'You're the pilot of an ancient ghost' — AI portrait, full 3.18s.",
+      "file": "img_10_ancient_ghost.jpg",
+      "type": "image",
+      "start": 71.5,
+      "end": 74.68,
+      "prompt": "Close-up portrait of a lone ancient triangular fighter against a starfield, hull weathered and scarred by countless battles, glowing engine trails behind it, dignified and battle-hardened, cinematic, slightly low angle, painterly"
+    },
+    {
+      "_note": "CHORUS LINE 8 (74.68-78.4s): 'and the field becomes your place' — extends through hook gap.",
+      "file": "014.mp4",
+      "type": "video",
+      "start": 74.68,
+      "end": 78.4,
+      "_capture_note": "EXISTING CLIP. Your ship center screen, asteroids everywhere, maneuvering confidently. Feels like you own the space."
+    },
+    {
+      "_note": "HOOK 78.4-83.18s: 'Comet Buster… light the engines.' Title card energy — iconic rear engine shot.",
+      "file": "img_11_title_engines.jpg",
+      "type": "image",
+      "start": 78.4,
+      "end": 83.18,
+      "prompt": "Sleek triangular fighter seen from directly behind, twin engines blasting brilliant cyan-white fire into the void, accelerating away from camera into asteroid field, heroic rear shot, lens flare on engines, cinematic, painterly, epic scale"
+    },
+    {
+      "_note": "HOOK 83.18-89.04s: 'Comet Buster… face the swarm.' Dense comet swarm.",
+      "file": "015.mp4",
+      "type": "video",
+      "start": 83.18,
+      "end": 89.04,
+      "_capture_note": "EXISTING CLIP. Wave 8+ with many comets on screen. Claustrophobic and intense."
+    },
+    {
+      "_note": "HOOK 89.04-95.04s: 'Comet Buster… through the chaos,' Maximum action.",
+      "file": "016.mp4",
+      "type": "video",
+      "start": 89.04,
+      "end": 95.04,
+      "_capture_note": "EXISTING CLIP. Shooting comets, enemy ships, explosions, missiles. Most action-packed clip."
+    },
+    {
+      "_note": "HOOK 95.04-100s: 'An ancient ship is reborn.' Boss defeat — radial burst explosion. The lyric climax.",
+      "file": "spawnqueen_hd.jpg",
+      "type": "image",
+      "start": 95.04,
+      "end": 100,
+      "_capture_note": "EXISTING CLIP. Boss defeat with the 32-ray radial burst. Time the explosion to hit at ~95-96s."
+    },
+    {
+      "_note": "OUTRO 100-109s: Singularity boss image. Lyrics done. Let the music breathe. 9s.",
+      "file": "img_12_singularity.jpg",
+      "type": "image",
+      "start": 100,
+      "end": 109,
+      "prompt": "Enormous cosmic entity at center of a collapsing asteroid field, red gravitational distortion warping space around it, asteroids pulled inward, tiny fighter ship visible in corner for scale, apocalyptic and beautiful, cinematic, painterly"
+    },
+    {
+      "_note": "OUTRO FLASH 1 (109-112s): Wave cleared — last comet destroyed, empty arena. Payoff beat mid-outro.",
+      "file": "img_16_starfield.jpg",
+      "type": "image",
+      "start": 109,
+      "end": 112,
+      "_capture_note": "NEW RECORDING. Destroy the very last comet in a wave — capture the satisfying explosion and then 1-2s of the completely empty screen afterwards. That quiet moment is the visual payoff. Record 4s, use best 3s."
+    },
+    {
+      "_note": "OUTRO 112-121s: Star Vortex image. Visual spectacle. 9s.",
+      "file": "img_13_star_vortex_hd.jpg",
+      "type": "image",
+      "start": 112,
+      "end": 121,
+      "prompt": "A spiral vortex of stars and energy rotating in deep space, purple and gold colors, asteroids caught in the spiral arms, a lone ship firing into the center, cinematic, painterly, dramatic scale"
+    },
+    {
+      "_note": "OUTRO FLASH 2 (121-124s): Boss taking a heavy hit — impact flash on the boss hull. Punchy cut into the logo.",
+      "file": "img_17_starfieldexp.jpg",
+      "type": "image",
+      "start": 121,
+      "end": 124,
+      "_capture_note": "NEW RECORDING. Land a direct hit on a boss (any boss) and hold on the impact — the damage flash, the recoil, the health bar dropping. Should feel impactful and dramatic. Record 4s, use best 3s."
+    },
+    {
+      "_note": "OUTRO 124-133s: Game logo / title card. Steam convention — name clearly visible. 9s.",
+      "file": "img_14_game_logo_card.jpg",
+      "type": "image",
+      "start": 124,
+      "end": 133,
+      "prompt": "Clean game title card: 'COMET BUSTER' in bold stylized text, glowing cyan color, a comet streak behind the letters, deep black space background with subtle starfield, minimal and striking, game logo aesthetic"
+    },
+    {
+      "_note": "OUTRO FLASH 3 (133-136s): Final gameplay flash before the closing starfield — a last burst of action energy before the peaceful end.",
+      "file": "img_18_warp.jpg",
+      "type": "image",
+      "start": 133,
+      "end": 136,
+      "_capture_note": "NEW RECORDING. Fire a spread shot or omnidirectional burst into a small cluster of comets and watch them all explode at once. Should feel cathartic and final — like a last victory lap. Record 4s, use best 3s."
+    },
+    {
+      "_note": "OUTRO 136-147s: Final starfield. Mirrors the opening. Battle is over. 11s.",
+      "file": "img_15_outro_starfield.jpg",
+      "type": "image",
+      "start": 136,
+      "end": 147,
+      "prompt": "Deep space starfield, peaceful and vast, a single comet trail streaking across frame and fading, cinematic, quiet, painterly, same style as opening shot — the battle is over"
+    }
+  ],
+  "lyrics": [
+    {
+      "section": "Verse 1",
+      "lines": [
+        {
+          "text": "In the shadow of Kepler's sky,",
+          "start": 22.06,
+          "end": 25.22
+        },
+        {
+          "text": "the asteroids start to scream,",
+          "start": 26.27,
+          "end": 28.88
+        },
+        {
+          "text": "The Destiny wakes from a war-torn past,",
+          "start": 28.88,
+          "end": 32.6
+        },
+        {
+          "text": "rising out of a broken dream.",
+          "start": 32.6,
+          "end": 35.2
+        },
+        {
+          "text": "Red warships hunt in the burning light,",
+          "start": 35.2,
+          "end": 38.96
+        },
+        {
+          "text": "Blue patrols hold the line,",
+          "start": 38.96,
+          "end": 41.02
+        },
+        {
+          "text": "Green drones carve through the drifting stone,",
+          "start": 41.02,
+          "end": 44.44
+        },
+        {
+          "text": "and the void begins to shine.",
+          "start": 44.44,
+          "end": 47.54
+        }
+      ]
+    },
+    {
+      "section": "Chorus",
+      "lines": [
+        {
+          "text": "Juggernauts roar in the golden haze,",
+          "start": 52.62,
+          "end": 56.82
+        },
+        {
+          "text": "missiles tracing every turn,",
+          "start": 56.82,
+          "end": 59.7
+        },
+        {
+          "text": "Purple eyes watch from the silent dark,",
+          "start": 59.7,
+          "end": 62.54
+        },
+        {
+          "text": "where forgotten engines burn.",
+          "start": 62.54,
+          "end": 64.86
+        },
+        {
+          "text": "No banner, no master,",
+          "start": 65.44,
+          "end": 67.1
+        },
+        {
+          "text": "no warning—just fire and fractured space,",
+          "start": 67.1,
+          "end": 71.5
+        },
+        {
+          "text": "You're the pilot of an ancient ghost,",
+          "start": 71.5,
+          "end": 74.68
+        },
+        {
+          "text": "and the field becomes your place.",
+          "start": 74.68,
+          "end": 77.68
+        }
+      ]
+    },
+    {
+      "section": "Verse 2",
+      "lines": [
+        {
+          "text": "Comet Buster…",
+          "start": 78.4,
+          "end": 79.92
+        },
+        {
+          "text": "light the engines.",
+          "start": 79.92,
+          "end": 83.18
+        },
+        {
+          "text": "Comet Buster…",
+          "start": 83.18,
+          "end": 86.02
+        },
+        {
+          "text": "face the swarm.",
+          "start": 86.02,
+          "end": 89.04
+        },
+        {
+          "text": "Comet Buster…",
+          "start": 89.04,
+          "end": 91.98
+        },
+        {
+          "text": "through the chaos,",
+          "start": 91.98,
+          "end": 95.04
+        },
+        {
+          "text": "An ancient ship is reborn.",
+          "start": 95.04,
+          "end": 100
+        }
+      ]
+    }
+  ]
+}

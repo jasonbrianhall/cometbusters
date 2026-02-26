@@ -1,0 +1,139 @@
+{
+  "song_duration": 147,
+  "title": "Comet Buster",
+  "lyrics": [
+    {
+      "section": "Verse 1",
+      "lines": [
+        {
+          "text": "In the shadow of Kepler’s sky,",
+          "start": 22.06,
+          "end": 25.22
+        },
+        {
+          "text": "the asteroids start to scream,",
+          "start": 26.27,
+          "end": 28.88
+        },
+        {
+          "text": "The Destiny wakes from a war‑torn past,",
+          "start": 28.88,
+          "end": 32.6
+        },
+        {
+          "text": "rising out of a broken dream.",
+          "start": 32.6,
+          "end": 35.2
+        },
+        {
+          "text": "Red warships hunt in the burning light,",
+          "start": 35.2,
+          "end": 38.96
+        },
+        {
+          "text": "Blue patrols hold the line,",
+          "start": 38.96,
+          "end": 41.02
+        },
+        {
+          "text": "Green drones carve through the drifting stone,",
+          "start": 41.02,
+          "end": 44.44
+        },
+        {
+          "text": "and the void begins to shine.",
+          "start": 44.44,
+          "end": 47.54
+        }
+
+      ]
+    },
+    {
+      "section": "Chorus",
+      "lines": [
+        {
+          "text": "Juggernauts roar in the golden haze,",
+          "start": 52.62,
+          "end": 56.82
+        },
+        {
+          "text": "missiles tracing every turn,",
+          "start": 56.82,
+          "end": 59.7
+        },
+        {
+          "text": "Purple eyes watch from the silent dark,",
+          "start": 59.7,
+          "end": 62.54
+        },
+        {
+          "text": "where forgotten engines burn. ",
+          "start": 62.54,
+          "end": 64.86
+        },
+        {
+          "text": "No banner, no master,",
+          "start": 65.44,
+          "end": 67.1
+        },
+        {
+          "text": "no warning—just fire and fractured space, ",
+          "start": 67.1,
+          "end": 71.5
+        },
+        {
+          "text": "You’re the pilot of an ancient ghost,",
+          "start": 71.5,
+          "end": 74.68
+        },
+        {
+          "text": "and the field becomes your place.",
+          "start": 74.68,
+          "end": 77.68
+        }
+
+      ]
+    },
+    {
+      "section": "Verse 2",
+      "lines": [
+        {
+          "text": "Comet Buster…",
+          "start": 78.4,
+          "end": 79.92
+        },
+        {
+          "text": "light the engines.",
+          "start": 79.92,
+          "end": 83.18
+        },
+        {
+          "text": "Comet Buster…",
+          "start": 83.18,
+          "end": 86.02
+        },
+        {
+          "text": "face the swarm.",
+          "start": 86.02,
+          "end": 89.04
+        },
+        {
+          "text": "Comet Buster…",
+          "start": 89.04,
+          "end": 91.98
+        },
+        {
+          "text": "through the chaos,",
+          "start": 91.98,
+          "end": 95.04
+        },
+        {
+          "text": "An ancient ship is reborn.",
+          "start": 95.04,
+          "end": 100
+        }
+
+      ]
+    }
+  ]
+}
