@@ -3,6 +3,7 @@
 # Supports Linux and Windows builds with Miniz ZIP library
 # Optimized for static linking on Linux
 # FreeType added for dynamic TTF font rendering
+# Steam support: opt-in with: make STEAM=1 linux
 
 # Package information
 PACKAGE_NAME = cometbuster
@@ -31,6 +32,26 @@ SDL2_CONFIG_LINUX = sdl2-config
 SDL2_CONFIG_WIN = mingw64-sdl2-config
 
 # ============================================================================
+# STEAMWORKS SDK CONFIGURATION
+# ============================================================================
+# Usage:
+#   make STEAM=1 linux           # Linux build with Steam
+#   make STEAM=1 linux-static    # Linux static build with Steam
+#   make STEAM=1 debug           # Debug builds with Steam
+#   (never pass STEAM=1 for Windows/MS Store or Android builds)
+#
+# Override SDK path if needed:
+#   make STEAM=1 STEAM_SDK=/path/to/sdk linux
+
+STEAM_SDK ?= $(HOME)/software_build/steamworks/sdk
+
+ifdef STEAM
+  STEAM_CFLAGS       = -DSTEAM_ENABLED -I$(STEAM_SDK)/public
+  STEAM_LIBS_LINUX   = -L$(STEAM_SDK)/redistributable_bin/linux64 -lsteam_api -Wl,-rpath,'$$ORIGIN'
+  STEAM_LIB_SRC      = $(STEAM_SDK)/redistributable_bin/linux64/libsteam_api.so
+endif
+
+# ============================================================================
 # FREETYPE 2 CONFIGURATION
 # ============================================================================
 # FreeType flags for Linux builds
@@ -51,18 +72,19 @@ SDL2_MIXER_CFLAGS_LINUX := $(shell $(PKG_CONFIG_LINUX) --cflags SDL2_mixer 2>/de
 SDL2_MIXER_LIBS_LINUX := $(shell $(PKG_CONFIG_LINUX) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
 # Normal dynamic build
-CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
-CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX
-LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
+CXXFLAGS_LINUX = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\"
+CFLAGS_LINUX = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX
+LDFLAGS_LINUX = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) $(STEAM_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW
 
 # Static build flags for Linux deployment
 # Using -static-libstdc++ and -static-libgcc for C++ and C runtime libraries
 # Note: glibc (libc.so.6) will remain dynamic as per glibc license requirements
+# Note: libsteam_api.so is always dynamic (Valve does not supply a static version)
 STATIC_FLAGS_LINUX = -static-libstdc++ -static-libgcc
 
-CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
-CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) -DGLSave -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
-LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW $(STATIC_FLAGS_LINUX)
+CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
+CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
+LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) $(STEAM_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW $(STATIC_FLAGS_LINUX)
 
 # Optimization flags for normal build
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
@@ -73,6 +95,8 @@ CXXFLAGS_LINUX_STATIC += -O2 -ffunction-sections -fdata-sections -flto
 LDFLAGS_LINUX_STATIC += -s -Wl,--gc-sections -flto
 
 # Windows-specific flags (SDL2 and FreeType)
+# NOTE: Do NOT add STEAM_CFLAGS/STEAM_LIBS here — Steam is not used in
+# Windows/MS Store builds. Cross-compile the Windows target without STEAM=1.
 SDL2_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags sdl2 2>/dev/null || echo "")
 SDL2_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs sdl2 2>/dev/null || echo "-lSDL2")
 SDL2_MIXER_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags SDL2_mixer 2>/dev/null || echo "")
@@ -158,14 +182,14 @@ all: check-monospace cometbuster-create-wad linux
 windows: check-monospace cometbuster-create-wad cometbuster-windows cometbuster-collect-dlls
 
 .PHONY: linux
-linux: check-monospace cometbuster-create-wad cometbuster-linux
+linux: check-monospace cometbuster-create-wad cometbuster-linux cometbuster-copy-steam-linux
 
 .PHONY: linux-static
-linux-static: check-monospace cometbuster-create-wad cometbuster-linux-static
+linux-static: check-monospace cometbuster-create-wad cometbuster-linux-static cometbuster-copy-steam-linux-static
 
 # Debug targets
 .PHONY: debug
-debug: check-monospace cometbuster-create-wad cometbuster-linux-debug cometbuster-windows-debug cometbuster-collect-debug-dlls
+debug: check-monospace cometbuster-create-wad cometbuster-linux-debug cometbuster-windows-debug cometbuster-collect-debug-dlls cometbuster-copy-steam-linux-debug
 
 # ============================================================================
 # DEPENDENCY CHECKS
@@ -207,11 +231,73 @@ check-freetype:
 		exit 1; \
 	fi
 
+# Check Steam SDK (only meaningful when STEAM=1)
+.PHONY: check-steam
+check-steam:
+ifdef STEAM
+	@echo "Checking Steamworks SDK..."
+	@if [ ! -f "$(STEAM_SDK)/public/steam/steam_api.h" ]; then \
+		echo "❌ ERROR: Steamworks SDK not found at $(STEAM_SDK)"; \
+		echo ""; \
+		echo "Download the SDK from https://partner.steamgames.com/"; \
+		echo "Then either extract it to $(HOME)/steamworks_sdk/"; \
+		echo "or specify its location: make STEAM=1 STEAM_SDK=/path/to/sdk linux"; \
+		echo ""; \
+		exit 1; \
+	else \
+		echo "✓ Steamworks SDK found at $(STEAM_SDK)"; \
+	fi
+	@if [ ! -f "$(STEAM_LIB_SRC)" ]; then \
+		echo "❌ ERROR: libsteam_api.so not found at $(STEAM_LIB_SRC)"; \
+		exit 1; \
+	else \
+		echo "✓ libsteam_api.so found"; \
+	fi
+else
+	@echo "ℹ  Steam support not enabled (build with STEAM=1 to enable)"
+endif
+
+# ============================================================================
+# STEAM LIBRARY COPY TARGETS
+# libsteam_api.so must sit next to the binary at runtime.
+# These are no-ops when STEAM=1 is not set.
+# ============================================================================
+
+.PHONY: cometbuster-copy-steam-linux
+cometbuster-copy-steam-linux:
+ifdef STEAM
+	@echo "Copying libsteam_api.so to $(BUILD_DIR_LINUX)/..."
+	cp $(STEAM_LIB_SRC) $(BUILD_DIR_LINUX)/libsteam_api.so
+	@echo "✓ libsteam_api.so copied"
+else
+	@true
+endif
+
+.PHONY: cometbuster-copy-steam-linux-static
+cometbuster-copy-steam-linux-static:
+ifdef STEAM
+	@echo "Copying libsteam_api.so to $(BUILD_DIR_LINUX_STATIC)/..."
+	cp $(STEAM_LIB_SRC) $(BUILD_DIR_LINUX_STATIC)/libsteam_api.so
+	@echo "✓ libsteam_api.so copied"
+else
+	@true
+endif
+
+.PHONY: cometbuster-copy-steam-linux-debug
+cometbuster-copy-steam-linux-debug:
+ifdef STEAM
+	@echo "Copying libsteam_api.so to $(BUILD_DIR_LINUX_DEBUG)/..."
+	cp $(STEAM_LIB_SRC) $(BUILD_DIR_LINUX_DEBUG)/libsteam_api.so
+	@echo "✓ libsteam_api.so copied"
+else
+	@true
+endif
+
 #
 # Linux build targets
 #
 .PHONY: cometbuster-linux
-cometbuster-linux: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
+cometbuster-linux: check-steam $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 
 $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX): $(addprefix $(BUILD_DIR_LINUX)/,$(OBJECTS_LINUX)) $(EXTRA_OBJS)
 	@echo "Linking Linux executable (dynamic): $@"
@@ -233,7 +319,7 @@ $(BUILD_DIR_LINUX)/%.o: %.c
 # Linux static build targets
 #
 .PHONY: cometbuster-linux-static
-cometbuster-linux-static: $(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC)
+cometbuster-linux-static: check-steam $(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC)
 
 $(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC): $(addprefix $(BUILD_DIR_LINUX_STATIC)/,$(OBJECTS_LINUX_STATIC)) $(EXTRA_OBJS)
 	@echo "Linking Linux static executable: $@"
@@ -254,7 +340,7 @@ $(BUILD_DIR_LINUX_STATIC)/%.static.o: %.c
 # Linux debug targets
 #
 .PHONY: cometbuster-linux-debug
-cometbuster-linux-debug: $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)
+cometbuster-linux-debug: check-steam $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)
 
 $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG): $(addprefix $(BUILD_DIR_LINUX_DEBUG)/,$(OBJECTS_LINUX_DEBUG)) $(EXTRA_OBJS)
 	@echo "Linking Linux debug executable (dynamic): $@"
@@ -353,6 +439,10 @@ install: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 		install -D -m 644 cometbuster.wad $(DESTDIR)$(DATADIR)/$(PACKAGE_NAME)/cometbuster.wad; \
 		echo "Installed WAD file to $(DATADIR)/$(PACKAGE_NAME)/"; \
 	fi
+	@if [ -f $(BUILD_DIR_LINUX)/libsteam_api.so ]; then \
+		install -D -m 755 $(BUILD_DIR_LINUX)/libsteam_api.so $(DESTDIR)$(BINDIR)/libsteam_api.so; \
+		echo "Installed libsteam_api.so to $(BINDIR)/"; \
+	fi
 	@echo "✓ Installation complete"
 
 # Uninstall target
@@ -360,6 +450,7 @@ install: $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
 uninstall:
 	@echo "Uninstalling $(EXECUTABLE_LINUX)..."
 	rm -f $(DESTDIR)$(BINDIR)/$(EXECUTABLE_LINUX)
+	rm -f $(DESTDIR)$(BINDIR)/libsteam_api.so
 	rm -rf $(DESTDIR)$(DOCDIR)
 	rm -f $(DESTDIR)$(DATADIR)/$(PACKAGE_NAME)/cometbuster.wad
 	@echo "✓ Uninstall complete"
@@ -371,8 +462,11 @@ clean:
 	find $(BUILD_DIR) -type f -name "*.o" -delete 2>/dev/null || true
 	find $(BUILD_DIR) -type f -name "*.exe" -delete 2>/dev/null || true
 	rm -f $(BUILD_DIR_LINUX)/$(EXECUTABLE_LINUX)
+	rm -f $(BUILD_DIR_LINUX)/libsteam_api.so
 	rm -f $(BUILD_DIR_LINUX_STATIC)/$(EXECUTABLE_LINUX_STATIC)
+	rm -f $(BUILD_DIR_LINUX_STATIC)/libsteam_api.so
 	rm -f $(BUILD_DIR_LINUX_DEBUG)/$(EXECUTABLE_LINUX_DEBUG)
+	rm -f $(BUILD_DIR_LINUX_DEBUG)/libsteam_api.so
 	rm -f $(BUILD_DIR_WIN)/$(EXECUTABLE_WIN)
 	rm -f $(BUILD_DIR_WIN_DEBUG)/$(EXECUTABLE_WIN_DEBUG)
 	@echo "✓ Clean complete"
@@ -406,14 +500,24 @@ help:
 	@echo "  make               - Build for Linux (default)"
 	@echo "  make linux         - Build for Linux (dynamic linking)"
 	@echo "  make linux-static  - Build for Linux (static C++ runtime)"
-	@echo "  make windows       - Build for Windows (with FreeType support)"
+	@echo "  make windows       - Build for Windows (MS Store — no Steam)"
 	@echo "  make debug         - Build debug versions for both platforms"
 	@echo "  make cometbuster-linux-debug   - Build debug for Linux"
 	@echo "  make cometbuster-windows-debug - Build debug for Windows"
 	@echo ""
+	@echo "Steam builds (Linux only):"
+	@echo "  make STEAM=1 linux          - Linux build with Steamworks"
+	@echo "  make STEAM=1 linux-static   - Linux static build with Steamworks"
+	@echo "  make STEAM=1 debug          - Debug builds with Steamworks"
+	@echo "  make STEAM=1 STEAM_SDK=/path/to/sdk linux  - Custom SDK path"
+	@echo ""
+	@echo "  NOTE: Never use STEAM=1 for Windows (MS Store) or Android builds."
+	@echo "  libsteam_api.so will be copied next to the binary automatically."
+	@echo ""
 	@echo "Dependency checks:"
 	@echo "  make check-freetype - Verify FreeType is installed"
 	@echo "  make check-monospace - Verify Monospace.h exists"
+	@echo "  make check-steam    - Verify Steamworks SDK is present"
 	@echo ""
 	@echo "WAD audio targets:"
 	@echo "  make wad           - Create cometbuster.wad from sound files"
@@ -441,6 +545,7 @@ help:
 	@echo "  - OpenGL & GLEW (3D rendering)"
 	@echo "  - FreeType 2 (TTF font rendering)"
 	@echo "  - Miniz (ZIP/WAD support)"
+	@echo "  - Steamworks SDK (optional, enable with STEAM=1)"
 	@echo ""
 	@echo "Dependencies (Windows):"
 	@echo "  - SDL2 & SDL2_mixer DLLs"
@@ -452,21 +557,23 @@ help:
 	@echo "  python3 ttf_to_base64_header.py /path/to/font.ttf Monospace.h"
 	@echo ""
 	@echo "  Example with system fonts:"
+	@echo "  - Fedora: python3 ttf_to_base64_header.py /usr/share/fonts/liberation-mono/LiberationMono-Regular.ttf Monospace.h"
 	@echo "  - Ubuntu: python3 ttf_to_base64_header.py /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf Monospace.h"
 	@echo "  - macOS:  python3 ttf_to_base64_header.py /Library/Fonts/Courier\ New.ttf Monospace.h"
 	@echo ""
 	@echo "Static vs Dynamic:"
 	@echo "  - make linux: Dynamic linking (normal development)"
 	@echo "  - make linux-static: Static C++ runtime"
+	@echo "  Note: libsteam_api.so is always dynamic (no static version from Valve)"
 	@echo ""
 	@echo "Example workflow:"
 	@echo "  1. make check-freetype           # Verify FreeType installed"
 	@echo "  2. python3 ttf_to_base64_header.py yourfont.ttf Monospace.h"
-	@echo "  3. make linux                    # Build for testing"
+	@echo "  3. make linux                    # Build for testing (no Steam)"
 	@echo "  4. ./build/linux/cometbuster     # Run and test"
-	@echo "  5. make linux-static             # Build static"
+	@echo "  5. make STEAM=1 linux-static     # Build Steam release"
 	@echo "  6. ./build/linux-static/cometbuster-static"
-	@echo "  7. Upload cometbuster-static"
+	@echo "  7. Upload build/linux-static/ to Steam depot"
 	@echo ""
 
-.PHONY: all clean install uninstall help linux linux-static windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad check-freetype check-monospace
+.PHONY: all clean install uninstall help linux linux-static windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad check-freetype check-monospace check-steam cometbuster-copy-steam-linux cometbuster-copy-steam-linux-static cometbuster-copy-steam-linux-debug

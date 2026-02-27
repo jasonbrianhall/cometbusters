@@ -32,6 +32,10 @@
 #include "comet_main_gl_menu.h"
 #include "comet_haptics.h"
 
+#ifdef STEAM_ENABLED
+#include "steam/steam_api.h"
+#endif
+
 #ifdef _WIN32
 std::string getExecutableDir() { 
     char buffer[MAX_PATH];
@@ -682,6 +686,11 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
 static void cleanup(CometGUI *gui) {
     // ✅ Cleanup touch input manager
     touch_manager_cleanup(&gui->visualizer.touch_manager);
+
+#ifdef STEAM_ENABLED
+    SteamAPI_Shutdown();
+    SDL_Log("[Comet Busters] [STEAM] SteamAPI shut down\n");
+#endif
     
     if (gui->joystick) SDL_JoystickClose(gui->joystick);
     if (gui->gl_context) SDL_GL_DeleteContext(gui->gl_context);
@@ -824,6 +833,15 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         SDL_Log("[Comet Busters] Failed to initialize video\n");
         return 1;
     }
+
+#ifdef STEAM_ENABLED
+    if (!SteamAPI_Init()) {
+        SDL_Log("[Comet Busters] [STEAM] WARNING: SteamAPI_Init() failed - Steam not running or steam_appid.txt missing\n");
+        // Non-fatal: game continues without Steam features
+    } else {
+        SDL_Log("[Comet Busters] [STEAM] SteamAPI initialized OK (AppID: %u)\n", SteamUtils()->GetAppID());
+    }
+#endif
     
     // Window is now maximized, get the actual size
     SDL_GetWindowSize(gui.window, &gui.window_width, &gui.window_height);
@@ -1007,6 +1025,10 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 */        
         handle_events(&gui, &hs_entry, &cheat_menu);
         update_game(&gui, &hs_entry);
+
+#ifdef STEAM_ENABLED
+        SteamAPI_RunCallbacks();
+#endif
         
         // ✅ UPDATE TOUCH INPUT - This makes ships follow your finger
         update_touch_input(&gui.visualizer, &gui.visualizer.comet_buster, gui.delta_time);

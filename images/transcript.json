@@ -1,0 +1,610 @@
+{
+  "song_duration": 100.0,
+  "words": [
+    {
+      "word": " In",
+      "start": 22.060000000000002,
+      "end": 22.94
+    },
+    {
+      "word": " the",
+      "start": 22.94,
+      "end": 23.26
+    },
+    {
+      "word": " saddle",
+      "start": 23.26,
+      "end": 23.7
+    },
+    {
+      "word": " of",
+      "start": 23.7,
+      "end": 24.14
+    },
+    {
+      "word": " Kebler",
+      "start": 24.14,
+      "end": 24.58
+    },
+    {
+      "word": " Sky",
+      "start": 24.58,
+      "end": 25.22
+    },
+    {
+      "word": " The",
+      "start": 26.279999999999994,
+      "end": 27.04
+    },
+    {
+      "word": " asteroid",
+      "start": 27.04,
+      "end": 27.74
+    },
+    {
+      "word": " stopped",
+      "start": 27.74,
+      "end": 28.24
+    },
+    {
+      "word": " to",
+      "start": 28.24,
+      "end": 28.52
+    },
+    {
+      "word": " scream",
+      "start": 28.52,
+      "end": 28.88
+    },
+    {
+      "word": " The",
+      "start": 28.88,
+      "end": 30.02
+    },
+    {
+      "word": " destiny",
+      "start": 30.02,
+      "end": 30.6
+    },
+    {
+      "word": " wakes",
+      "start": 30.6,
+      "end": 31.08
+    },
+    {
+      "word": " from",
+      "start": 31.08,
+      "end": 31.38
+    },
+    {
+      "word": " a",
+      "start": 31.38,
+      "end": 31.58
+    },
+    {
+      "word": " war",
+      "start": 31.58,
+      "end": 31.78
+    },
+    {
+      "word": " tonne",
+      "start": 31.78,
+      "end": 32.34
+    },
+    {
+      "word": " past",
+      "start": 32.34,
+      "end": 32.6
+    },
+    {
+      "word": " Rising",
+      "start": 32.6,
+      "end": 33.38
+    },
+    {
+      "word": " out",
+      "start": 33.38,
+      "end": 33.68
+    },
+    {
+      "word": " of",
+      "start": 33.68,
+      "end": 33.82
+    },
+    {
+      "word": " a",
+      "start": 33.82,
+      "end": 33.98
+    },
+    {
+      "word": " broken",
+      "start": 33.98,
+      "end": 34.3
+    },
+    {
+      "word": " dream",
+      "start": 34.3,
+      "end": 35.2
+    },
+    {
+      "word": " Red",
+      "start": 35.2,
+      "end": 36.34
+    },
+    {
+      "word": " warships",
+      "start": 36.34,
+      "end": 37.22
+    },
+    {
+      "word": " hunting",
+      "start": 37.22,
+      "end": 37.82
+    },
+    {
+      "word": " the",
+      "start": 37.82,
+      "end": 38.28
+    },
+    {
+      "word": " burning",
+      "start": 38.28,
+      "end": 38.62
+    },
+    {
+      "word": " light",
+      "start": 38.62,
+      "end": 38.96
+    },
+    {
+      "word": " blue",
+      "start": 38.96,
+      "end": 39.32
+    },
+    {
+      "word": " patrols",
+      "start": 39.32,
+      "end": 40.06
+    },
+    {
+      "word": " hold",
+      "start": 40.06,
+      "end": 40.22
+    },
+    {
+      "word": " the",
+      "start": 40.22,
+      "end": 40.36
+    },
+    {
+      "word": " line",
+      "start": 40.36,
+      "end": 41.02
+    },
+    {
+      "word": " Green",
+      "start": 41.02,
+      "end": 42.3
+    },
+    {
+      "word": " drones",
+      "start": 42.3,
+      "end": 42.68
+    },
+    {
+      "word": " car",
+      "start": 42.68,
+      "end": 43.08
+    },
+    {
+      "word": " through",
+      "start": 43.08,
+      "end": 43.4
+    },
+    {
+      "word": " the",
+      "start": 43.4,
+      "end": 43.56
+    },
+    {
+      "word": " drifting",
+      "start": 43.56,
+      "end": 43.86
+    },
+    {
+      "word": " stone",
+      "start": 43.86,
+      "end": 44.44
+    },
+    {
+      "word": " and",
+      "start": 44.44,
+      "end": 44.84
+    },
+    {
+      "word": " the",
+      "start": 44.84,
+      "end": 45.04
+    },
+    {
+      "word": " void",
+      "start": 45.04,
+      "end": 45.38
+    },
+    {
+      "word": " begins",
+      "start": 45.38,
+      "end": 45.86
+    },
+    {
+      "word": " to",
+      "start": 45.86,
+      "end": 46.24
+    },
+    {
+      "word": " shine",
+      "start": 46.24,
+      "end": 47.54
+    },
+    {
+      "word": " Sugar",
+      "start": 52.62,
+      "end": 53.62
+    },
+    {
+      "word": " knots",
+      "start": 53.62,
+      "end": 53.94
+    },
+    {
+      "word": " war",
+      "start": 53.94,
+      "end": 54.44
+    },
+    {
+      "word": " in",
+      "start": 54.44,
+      "end": 55.2
+    },
+    {
+      "word": " the",
+      "start": 55.2,
+      "end": 55.36
+    },
+    {
+      "word": " golden",
+      "start": 55.36,
+      "end": 55.88
+    },
+    {
+      "word": " haze",
+      "start": 55.88,
+      "end": 56.82
+    },
+    {
+      "word": " Missiles",
+      "start": 56.82,
+      "end": 57.54
+    },
+    {
+      "word": " tracing",
+      "start": 57.54,
+      "end": 58.12
+    },
+    {
+      "word": " every",
+      "start": 58.12,
+      "end": 58.92
+    },
+    {
+      "word": " turn",
+      "start": 58.92,
+      "end": 59.7
+    },
+    {
+      "word": " Purple",
+      "start": 59.7,
+      "end": 60.32
+    },
+    {
+      "word": " eyes",
+      "start": 60.32,
+      "end": 60.7
+    },
+    {
+      "word": " watch",
+      "start": 60.7,
+      "end": 61.04
+    },
+    {
+      "word": " from",
+      "start": 61.04,
+      "end": 61.38
+    },
+    {
+      "word": " the",
+      "start": 61.38,
+      "end": 61.54
+    },
+    {
+      "word": " silent",
+      "start": 61.54,
+      "end": 61.92
+    },
+    {
+      "word": " dark",
+      "start": 61.92,
+      "end": 62.54
+    },
+    {
+      "word": " Where",
+      "start": 62.54,
+      "end": 62.86
+    },
+    {
+      "word": " forgotten",
+      "start": 62.86,
+      "end": 63.34
+    },
+    {
+      "word": " engines",
+      "start": 63.34,
+      "end": 64.1
+    },
+    {
+      "word": " burn",
+      "start": 64.1,
+      "end": 64.86
+    },
+    {
+      "word": " No",
+      "start": 65.44,
+      "end": 65.94
+    },
+    {
+      "word": " man",
+      "start": 65.94,
+      "end": 66.32
+    },
+    {
+      "word": " or",
+      "start": 66.32,
+      "end": 66.46
+    },
+    {
+      "word": " no",
+      "start": 66.46,
+      "end": 66.74
+    },
+    {
+      "word": " master",
+      "start": 66.74,
+      "end": 67.1
+    },
+    {
+      "word": " no",
+      "start": 67.1,
+      "end": 67.44
+    },
+    {
+      "word": " warning",
+      "start": 67.44,
+      "end": 68.12
+    },
+    {
+      "word": " Just",
+      "start": 68.12,
+      "end": 68.92
+    },
+    {
+      "word": " fire",
+      "start": 68.92,
+      "end": 69.36
+    },
+    {
+      "word": " and",
+      "start": 69.36,
+      "end": 69.86
+    },
+    {
+      "word": " fracture",
+      "start": 69.86,
+      "end": 70.22
+    },
+    {
+      "word": " its",
+      "start": 70.22,
+      "end": 70.6
+    },
+    {
+      "word": " face",
+      "start": 70.6,
+      "end": 71.5
+    },
+    {
+      "word": " Y",
+      "start": 71.5,
+      "end": 71.84
+    },
+    {
+      "word": "'all's",
+      "start": 71.84,
+      "end": 72.06
+    },
+    {
+      "word": " a",
+      "start": 72.06,
+      "end": 72.06
+    },
+    {
+      "word": " pilot",
+      "start": 72.06,
+      "end": 72.58
+    },
+    {
+      "word": " over",
+      "start": 72.58,
+      "end": 73.22
+    },
+    {
+      "word": " an",
+      "start": 73.22,
+      "end": 73.56
+    },
+    {
+      "word": " exit",
+      "start": 73.56,
+      "end": 73.84
+    },
+    {
+      "word": " ghost",
+      "start": 73.84,
+      "end": 74.68
+    },
+    {
+      "word": " And",
+      "start": 74.68,
+      "end": 74.94
+    },
+    {
+      "word": " the",
+      "start": 74.94,
+      "end": 75.02
+    },
+    {
+      "word": " field",
+      "start": 75.02,
+      "end": 75.34
+    },
+    {
+      "word": " becomes",
+      "start": 75.34,
+      "end": 75.84
+    },
+    {
+      "word": " your",
+      "start": 75.84,
+      "end": 76.3
+    },
+    {
+      "word": " place",
+      "start": 76.3,
+      "end": 77.68
+    },
+    {
+      "word": " Come",
+      "start": 77.68,
+      "end": 78.48
+    },
+    {
+      "word": " in,",
+      "start": 78.48,
+      "end": 79.22
+    },
+    {
+      "word": " buster",
+      "start": 79.48,
+      "end": 79.92
+    },
+    {
+      "word": " Like",
+      "start": 79.92,
+      "end": 81.4
+    },
+    {
+      "word": " the",
+      "start": 81.4,
+      "end": 82.06
+    },
+    {
+      "word": " engines",
+      "start": 82.06,
+      "end": 83.18
+    },
+    {
+      "word": " Come",
+      "start": 83.18,
+      "end": 84.46
+    },
+    {
+      "word": " in,",
+      "start": 84.46,
+      "end": 85.2
+    },
+    {
+      "word": " buster",
+      "start": 85.48,
+      "end": 86.02
+    },
+    {
+      "word": " Face",
+      "start": 86.02,
+      "end": 87.46
+    },
+    {
+      "word": " this",
+      "start": 87.46,
+      "end": 88.14
+    },
+    {
+      "word": " one",
+      "start": 88.14,
+      "end": 89.04
+    },
+    {
+      "word": " Come",
+      "start": 89.04,
+      "end": 90.38
+    },
+    {
+      "word": " in,",
+      "start": 90.38,
+      "end": 91.18
+    },
+    {
+      "word": " buster",
+      "start": 91.52,
+      "end": 91.98
+    },
+    {
+      "word": " Through",
+      "start": 91.98,
+      "end": 93.32
+    },
+    {
+      "word": " the",
+      "start": 93.32,
+      "end": 94.26
+    },
+    {
+      "word": " chaos",
+      "start": 94.26,
+      "end": 95.04
+    },
+    {
+      "word": " And",
+      "start": 95.04,
+      "end": 96.08
+    },
+    {
+      "word": " each",
+      "start": 96.08,
+      "end": 96.9
+    },
+    {
+      "word": " engine",
+      "start": 96.9,
+      "end": 97.4
+    },
+    {
+      "word": " is",
+      "start": 97.4,
+      "end": 98.44
+    },
+    {
+      "word": " reborn",
+      "start": 98.44,
+      "end": 100.0
+    }
+  ]
+}
