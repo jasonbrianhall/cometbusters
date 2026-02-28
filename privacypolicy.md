@@ -1,4 +1,4 @@
-Privacy Policy for Solitaire Essentials
+Privacy Policy for Comet Busters
 
 Last updated: January 9, 2026
 
