@@ -8,7 +8,7 @@
 # --- CONFIGURE THESE ---
 STEAM_USERNAME="booser108"
 APP_ID="4428660"
-DEPOT_ID="4428663"                        # Fill this in from Steamworks > SteamPipe > Depots
+DEPOT_ID="4428661"                        # Fill this in from Steamworks > SteamPipe > Depots
 BUILD_DESC="CometBusters Windows build"
 BUILD_DIR="$(pwd)/build/windows"
 SCRIPT_DIR="$(pwd)/steam_upload"
