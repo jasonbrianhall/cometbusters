@@ -95,16 +95,20 @@ CXXFLAGS_LINUX_STATIC += -O2 -ffunction-sections -fdata-sections -flto
 LDFLAGS_LINUX_STATIC += -s -Wl,--gc-sections -flto
 
 # Windows-specific flags (SDL2 and FreeType)
-# NOTE: Do NOT add STEAM_CFLAGS/STEAM_LIBS here — Steam is not used in
-# Windows/MS Store builds. Cross-compile the Windows target without STEAM=1.
 SDL2_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags sdl2 2>/dev/null || echo "")
 SDL2_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs sdl2 2>/dev/null || echo "-lSDL2")
 SDL2_MIXER_CFLAGS_WIN := $(shell $(PKG_CONFIG_WIN) --cflags SDL2_mixer 2>/dev/null || echo "")
 SDL2_MIXER_LIBS_WIN := $(shell $(PKG_CONFIG_WIN) --libs SDL2_mixer 2>/dev/null || echo "-lSDL2_mixer")
 
-CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DGLSave -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
-CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) -DGLSave -DExternalSound -DWIN32 -D_WIN32
-LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(FREETYPE_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
+# Windows Steam support (steam_api64.dll is the Windows version)
+ifdef STEAM
+  STEAM_LIBS_WIN   = -L$(STEAM_SDK)/redistributable_bin/win64 -lsteam_api64
+  STEAM_LIB_SRC_WIN = $(STEAM_SDK)/redistributable_bin/win64/steam_api64.dll
+endif
+
+CXXFLAGS_WIN = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DWIN32 -D_WIN32 -DVERSION=\"$(VERSION)\"
+CFLAGS_WIN = $(CFLAGS_COMMON) $(SDL2_CFLAGS_WIN) $(SDL2_MIXER_CFLAGS_WIN) $(FREETYPE_CFLAGS_WIN) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DWIN32 -D_WIN32
+LDFLAGS_WIN = $(SDL2_LIBS_WIN) $(SDL2_MIXER_LIBS_WIN) $(FREETYPE_LIBS_WIN) $(STEAM_LIBS_WIN) -lm -lstdc++ -lwinmm -lopengl32 -lglew32
 
 CXXFLAGS_WIN += -O5 -ffunction-sections -fdata-sections -flto
 LDFLAGS_WIN += -Wl,-Bdynamic -s -Wl,--gc-sections -flto -mwindows
@@ -179,7 +183,7 @@ all: check-monospace cometbuster-create-wad linux
 
 # OS-specific builds
 .PHONY: windows
-windows: check-monospace cometbuster-create-wad cometbuster-windows cometbuster-collect-dlls
+windows: check-monospace cometbuster-create-wad cometbuster-windows cometbuster-collect-dlls cometbuster-copy-steam-windows
 
 .PHONY: linux
 linux: check-monospace cometbuster-create-wad cometbuster-linux cometbuster-copy-steam-linux
@@ -289,6 +293,26 @@ ifdef STEAM
 	@echo "Copying libsteam_api.so to $(BUILD_DIR_LINUX_DEBUG)/..."
 	cp $(STEAM_LIB_SRC) $(BUILD_DIR_LINUX_DEBUG)/libsteam_api.so
 	@echo "✓ libsteam_api.so copied"
+else
+	@true
+endif
+
+.PHONY: cometbuster-copy-steam-windows
+cometbuster-copy-steam-windows:
+ifdef STEAM
+	@echo "Copying steam_api64.dll to $(BUILD_DIR_WIN)/..."
+	cp $(STEAM_LIB_SRC_WIN) $(BUILD_DIR_WIN)/steam_api64.dll
+	@echo "✓ steam_api64.dll copied"
+else
+	@true
+endif
+
+.PHONY: cometbuster-copy-steam-windows-debug
+cometbuster-copy-steam-windows-debug:
+ifdef STEAM
+	@echo "Copying steam_api64.dll to $(BUILD_DIR_WIN_DEBUG)/..."
+	cp $(STEAM_LIB_SRC_WIN) $(BUILD_DIR_WIN_DEBUG)/steam_api64.dll
+	@echo "✓ steam_api64.dll copied"
 else
 	@true
 endif
@@ -576,4 +600,4 @@ help:
 	@echo "  7. Upload build/linux-static/ to Steam depot"
 	@echo ""
 
-.PHONY: all clean install uninstall help linux linux-static windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad check-freetype check-monospace check-steam cometbuster-copy-steam-linux cometbuster-copy-steam-linux-static cometbuster-copy-steam-linux-debug
+.PHONY: all clean install uninstall help linux linux-static windows debug wad cometbuster-collect-dlls cometbuster-collect-debug-dlls cometbuster-create-wad check-freetype check-monospace check-steam cometbuster-copy-steam-linux cometbuster-copy-steam-linux-static cometbuster-copy-steam-linux-debug cometbuster-copy-steam-windows cometbuster-copy-steam-windows-debug
