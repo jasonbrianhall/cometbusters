@@ -51,7 +51,7 @@ if [ ! -f "$BUILD_DIR/libsteam_api.so" ]; then
 fi
 
 # Check steamcmd is available
-if ! command -v steamcmd &> /dev/null; then
+if ! command -v ~/.steam/steamcmd/steamcmd.sh &> /dev/null; then
     echo -e "${RED}ERROR: steamcmd not found.${NC}"
     echo ""
     echo "Install it with:  sudo dnf install steamcmd"
@@ -119,7 +119,7 @@ echo -e "${YELLOW}Note: You will be prompted for your password and Steam Guard c
 echo ""
 
 # Run steamcmd
-steamcmd \
+~/.steam/steamcmd/steamcmd.sh \
     +login "$STEAM_USERNAME" \
     +run_app_build "$SCRIPT_DIR/app_build_$APP_ID.vdf" \
     +quit
