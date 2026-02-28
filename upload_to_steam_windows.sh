@@ -60,27 +60,6 @@ if [ ! -f "$BUILD_DIR/cometbuster.wad" ]; then
     exit 1
 fi
 
-# Check for required DLLs
-MISSING_DLLS=""
-for dll in SDL2.dll SDL2_mixer.dll freetype.dll glew32.dll; do
-    if [ ! -f "$BUILD_DIR/$dll" ]; then
-        echo -e "${YELLOW}WARNING: $dll not found in $BUILD_DIR${NC}"
-        MISSING_DLLS="$MISSING_DLLS $dll"
-    fi
-done
-
-if [ -n "$MISSING_DLLS" ]; then
-    echo ""
-    echo "Some DLLs are missing. You may need to collect them first:"
-    echo "  make cometbuster-collect-dlls"
-    echo ""
-    read -p "Continue anyway? (y/N): " continue
-    if [[ "$continue" != "y" && "$continue" != "Y" ]]; then
-        echo "Cancelled."
-        exit 0
-    fi
-fi
-
 # Check steamcmd is available
 if ! command -v ~/.steam/steamcmd/steamcmd.sh &> /dev/null; then
     echo -e "${RED}ERROR: steamcmd not found.${NC}"
@@ -98,8 +77,9 @@ echo ""
 
 # Show what will be uploaded
 echo "Files to upload:"
-ls -lh "$BUILD_DIR/cometbuster.exe" "$BUILD_DIR/steam_api64.dll" "$BUILD_DIR/cometbuster.wad" 2>/dev/null
-ls -lh "$BUILD_DIR"/*.dll 2>/dev/null | grep -v steam_api64
+ls -lh "$BUILD_DIR"/*.exe 2>/dev/null
+ls -lh "$BUILD_DIR"/*.dll 2>/dev/null
+ls -lh "$BUILD_DIR"/*.wad 2>/dev/null
 echo ""
 
 # Confirm
@@ -121,12 +101,22 @@ cat > "$SCRIPT_DIR/depot_$DEPOT_ID.vdf" << EOF
     "ContentRoot"   "$BUILD_DIR"
     "FileMapping"
     {
-        "LocalPath"  "*"
+        "LocalPath"  "*.exe"
         "DepotPath"  "."
-        "recursive"  "1"
+        "recursive"  "0"
     }
-    "FileExclusion"  "*.o"
-    "FileExclusion"  "*.d"
+    "FileMapping"
+    {
+        "LocalPath"  "*.dll"
+        "DepotPath"  "."
+        "recursive"  "0"
+    }
+    "FileMapping"
+    {
+        "LocalPath"  "*.wad"
+        "DepotPath"  "."
+        "recursive"  "0"
+    }
 }
 EOF
 
