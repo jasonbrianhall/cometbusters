@@ -461,7 +461,7 @@ jobs:
           
           <Properties>
             <DisplayName>CometBusters</DisplayName>
-            <PublisherDisplayName>JasonBrianHall</PublisherDisplayName>
+            <PublisherDisplayName>Jason Brian Hall</PublisherDisplayName>
             <Description>Blast asteroids and comets in this action-packed arcade game!</Description>
             <Logo>Assets\StoreLogo.scale-100.png</Logo>
           </Properties>
