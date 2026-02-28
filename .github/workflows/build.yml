@@ -455,12 +455,12 @@ jobs:
           
           <Identity
             Name="JasonBrianHall.15700415EB853"
-            Publisher="CN=Jason Brian Hall, O=Jason Brian Hall, C=US"
+            Publisher="CN=7A3CF65F-504C-42F2-BABD-6A0512A0A017"
             Version="${{ needs.build-linux.outputs.version }}"
             ProcessorArchitecture="x86" />
           
           <Properties>
-            <DisplayName>Cometbusters</DisplayName>
+            <DisplayName>CometBusters</DisplayName>
             <PublisherDisplayName>JasonBrianHall</PublisherDisplayName>
             <Description>Blast asteroids and comets in this action-packed arcade game!</Description>
             <Logo>Assets\StoreLogo.scale-100.png</Logo>
@@ -480,13 +480,13 @@ jobs:
           
           <Applications>
             <Application Id="CometBuster" Executable="Files\cometbuster.exe" EntryPoint="Windows.FullTrustApplication">
-              <uap:VisualElements DisplayName="Cometbusters"
+              <uap:VisualElements DisplayName="CometBusters"
                                   Description="Blast asteroids and comets in this action-packed arcade game!"
                                   Square150x150Logo="Assets\CometBusterLogo.scale-100.png"
                                   Square44x44Logo="Assets\CometBuster44x44.scale-100.png"
                                   BackgroundColor="#1a1a2e">
                 <uap:DefaultTile Wide310x150Logo="Assets\CometBusterWide.scale-100.png"
-                                ShortName="Cometbusters">
+                                ShortName="CometBusters">
                   <uap:ShowNameOnTiles>
                     <uap:ShowOn Tile="square150x150Logo"/>
                     <uap:ShowOn Tile="wide310x150Logo"/>
