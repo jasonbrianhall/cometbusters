@@ -60,6 +60,20 @@ if [ ! -f "$BUILD_DIR/cometbuster.wad" ]; then
     exit 1
 fi
 
+# Check LICENSE.md exists and copy as eula.txt
+if [ ! -f "LICENSE.md" ]; then
+    echo -e "${RED}ERROR: LICENSE.md not found in project root${NC}"
+    echo ""
+    echo "Create a LICENSE.md file in the project root directory."
+    exit 1
+fi
+
+cp LICENSE.md "$BUILD_DIR/eula.txt"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}ERROR: Failed to copy LICENSE.md to $BUILD_DIR/eula.txt${NC}"
+    exit 1
+fi
+
 # Check steamcmd is available
 if ! command -v ~/.steam/steamcmd/steamcmd.sh &> /dev/null; then
     echo -e "${RED}ERROR: steamcmd not found.${NC}"
@@ -73,6 +87,7 @@ echo -e "${GREEN}✓ Build found:${NC} $BUILD_DIR"
 echo -e "${GREEN}✓ App ID:${NC}     $APP_ID"
 echo -e "${GREEN}✓ Depot ID:${NC}   $DEPOT_ID"
 echo -e "${GREEN}✓ Steam API:${NC}  steam_api64.dll"
+echo -e "${GREEN}✓ EULA:${NC}       eula.txt (from LICENSE.md)"
 echo ""
 
 # Show what will be uploaded
@@ -114,6 +129,12 @@ cat > "$SCRIPT_DIR/depot_$DEPOT_ID.vdf" << EOF
     "FileMapping"
     {
         "LocalPath"  "*.wad"
+        "DepotPath"  "."
+        "recursive"  "0"
+    }
+    "FileMapping"
+    {
+        "LocalPath"  "eula.txt"
         "DepotPath"  "."
         "recursive"  "0"
     }
