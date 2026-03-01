@@ -50,6 +50,21 @@ if [ ! -f "$BUILD_DIR/libsteam_api.so" ]; then
     exit 1
 fi
 
+# Check LICENSE.md exists
+if [ ! -f "LICENSE.md" ]; then
+    echo -e "${RED}ERROR: LICENSE.md not found in project root${NC}"
+    echo ""
+    echo "Create a LICENSE.md file in the project root directory."
+    exit 1
+fi
+
+# Copy LICENSE.md as eula.txt to build directory
+cp LICENSE.md "$BUILD_DIR/eula.txt"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}ERROR: Failed to copy LICENSE.md to $BUILD_DIR/eula.txt${NC}"
+    exit 1
+fi
+
 # Check steamcmd is available
 if ! command -v ~/.steam/steamcmd/steamcmd.sh &> /dev/null; then
     echo -e "${RED}ERROR: steamcmd not found.${NC}"
@@ -62,11 +77,12 @@ fi
 echo -e "${GREEN}✓ Build found:${NC} $BUILD_DIR"
 echo -e "${GREEN}✓ App ID:${NC}     $APP_ID"
 echo -e "${GREEN}✓ Depot ID:${NC}   $DEPOT_ID"
+echo -e "${GREEN}✓ EULA:${NC}       eula.txt (from LICENSE.md)"
 echo ""
 
 # Show what will be uploaded
 echo "Files to upload:"
-ls -lh "$BUILD_DIR/cometbuster-static" "$BUILD_DIR/libsteam_api.so" "$BUILD_DIR/cometbuster.wad" 2>/dev/null
+ls -lh "$BUILD_DIR/cometbuster-static" "$BUILD_DIR/libsteam_api.so" "$BUILD_DIR/cometbuster.wad" "$BUILD_DIR/eula.txt" 2>/dev/null
 echo ""
 
 # Confirm
