@@ -60,7 +60,7 @@ if [ ! -f "$BUILD_DIR/cometbuster.wad" ]; then
     exit 1
 fi
 
-# Check LICENSE.md exists and copy as eula.txt
+# Check LICENSE.md exists
 if [ ! -f "LICENSE.md" ]; then
     echo -e "${RED}ERROR: LICENSE.md not found in project root${NC}"
     echo ""
@@ -68,6 +68,7 @@ if [ ! -f "LICENSE.md" ]; then
     exit 1
 fi
 
+# Copy LICENSE.md as eula.txt to build directory
 cp LICENSE.md "$BUILD_DIR/eula.txt"
 if [ $? -ne 0 ]; then
     echo -e "${RED}ERROR: Failed to copy LICENSE.md to $BUILD_DIR/eula.txt${NC}"
@@ -95,6 +96,7 @@ echo "Files to upload:"
 ls -lh "$BUILD_DIR"/*.exe 2>/dev/null
 ls -lh "$BUILD_DIR"/*.dll 2>/dev/null
 ls -lh "$BUILD_DIR"/*.wad 2>/dev/null
+ls -lh "$BUILD_DIR"/eula.txt 2>/dev/null
 echo ""
 
 # Confirm
