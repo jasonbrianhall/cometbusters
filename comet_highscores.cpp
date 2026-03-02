@@ -21,6 +21,106 @@
 #include <SDL2/SDL.h>
 #endif
 
+#ifdef STEAM
+    #include "steam/steam_api.h"
+
+// ============================================================
+// STEAM LEADERBOARD
+// ============================================================
+
+// Name of the leaderboard as configured in the Steamworks partner dashboard
+#define STEAM_LEADERBOARD_NAME "CometBustersHighScores"
+
+static SteamLeaderboard_t s_leaderboard_handle = 0;
+static bool s_leaderboard_find_pending = false;
+
+// ------------------------------------------------------------
+// Callback object — finds (or creates) the leaderboard on Steam
+// ------------------------------------------------------------
+class CometLeaderboard {
+public:
+    // Kick off an async leaderboard find/create.
+    // Call once after SteamAPI_Init(), e.g. at game start.
+    static void find() {
+        if (s_leaderboard_find_pending || s_leaderboard_handle != 0) return;
+        if (!SteamUserStats()) {
+            SDL_Log("[Comet Busters] [STEAM LB] ISteamUserStats not available\n");
+            return;
+        }
+        SDL_Log("[Comet Busters] [STEAM LB] Searching for leaderboard '%s'\n",
+                STEAM_LEADERBOARD_NAME);
+        SteamAPICall_t call = SteamUserStats()->FindOrCreateLeaderboard(
+            STEAM_LEADERBOARD_NAME,
+            k_ELeaderboardSortMethodDescending,
+            k_ELeaderboardDisplayTypeNumeric);
+        s_find_cb.Set(call, nullptr, &CometLeaderboard::on_find_result);
+        s_leaderboard_find_pending = true;
+    }
+
+    // Submit a score. Safe to call before the handle is ready —
+    // it will be a no-op; the local high scores file is the ground truth.
+    static void upload_score(int score) {
+        if (s_leaderboard_handle == 0) {
+            SDL_Log("[Comet Busters] [STEAM LB] Leaderboard not ready, skipping upload\n");
+            return;
+        }
+        if (!SteamUserStats()) return;
+        SDL_Log("[Comet Busters] [STEAM LB] Uploading score %d\n", score);
+        SteamAPICall_t call = SteamUserStats()->UploadLeaderboardScore(
+            s_leaderboard_handle,
+            k_ELeaderboardUploadScoreMethodKeepBest,
+            (int32)score,
+            nullptr, 0);
+        s_upload_cb.Set(call, nullptr, &CometLeaderboard::on_upload_result);
+    }
+
+private:
+    static CCallResult<CometLeaderboard, LeaderboardFindResult_t> s_find_cb;
+    static CCallResult<CometLeaderboard, LeaderboardScoreUploaded_t> s_upload_cb;
+
+    static void on_find_result(LeaderboardFindResult_t *result, bool io_failure) {
+        s_leaderboard_find_pending = false;
+        if (io_failure || !result->m_bLeaderboardFound) {
+            SDL_Log("[Comet Busters] [STEAM LB] Leaderboard not found (io_failure=%d)\n",
+                    (int)io_failure);
+            return;
+        }
+        s_leaderboard_handle = result->m_hSteamLeaderboard;
+        SDL_Log("[Comet Busters] [STEAM LB] Leaderboard handle acquired: %llu\n",
+                (unsigned long long)s_leaderboard_handle);
+    }
+
+    static void on_upload_result(LeaderboardScoreUploaded_t *result, bool io_failure) {
+        if (io_failure || !result->m_bSuccess) {
+            SDL_Log("[Comet Busters] [STEAM LB] Score upload failed (io_failure=%d)\n",
+                    (int)io_failure);
+            return;
+        }
+        SDL_Log("[Comet Busters] [STEAM LB] Score uploaded. New=%d GlobalRank=%d\n",
+                result->m_bScoreChanged,
+                result->m_nGlobalRankNew);
+    }
+};
+
+// Static member definitions
+CCallResult<CometLeaderboard, LeaderboardFindResult_t>    CometLeaderboard::s_find_cb;
+CCallResult<CometLeaderboard, LeaderboardScoreUploaded_t> CometLeaderboard::s_upload_cb;
+
+// Public C-style wrappers used by the rest of the game
+void steam_leaderboard_init(void) {
+    CometLeaderboard::find();
+}
+
+void steam_leaderboard_upload_score(int score) {
+    CometLeaderboard::upload_score(score);
+}
+
+#endif /* STEAM */
+
+// ============================================================
+// LOCAL FILE HELPERS
+// ============================================================
+
 /**
  * Create all directories leading up to a file path if they don't exist.
  */
@@ -32,8 +132,6 @@ static void ensure_scores_dir_exists(const char *filepath) {
     char *last_sep = strrchr(dir, '\\');
     if (last_sep) {
         *last_sep = '\0';
-        // SHCreateDirectoryExA handles nested directories and returns
-        // ERROR_ALREADY_EXISTS (success) if the path already exists.
         int result = SHCreateDirectoryExA(NULL, dir, NULL);
         if (result != ERROR_SUCCESS && result != ERROR_ALREADY_EXISTS) {
             SDL_Log("[Comet Busters] [HIGH SCORES] Failed to create directory: %s (err=%d)\n", dir, result);
@@ -56,12 +154,50 @@ static void ensure_scores_dir_exists(const char *filepath) {
 #endif
 }
 
+// ============================================================
+// HIGH SCORE PERSISTENCE FUNCTIONS
+// ============================================================
+
+/**
+ * Get the high scores file path
+ */
+const char* high_scores_get_path(void) {
+    static char scores_path[512] = {0};
+    static bool initialized = false;
+
+    if (initialized) return scores_path;
+
+#ifdef _WIN32
+    char appdata_path[MAX_PATH];
+    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appdata_path))) {
+        snprintf(scores_path, sizeof(scores_path), "%s\\CometBusters\\highscores.txt", appdata_path);
+    } else {
+        const char *home = getenv("USERPROFILE");
+        if (home) {
+            snprintf(scores_path, sizeof(scores_path), "%s\\CometBusters\\highscores.txt", home);
+        } else {
+            strcpy(scores_path, ".\\CometBusters\\highscores.txt");
+        }
+    }
+#else
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(scores_path, sizeof(scores_path), "%s/.config/cometbusters/highscores.txt", home);
+    } else {
+        strcpy(scores_path, "./.cometbusters/highscores.txt");
+    }
+#endif
+
+    initialized = true;
+    return scores_path;
+}
+
 /**
  * Load high scores from disk (text format)
  */
 void high_scores_load(CometBusterGame *game) {
     if (!game) return;
-    
+
     game->high_score_count = 0;
     for (int i = 0; i < MAX_HIGH_SCORES; i++) {
         game->high_scores[i].score = 0;
@@ -69,19 +205,19 @@ void high_scores_load(CometBusterGame *game) {
         game->high_scores[i].timestamp = 0;
         game->high_scores[i].player_name[0] = '\0';
     }
-    
+
     const char *path = high_scores_get_path();
     SDL_Log("[Comet Busters] [HIGH SCORES] Loading from: %s\n", path);
-    
+
     FILE *fp = fopen(path, "r");
-    
+
     if (!fp) {
         SDL_Log("[Comet Busters] [HIGH SCORES] No existing high scores file\n");
         return;
     }
-    
+
     SDL_Log("[Comet Busters] [HIGH SCORES] File opened successfully\n");
-    
+
     // DEBUG: Read entire file first to see what's in it
     SDL_Log("[Comet Busters] [HIGH SCORES DEBUG] File contents:\n");
     rewind(fp);
@@ -91,36 +227,36 @@ void high_scores_load(CometBusterGame *game) {
         line_num++;
         SDL_Log("[Comet Busters]   Line %d: %s", line_num, debug_line);
     }
-    
+
     // Now parse the file properly
     rewind(fp);
     SDL_Log("[Comet Busters] [HIGH SCORES DEBUG] Now parsing file:\n");
-    
+
     char line[256];
     while (game->high_score_count < MAX_HIGH_SCORES && fgets(line, sizeof(line), fp) != NULL) {
         int score, wave;
         long raw_timestamp;  // Use long to match the %ld save format; avoids 32/64-bit
         time_t timestamp;    // mismatch on Windows where long is 32-bit but time_t is 64-bit.
         char name[32];
-        
+
         // Parse: score wave timestamp name (name can have spaces)
         // Format: 38565 5 1765397762 John Doe
         int items_read = sscanf(line, "%d %d %ld", &score, &wave, &raw_timestamp);
         timestamp = (time_t)raw_timestamp;
-        
-        SDL_Log("[Comet Busters] [HIGH SCORES DEBUG] Line %d: Read %d items - ", 
+
+        SDL_Log("[Comet Busters] [HIGH SCORES DEBUG] Line %d: Read %d items - ",
                 game->high_score_count + 1, items_read);
-        
+
         if (items_read != 3) {
             SDL_Log("[Comet Busters] PARSE FAILED (expected at least 3 items)\n");
             continue;
         }
-        
+
         // Extract name - everything after the third field
         char *name_start = line;
         int field_count = 0;
         int pos = 0;
-        
+
         // Skip past score, wave, and timestamp fields
         while (field_count < 3 && pos < (int)strlen(line)) {
             if (line[pos] == ' ') {
@@ -132,42 +268,42 @@ void high_scores_load(CometBusterGame *game) {
                 pos++;
             }
         }
-        
+
         name_start = &line[pos];
-        
+
         // Remove trailing newline/carriage-return from name (handles \n and \r\n)
         int name_len = strlen(name_start);
         while (name_len > 0 && (name_start[name_len - 1] == '\n' || name_start[name_len - 1] == '\r')) {
             name_start[name_len - 1] = '\0';
             name_len--;
         }
-        
+
         // Copy name
         strncpy(name, name_start, sizeof(name) - 1);
         name[sizeof(name) - 1] = '\0';
-        
-        SDL_Log("[Comet Busters] score=%d wave=%d ts=%ld name=%s\n", 
+
+        SDL_Log("[Comet Busters] score=%d wave=%d ts=%ld name=%s\n",
                 score, wave, timestamp, name);
-        
+
         HighScore *hs = &game->high_scores[game->high_score_count];
         hs->score = score;
         hs->wave = wave;
         hs->timestamp = timestamp;
         strncpy(hs->player_name, name, sizeof(hs->player_name) - 1);
         hs->player_name[sizeof(hs->player_name) - 1] = '\0';
-        
-        SDL_Log("[Comet Busters] [HIGH SCORES DEBUG] Stored score: %s = %d (W%d)\n", 
+
+        SDL_Log("[Comet Busters] [HIGH SCORES DEBUG] Stored score: %s = %d (W%d)\n",
                 hs->player_name, hs->score, hs->wave);
-        
+
         game->high_score_count++;
     }
-    
+
     fclose(fp);
     SDL_Log("[Comet Busters] [HIGH SCORES] Loaded %d high scores\n", game->high_score_count);
 }
 
 /**
- * Save high scores to disk (text format)
+ * Save high scores to disk (text format), and mirror #1 score to Steam leaderboard.
  */
 void high_scores_save(CometBusterGame *game) {
     if (!game) return;
@@ -200,6 +336,14 @@ void high_scores_save(CometBusterGame *game) {
     fflush(fp);   // force write to disk
     fclose(fp);
     SDL_Log("[Comet Busters] [HIGH SCORES] Saved %d high scores\n", game->high_score_count);
+
+#ifdef STEAM
+    // Upload the player's personal best (slot 0, highest score) to the Steam leaderboard.
+    // Steam's KeepBest policy means this is safe to call every save.
+    if (game->high_score_count > 0) {
+        steam_leaderboard_upload_score(game->high_scores[0].score);
+    }
+#endif /* STEAM */
 }
 
 /**
@@ -207,21 +351,21 @@ void high_scores_save(CometBusterGame *game) {
  */
 bool comet_buster_is_high_score(CometBusterGame *game, int score) {
     if (!game) return false;
-    
+
     // If we haven't filled the high score list yet, any score is a high score
     if (game->high_score_count < MAX_HIGH_SCORES) {
-        SDL_Log("[Comet Busters] List not full yet (%d/%d), score %d qualifies\n", 
+        SDL_Log("[Comet Busters] List not full yet (%d/%d), score %d qualifies\n",
                game->high_score_count, MAX_HIGH_SCORES, score);
         return true;
     }
-    
+
     // List is full - check if score beats the lowest (last) score
     if (score > game->high_scores[MAX_HIGH_SCORES - 1].score) {
-        SDL_Log("[Comet Busters] Is a High Score: %d (beats lowest of %d)\n", 
+        SDL_Log("[Comet Busters] Is a High Score: %d (beats lowest of %d)\n",
                score, game->high_scores[MAX_HIGH_SCORES - 1].score);
         return true;
     }
-    
+
     SDL_Log("[Comet Busters] Not a high score: %d\n", score);
     return false;
 }
@@ -233,7 +377,7 @@ void high_scores_add(CometBusterGame *game, int score, int wave, const char *nam
     if (!game || !name) return;
 
     SDL_Log("[Comet Busters] Adding high score: %d (wave %d, player %s)\n", score, wave, name);
-    
+
     // If list is not full, append to the end
     if (game->high_score_count < MAX_HIGH_SCORES) {
         game->high_scores[game->high_score_count].score = score;
@@ -259,50 +403,17 @@ void high_scores_add(CometBusterGame *game, int score, int wave, const char *nam
             break;
         }
     }
-    
+
     SDL_Log("[Comet Busters] High score count after add: %d\n", game->high_score_count);
     for(int i = 0; i < game->high_score_count; i++) {
-        SDL_Log("[Comet Busters]   [%d] %s = %d (W%d)\n", i, 
+        SDL_Log("[Comet Busters]   [%d] %s = %d (W%d)\n", i,
                game->high_scores[i].player_name,
                game->high_scores[i].score,
                game->high_scores[i].wave);
     }
-}
 
-// ============================================================
-// HIGH SCORE PERSISTENCE FUNCTIONS
-// ============================================================
-
-/**
- * Get the high scores file path
- */
-const char* high_scores_get_path(void) {
-    static char scores_path[512] = {0};
-    static bool initialized = false;
-    
-    if (initialized) return scores_path;
-    
-#ifdef _WIN32
-    char appdata_path[MAX_PATH];
-    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appdata_path))) {
-        snprintf(scores_path, sizeof(scores_path), "%s\\CometBusters\\highscores.txt", appdata_path);
-    } else {
-        const char *home = getenv("USERPROFILE");
-        if (home) {
-            snprintf(scores_path, sizeof(scores_path), "%s\\CometBusters\\highscores.txt", home);
-        } else {
-            strcpy(scores_path, ".\\CometBusters\\highscores.txt");
-        }
-    }
-#else
-    const char *home = getenv("HOME");
-    if (home) {
-        snprintf(scores_path, sizeof(scores_path), "%s/.config/cometbusters/highscores.txt", home);
-    } else {
-        strcpy(scores_path, "./.cometbusters/highscores.txt");
-    }
-#endif
-    
-    initialized = true;
-    return scores_path;
+#ifdef STEAM
+    // Immediately push the new score to Steam as well
+    steam_leaderboard_upload_score(score);
+#endif /* STEAM */
 }
