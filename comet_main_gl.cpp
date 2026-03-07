@@ -34,38 +34,6 @@
 
 #ifdef STEAM_ENABLED
 #include "steam/steam_api.h"
-
-// ============================================================
-// STEAM OVERLAY CALLBACK
-// Pauses/unpauses the game when the Steam overlay opens/closes
-// ============================================================
-class SteamOverlayHandler {
-public:
-    SteamOverlayHandler(CometGUI *gui) : m_gui(gui),
-        m_overlay_callback(this, &SteamOverlayHandler::OnOverlayActivated) {}
-
-    STEAM_CALLBACK(SteamOverlayHandler, OnOverlayActivated,
-                   GameOverlayActivated_t, m_overlay_callback);
-private:
-    CometGUI *m_gui;
-};
-
-void SteamOverlayHandler::OnOverlayActivated(GameOverlayActivated_t *pCallback) {
-    if (pCallback->m_bActive) {
-        // Overlay opened — pause the game
-        if (!m_gui->game_paused && !m_gui->show_menu) {
-            m_gui->game_paused = true;
-            SDL_Log("[Comet Busters] [STEAM] Overlay opened - game paused\n");
-        }
-    } else {
-        // Overlay closed — unpause (only if we were the ones who paused it)
-        if (m_gui->game_paused) {
-            m_gui->game_paused = false;
-            SDL_Log("[Comet Busters] [STEAM] Overlay closed - game resumed\n");
-        }
-    }
-}
-
 #endif
 
 #ifdef _WIN32
@@ -598,9 +566,15 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color(0.2f, 1.0f, 0.8f);
         gl_draw_text_simple(hint_resume_p[gui->visualizer.comet_buster.current_language], 795, 600, 24);
         
+        // Joystick resume hint - shown only when a joystick is connected
+        if (gui->joystick) {
+            gl_set_color(0.2f, 1.0f, 0.8f);
+            gl_draw_text_simple("LB / L1 to Resume", 835, 630, 16);
+        }
+        
         // Additional hints - Dimmer cyan
         gl_set_color(0.0f, 0.8f, 0.9f);
-        gl_draw_text_simple(hint_esc_menu[gui->visualizer.comet_buster.current_language], 835, 650, 16);
+        gl_draw_text_simple(hint_esc_menu[gui->visualizer.comet_buster.current_language], 835, 670, 16);
     }
     
     // Render cheat menu if open
@@ -873,9 +847,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     } else {
         SDL_Log("[Comet Busters] [STEAM] SteamAPI initialized OK (AppID: %u)\n", SteamUtils()->GetAppID());
     }
-    // Register overlay callback - pauses game when Steam overlay opens
-    SteamOverlayHandler steam_overlay_handler(&gui);
 #endif
+    
+    // Window is now maximized, get the actual size
     SDL_GetWindowSize(gui.window, &gui.window_width, &gui.window_height);
     SDL_Log("[Comet Busters] [INIT] Window maximized size: %dx%d\n", gui.window_width, gui.window_height);
     

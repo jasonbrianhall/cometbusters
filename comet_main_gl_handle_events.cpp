@@ -511,8 +511,6 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
             case SDL_MOUSEBUTTONDOWN: {
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
-                gui->visualizer.mouse_movement_timer = 0.0;
-                SDL_ShowCursor(SDL_ENABLE);
                 
                 // Handle high score entry virtual keyboard clicks
                 if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
@@ -1798,9 +1796,30 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
             }
             
             case SDL_JOYDEVICEADDED:
+                init_joystick(gui);
+                SDL_Log("[Comet Busters] [JOYSTICK] Controller connected, re-initializing joystick\n");
+                // If the game was paused due to a disconnect, resume now
+                if (gui->game_paused && !gui->show_menu &&
+                    !gui->visualizer.comet_buster.splash_screen_active &&
+                    !gui->visualizer.comet_buster.game_over) {
+                    gui->game_paused = false;
+                    SDL_Log("[Comet Busters] [JOYSTICK] Game resumed on controller reconnect\n");
+#ifdef ExternalSound
+                    audio_play_random_music(&gui->audio);
+#endif
+                }
+                break;
+
             case SDL_JOYDEVICEREMOVED:
                 init_joystick(gui);
-                SDL_Log("[Comet Busters] [JOYSTICK] Device change detected, re-initializing joystick\n");
+                SDL_Log("[Comet Busters] [JOYSTICK] Controller disconnected\n");
+                // Pause the game so the player isn't left flying blind
+                if (!gui->game_paused && !gui->show_menu &&
+                    !gui->visualizer.comet_buster.splash_screen_active &&
+                    !gui->visualizer.comet_buster.game_over) {
+                    gui->game_paused = true;
+                    SDL_Log("[Comet Busters] [JOYSTICK] Game paused due to controller disconnect\n");
+                }
                 break;
         }
     }
@@ -1941,31 +1960,39 @@ void render_virtual_keyboard(CometGUI *gui, HighScoreEntryUI *hs_entry, int sele
 // ============================================================
 
 void init_joystick(CometGUI *gui) {
-    gui->joystick = NULL;
+    // Close existing handle before reinitializing to avoid leaking it
+    if (gui->joystick) {
+        SDL_JoystickClose(gui->joystick);
+        gui->joystick = NULL;
+        SDL_Log("[Comet Busters] [JOYSTICK] Closed existing joystick handle\n");
+    }
+
     int num_joysticks = SDL_NumJoysticks();
     if (num_joysticks > 0) {
         gui->joystick = SDL_JoystickOpen(0);
-        SDL_Log("[Comet Busters] [JOYSTICK] Initializing Haptic: %s\n", SDL_JoystickName(gui->joystick));
-        haptic_init(&gui->visualizer.comet_buster.haptic_manager, gui->joystick);
-
-        if (gui->joystick) {
-            SDL_Log("[Comet Busters] [JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
-            SDL_Log("[Comet Busters] [JOYSTICK] Buttons: %d\n", SDL_JoystickNumButtons(gui->joystick));
-            SDL_Log("[Comet Busters] [JOYSTICK] Axes: %d\n", SDL_JoystickNumAxes(gui->joystick));
-            SDL_Log("[Comet Busters] [JOYSTICK] Hats: %d\n", SDL_JoystickNumHats(gui->joystick));
-            SDL_Log("[Comet Busters] [JOYSTICK] ===== BUTTON MAPPING =====\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Button 0 (A/Cross)      - Fire/Select\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Button 1 (B/Circle)     - Boost/Back\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Button 2 (X/Square)     - Toggle Missiles\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Button 3 (Y/Triangle)   - Alt Fire\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Button 4 (LB/L1)        - Pause\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Button 5 (RB/R1)        - Cheat Menu\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Button 7 (Start)        - Toggle Menu\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
-            SDL_Log("[Comet Busters] [JOYSTICK] ============================\n");
-
+        if (!gui->joystick) {
+            SDL_Log("[Comet Busters] [JOYSTICK] Failed to open joystick: %s\n", SDL_GetError());
+            return;
         }
+
+        SDL_Log("[Comet Busters] [JOYSTICK] Found: %s\n", SDL_JoystickName(gui->joystick));
+        SDL_Log("[Comet Busters] [JOYSTICK] Buttons: %d\n", SDL_JoystickNumButtons(gui->joystick));
+        SDL_Log("[Comet Busters] [JOYSTICK] Axes: %d\n", SDL_JoystickNumAxes(gui->joystick));
+        SDL_Log("[Comet Busters] [JOYSTICK] Hats: %d\n", SDL_JoystickNumHats(gui->joystick));
+        SDL_Log("[Comet Busters] [JOYSTICK] ===== BUTTON MAPPING =====\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Button 0 (A/Cross)      - Fire/Select\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Button 1 (B/Circle)     - Boost/Back\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Button 2 (X/Square)     - Toggle Missiles\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Button 3 (Y/Triangle)   - Alt Fire\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Button 4 (LB/L1)        - Pause\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Button 5 (RB/R1)        - Cheat Menu\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Button 7 (Start)        - Toggle Menu\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] Left Stick X/Y          - Move/Rotate\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] D-Pad/Hat               - Menu Navigation\n");
+        SDL_Log("[Comet Busters] [JOYSTICK] ============================\n");
+
+        SDL_Log("[Comet Busters] [JOYSTICK] Initializing haptic\n");
+        haptic_init(&gui->visualizer.comet_buster.haptic_manager, gui->joystick);
     } else {
         SDL_Log("[Comet Busters] [JOYSTICK] No joysticks detected\n");
     }
