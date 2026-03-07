@@ -199,8 +199,8 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
 // ============================================================
 
 static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
-    // Don't update if menu is open or game is paused
-    if (gui->show_menu || gui->game_paused) return;
+    // Don't update if menu is open, game is paused, or help overlay is showing
+    if (gui->show_menu || gui->game_paused || gui->show_help_overlay) return;
     
     // Handle finale splash if active (Wave 30 victory)
     // UPDATE THIS FIRST before skipping normal game update
