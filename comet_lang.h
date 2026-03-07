@@ -626,11 +626,11 @@ static const char* fmt_pause_stats[] = {
 };
 
 static const char* hint_resume_p[] = {
-    "Press P to Resume",        // EN
-    "Pulsa P para reanudar",    // ES
-    "Appuyez sur P pour reprendre", // FR
-    "Нажмите P, чтобы продолжить",  // RU
-    "Drücke P zum Fortfahren"   // DE
+    "Press P or the bottom button\non the joystick to Resume",              // EN
+    "Pulsa P o el botón inferior\ndel joystick para reanudar",              // ES
+    "Appuyez sur P ou sur le bouton\ninférieur du joystick pour reprendre", // FR
+    "Нажмите P или нижнюю кнопку\nна джойстике, чтобы продолжить",         // RU
+    "Drücke P oder die untere Taste\nam Joystick zum Fortfahren"            // DE
 };
 
 static const char* hint_esc_menu[] = {
