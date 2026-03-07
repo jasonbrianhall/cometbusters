@@ -511,7 +511,6 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
             case SDL_MOUSEBUTTONDOWN: {
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
-                gui->visualizer.mouse_movement_timer = 0.0;  // Reset cursor idle timer on click
                 
                 // Handle high score entry virtual keyboard clicks
                 if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
@@ -860,7 +859,6 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 
             case SDL_MOUSEMOTION: {
                 gui->visualizer.mouse_just_moved = true;
-                gui->visualizer.mouse_movement_timer = 0.0;  // Reset cursor idle timer on movement
                 // Convert window pixel coordinates to game logical coordinates
                 gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
                 gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
@@ -1549,7 +1547,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                                         gui->main_menu_scroll_offset = max_scroll;
                                     }
                                 } else if (gui->menu_state == 1) {
-                                    menu_move_down(gui);
+                                    menu_update_difficulty(gui, 1);
                                 } else if (gui->menu_state == 3) {
                                     menu_move_down(gui);
                                 } else if (gui->menu_state == 4) {
@@ -1762,9 +1760,9 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                     } else if (gui->menu_state == 1) {
                         // Difficulty selection (2 items: Easy, Normal, Hard)
                         if (hat & SDL_HAT_UP) {
-                            menu_move_up(gui);
+                            menu_update_difficulty(gui, -1);
                         } else if (hat & SDL_HAT_DOWN) {
-                            menu_move_down(gui);
+                            menu_update_difficulty(gui, 1);
                         }
                     } else if (gui->menu_state == 2) {
                         // High scores display - no navigation needed (just display)
