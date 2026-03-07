@@ -34,50 +34,7 @@
 
 #ifdef STEAM_ENABLED
 #include "steam/steam_api.h"
-
-// ============================================================
-// STEAM OVERLAY CALLBACK
-// Pauses the game when the Steam overlay (Shift+Tab) is opened
-// and unpauses when it is dismissed.
-// ============================================================
-class SteamOverlayHandler {
-public:
-    explicit SteamOverlayHandler(CometGUI *gui) : m_gui(gui) {}
-
-    STEAM_CALLBACK(SteamOverlayHandler, OnOverlayActivated,
-                   GameOverlayActivated_t) {
-        if (!m_gui) return;
-        if (pParam->m_bActive) {
-            // Overlay just opened - pause if actively playing
-            if (!m_gui->game_paused &&
-                !m_gui->show_menu &&
-                !m_gui->visualizer.comet_buster.splash_screen_active &&
-                !m_gui->visualizer.comet_buster.game_over &&
-                !m_gui->visualizer.comet_buster.game_won) {
-                m_gui->game_paused = true;
-                SDL_Log("[Comet Busters] [STEAM] Overlay opened - game paused\n");
-            }
-        } else {
-            // Overlay closed - clear stale input so nothing fires unexpectedly
-            m_gui->visualizer.key_a_pressed     = false;
-            m_gui->visualizer.key_d_pressed     = false;
-            m_gui->visualizer.key_w_pressed     = false;
-            m_gui->visualizer.key_s_pressed     = false;
-            m_gui->visualizer.key_z_pressed     = false;
-            m_gui->visualizer.key_x_pressed     = false;
-            m_gui->visualizer.key_ctrl_pressed  = false;
-            m_gui->visualizer.key_q_pressed     = false;
-            m_gui->visualizer.mouse_left_pressed  = false;
-            m_gui->visualizer.mouse_right_pressed = false;
-            SDL_Log("[Comet Busters] [STEAM] Overlay closed - input state cleared\n");
-        }
-    }
-
-private:
-    CometGUI *m_gui;
-};
-
-#endif // STEAM_ENABLED
+#endif
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -737,7 +694,6 @@ static void cleanup(CometGUI *gui) {
     touch_manager_cleanup(&gui->visualizer.touch_manager);
 
 #ifdef STEAM_ENABLED
-    delete steam_overlay_handler;
     SteamAPI_Shutdown();
     SDL_Log("[Comet Busters] [STEAM] SteamAPI shut down\n");
 #endif
@@ -885,14 +841,11 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     }
 
 #ifdef STEAM_ENABLED
-    SteamOverlayHandler *steam_overlay_handler = nullptr;
     if (!SteamAPI_Init()) {
         SDL_Log("[Comet Busters] [STEAM] WARNING: SteamAPI_Init() failed - Steam not running or steam_appid.txt missing\n");
         // Non-fatal: game continues without Steam features
     } else {
         SDL_Log("[Comet Busters] [STEAM] SteamAPI initialized OK (AppID: %u)\n", SteamUtils()->GetAppID());
-        steam_overlay_handler = new SteamOverlayHandler(&gui);
-        SDL_Log("[Comet Busters] [STEAM] Overlay pause handler registered\n");
     }
 #endif
     
