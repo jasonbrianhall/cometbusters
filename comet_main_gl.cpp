@@ -1030,6 +1030,20 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
 */        
         handle_events(&gui, &hs_entry, &cheat_menu);
+
+#ifndef ANDROID
+        // Cursor auto-hide: hide after 3 seconds of mouse inactivity
+        {
+            const double CURSOR_HIDE_DELAY = 3.0;
+            gui.visualizer.mouse_movement_timer += gui.delta_time;
+            if (gui.visualizer.mouse_movement_timer >= CURSOR_HIDE_DELAY) {
+                SDL_ShowCursor(SDL_DISABLE);
+            } else {
+                SDL_ShowCursor(SDL_ENABLE);
+            }
+        }
+#endif
+
         update_game(&gui, &hs_entry);
 
 #ifdef STEAM_ENABLED

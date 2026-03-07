@@ -511,6 +511,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
             case SDL_MOUSEBUTTONDOWN: {
                 // Check for splash screen exit on mouse click
                 gui->visualizer.mouse_just_moved = true;
+                gui->visualizer.mouse_movement_timer = 0.0;  // Reset cursor idle timer on click
                 
                 // Handle high score entry virtual keyboard clicks
                 if (hs_entry && hs_entry->state == HIGH_SCORE_ENTRY_ACTIVE) {
@@ -859,6 +860,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
 
             case SDL_MOUSEMOTION: {
                 gui->visualizer.mouse_just_moved = true;
+                gui->visualizer.mouse_movement_timer = 0.0;  // Reset cursor idle timer on movement
                 // Convert window pixel coordinates to game logical coordinates
                 gui->visualizer.mouse_x = (int)(event.motion.x * 1920.0f / gui->window_width);
                 gui->visualizer.mouse_y = (int)(event.motion.y * 1080.0f / gui->window_height);
