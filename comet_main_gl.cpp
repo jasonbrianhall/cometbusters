@@ -1055,8 +1055,20 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         // Reset scroll wheel input after processing (for weapon changing)
         gui.visualizer.scroll_direction = 0;
         
-        // Reset mouse_just_moved flag for next frame
-        //gui.visualizer.mouse_just_moved = false;
+        // Auto-hide cursor after 2 seconds of mouse inactivity
+        #ifndef ANDROID
+        #define CURSOR_HIDE_DELAY 2.0
+        if (gui.visualizer.mouse_just_moved) {
+            gui.visualizer.mouse_movement_timer = 0.0;
+            gui.visualizer.mouse_just_moved = false;
+            SDL_ShowCursor(SDL_ENABLE);
+        } else {
+            gui.visualizer.mouse_movement_timer += gui.delta_time;
+            if (gui.visualizer.mouse_movement_timer >= CURSOR_HIDE_DELAY) {
+                SDL_ShowCursor(SDL_DISABLE);
+            }
+        }
+        #endif
         
         render_frame(&gui, &hs_entry, &cheat_menu);
         
