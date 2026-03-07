@@ -34,6 +34,38 @@
 
 #ifdef STEAM_ENABLED
 #include "steam/steam_api.h"
+
+// ============================================================
+// STEAM OVERLAY CALLBACK
+// Pauses/unpauses the game when the Steam overlay opens/closes
+// ============================================================
+class SteamOverlayHandler {
+public:
+    SteamOverlayHandler(CometGUI *gui) : m_gui(gui),
+        m_overlay_callback(this, &SteamOverlayHandler::OnOverlayActivated) {}
+
+    STEAM_CALLBACK(SteamOverlayHandler, OnOverlayActivated,
+                   GameOverlayActivated_t, m_overlay_callback);
+private:
+    CometGUI *m_gui;
+};
+
+void SteamOverlayHandler::OnOverlayActivated(GameOverlayActivated_t *pCallback) {
+    if (pCallback->m_bActive) {
+        // Overlay opened — pause the game
+        if (!m_gui->game_paused && !m_gui->show_menu) {
+            m_gui->game_paused = true;
+            SDL_Log("[Comet Busters] [STEAM] Overlay opened - game paused\n");
+        }
+    } else {
+        // Overlay closed — unpause (only if we were the ones who paused it)
+        if (m_gui->game_paused) {
+            m_gui->game_paused = false;
+            SDL_Log("[Comet Busters] [STEAM] Overlay closed - game resumed\n");
+        }
+    }
+}
+
 #endif
 
 #ifdef _WIN32
@@ -841,9 +873,9 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
     } else {
         SDL_Log("[Comet Busters] [STEAM] SteamAPI initialized OK (AppID: %u)\n", SteamUtils()->GetAppID());
     }
+    // Register overlay callback - pauses game when Steam overlay opens
+    SteamOverlayHandler steam_overlay_handler(&gui);
 #endif
-    
-    // Window is now maximized, get the actual size
     SDL_GetWindowSize(gui.window, &gui.window_width, &gui.window_height);
     SDL_Log("[Comet Busters] [INIT] Window maximized size: %dx%d\n", gui.window_width, gui.window_height);
     
@@ -1055,20 +1087,8 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         // Reset scroll wheel input after processing (for weapon changing)
         gui.visualizer.scroll_direction = 0;
         
-        // Auto-hide cursor after 2 seconds of mouse inactivity
-        #ifndef ANDROID
-        #define CURSOR_HIDE_DELAY 2.0
-        if (gui.visualizer.mouse_just_moved) {
-            gui.visualizer.mouse_movement_timer = 0.0;
-            gui.visualizer.mouse_just_moved = false;
-            SDL_ShowCursor(SDL_ENABLE);
-        } else {
-            gui.visualizer.mouse_movement_timer += gui.delta_time;
-            if (gui.visualizer.mouse_movement_timer >= CURSOR_HIDE_DELAY) {
-                SDL_ShowCursor(SDL_DISABLE);
-            }
-        }
-        #endif
+        // Reset mouse_just_moved flag for next frame
+        //gui.visualizer.mouse_just_moved = false;
         
         render_frame(&gui, &hs_entry, &cheat_menu);
         
