@@ -566,9 +566,15 @@ static void render_frame(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI 
         gl_set_color(0.2f, 1.0f, 0.8f);
         gl_draw_text_simple(hint_resume_p[gui->visualizer.comet_buster.current_language], 795, 600, 24);
         
+        // Joystick resume hint - shown only when a joystick is connected
+        if (gui->joystick) {
+            gl_set_color(0.2f, 1.0f, 0.8f);
+            gl_draw_text_simple("LB / L1 to Resume", 835, 630, 16);
+        }
+        
         // Additional hints - Dimmer cyan
         gl_set_color(0.0f, 0.8f, 0.9f);
-        gl_draw_text_simple(hint_esc_menu[gui->visualizer.comet_buster.current_language], 835, 650, 16);
+        gl_draw_text_simple(hint_esc_menu[gui->visualizer.comet_buster.current_language], 835, 670, 16);
     }
     
     // Render cheat menu if open
@@ -1024,6 +1030,20 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
 */        
         handle_events(&gui, &hs_entry, &cheat_menu);
+
+#ifndef ANDROID
+        // Cursor auto-hide: hide after 3 seconds of mouse inactivity, show immediately on movement
+        {
+            const double CURSOR_HIDE_DELAY = 3.0;
+            gui.visualizer.mouse_movement_timer += gui.delta_time;
+            if (gui.visualizer.mouse_movement_timer >= CURSOR_HIDE_DELAY) {
+                SDL_ShowCursor(SDL_DISABLE);
+            } else {
+                SDL_ShowCursor(SDL_ENABLE);
+            }
+        }
+#endif
+
         update_game(&gui, &hs_entry);
 
 #ifdef STEAM_ENABLED
