@@ -1056,12 +1056,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
 #endif
 
-        update_game(&gui, &hs_entry);
-
 #ifdef STEAM_ENABLED
         SteamAPI_RunCallbacks();
         handle_steam_input(&gui);  // Poll Steam Input and write to abstract key flags
 #endif
+
+        update_game(&gui, &hs_entry);
         
         // ✅ UPDATE TOUCH INPUT - This makes ships follow your finger
         update_touch_input(&gui.visualizer, &gui.visualizer.comet_buster, gui.delta_time);
