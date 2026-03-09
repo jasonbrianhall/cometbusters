@@ -1795,17 +1795,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 } else {
                     // In-game joystick analog stick controls (no throttling needed for gameplay)
                     gui->visualizer.mouse_just_moved = false;  // Disable mouse following
-
-#ifdef STEAM_ENABLED
-                    // When Steam Input is active it owns the controller and writes
-                    // the key_*_pressed flags itself via handle_steam_input().
-                    // The SDL joystick device is still visible (Steam re-exposes it)
-                    // so SDL_JOYAXISMOTION events still arrive here -- but the
-                    // else-branches below write false and stomp Steam's values,
-                    // breaking held-direction acceleration.  Skip entirely; Steam's
-                    // poll (called each frame after handle_events) handles it.
-                    (void)axis; (void)value;
-#else
+                    
                     if (axis == 0) {
                         // Left stick X-axis
                         if (value < -AXIS_THRESHOLD) {
@@ -1815,8 +1805,13 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             gui->visualizer.key_d_pressed = true;  // Turn right
                             gui->visualizer.key_a_pressed = false;
                         } else {
+#ifndef STEAM_ENABLED
+                            // In Steam mode, handle_steam_input() owns these flags.
+                            // Don't clear here -- the center-deadzone axis event from
+                            // the SDL-visible ghost device would stomp Steam's value.
                             gui->visualizer.key_a_pressed = false;
                             gui->visualizer.key_d_pressed = false;
+#endif
                         }
                     } else if (axis == 1) {
                         // Left stick Y-axis (inverted - down is positive)
@@ -1827,15 +1822,16 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                             gui->visualizer.key_s_pressed = true;   // Backward
                             gui->visualizer.key_w_pressed = false;
                         } else {
+#ifndef STEAM_ENABLED
                             gui->visualizer.key_w_pressed = false;
                             gui->visualizer.key_s_pressed = false;
+#endif
                         }
                     } else if (axis == 2 || axis == 5) {
                         // Right stick or triggers - could be used for aiming/weapons
                         // axis 2 = right stick X, axis 5 = right stick Y
                         // Currently not mapped, can be extended for right-stick aiming
                     }
-#endif
                 }
                 break;
             }
