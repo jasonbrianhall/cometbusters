@@ -31,6 +31,211 @@
 #include "comet_main_gl_gui.h"
 #include "comet_main_gl_menu.h"
 
+#ifdef STEAM_ENABLED
+#include "steam/steam_api.h"
+
+// ============================================================
+// STEAM INPUT
+// ============================================================
+//
+// Steam Input runs in TANDEM with SDL — SDL still owns the window,
+// audio, keyboard and mouse. Steam Input only replaces the joystick
+// layer when a Steam controller handle is available.
+//
+// Action set / action handles are initialised once and reused every
+// frame.  The actual game-logic flags (key_a_pressed, key_z_pressed
+// etc.) are identical to the ones set by the SDL joystick path, so
+// nothing else in the codebase needs to change.
+//
+// Required: add "game_actions.vdf" to your Steam Input action manifest
+// and register it in your app's Steamworks settings.
+// ============================================================
+
+struct SteamInputHandles {
+    InputActionSetHandle_t  actionSet_gameplay;
+    InputActionSetHandle_t  actionSet_menu;
+
+    // Digital (button) actions
+    InputDigitalActionHandle_t  act_fire;           // A / Cross   → key_z_pressed
+    InputDigitalActionHandle_t  act_boost;          // B / Circle  → key_x_pressed
+    InputDigitalActionHandle_t  act_missiles;       // X / Square  → key_q_pressed
+    InputDigitalActionHandle_t  act_alt_fire;       // Y / Triangle→ key_ctrl_pressed
+    InputDigitalActionHandle_t  act_pause;          // LB / L1
+    InputDigitalActionHandle_t  act_menu_toggle;    // Start
+    InputDigitalActionHandle_t  act_menu_up;        // D-Pad Up    (menu)
+    InputDigitalActionHandle_t  act_menu_down;      // D-Pad Down  (menu)
+    InputDigitalActionHandle_t  act_menu_left;      // D-Pad Left  (menu)
+    InputDigitalActionHandle_t  act_menu_right;     // D-Pad Right (menu)
+    InputDigitalActionHandle_t  act_menu_confirm;   // A           (menu)
+    InputDigitalActionHandle_t  act_menu_back;      // B           (menu)
+
+    // Analog action
+    InputAnalogActionHandle_t   act_move;           // Left stick  → WASD flags
+
+    bool initialised;
+};
+
+static SteamInputHandles g_steamInput = {};
+
+// Call once after SteamAPI_Init() succeeds.
+void steam_input_init() {
+    if (!SteamInput()) return;
+
+    SteamInput()->Init(false);  // false = don't force Steam Input on by default
+
+    g_steamInput.actionSet_gameplay = SteamInput()->GetActionSetHandle("GameControls");
+    g_steamInput.actionSet_menu     = SteamInput()->GetActionSetHandle("MenuControls");
+
+    // Gameplay digital actions
+    g_steamInput.act_fire        = SteamInput()->GetDigitalActionHandle("fire");
+    g_steamInput.act_boost       = SteamInput()->GetDigitalActionHandle("boost");
+    g_steamInput.act_missiles    = SteamInput()->GetDigitalActionHandle("toggle_missiles");
+    g_steamInput.act_alt_fire    = SteamInput()->GetDigitalActionHandle("alt_fire");
+    g_steamInput.act_pause       = SteamInput()->GetDigitalActionHandle("pause");
+    g_steamInput.act_menu_toggle = SteamInput()->GetDigitalActionHandle("menu_toggle");
+
+    // Menu digital actions
+    g_steamInput.act_menu_up      = SteamInput()->GetDigitalActionHandle("menu_up");
+    g_steamInput.act_menu_down    = SteamInput()->GetDigitalActionHandle("menu_down");
+    g_steamInput.act_menu_left    = SteamInput()->GetDigitalActionHandle("menu_left");
+    g_steamInput.act_menu_right   = SteamInput()->GetDigitalActionHandle("menu_right");
+    g_steamInput.act_menu_confirm = SteamInput()->GetDigitalActionHandle("menu_confirm");
+    g_steamInput.act_menu_back    = SteamInput()->GetDigitalActionHandle("menu_back");
+
+    // Gameplay analog action
+    g_steamInput.act_move = SteamInput()->GetAnalogActionHandle("move");
+
+    g_steamInput.initialised = true;
+    SDL_Log("[Comet Busters] [STEAM INPUT] Initialised action handles\n");
+}
+
+// Call every frame (after SteamAPI_RunCallbacks).
+// Reads Steam Input controller state and writes to the same abstract
+// bool flags that the SDL keyboard/joystick paths use.
+void handle_steam_input(CometGUI *gui) {
+    if (!g_steamInput.initialised || !SteamInput()) return;
+
+    // Enumerate connected Steam Input controllers
+    InputHandle_t handles[STEAM_INPUT_MAX_COUNT];
+    int count = SteamInput()->GetConnectedControllers(handles);
+    if (count == 0) return;
+
+    // Use the first connected controller
+    InputHandle_t controller = handles[0];
+
+    // Switch action set depending on whether the menu is open
+    if (gui->show_menu) {
+        SteamInput()->ActivateActionSet(controller, g_steamInput.actionSet_menu);
+    } else {
+        SteamInput()->ActivateActionSet(controller, g_steamInput.actionSet_gameplay);
+    }
+
+    if (!gui->show_menu) {
+        // ---- GAMEPLAY ----
+
+        // Analog move → WASD flags (mirrors SDL AXIS_THRESHOLD logic at 25%)
+        InputAnalogActionData_t move = SteamInput()->GetAnalogActionData(controller, g_steamInput.act_move);
+        const float MOVE_THRESHOLD = 0.25f;
+
+        gui->visualizer.key_a_pressed = (move.x < -MOVE_THRESHOLD);
+        gui->visualizer.key_d_pressed = (move.x >  MOVE_THRESHOLD);
+        gui->visualizer.key_w_pressed = (move.y >  MOVE_THRESHOLD);   // Steam Y+ = up
+        gui->visualizer.key_s_pressed = (move.y < -MOVE_THRESHOLD);
+
+        if (move.x != 0.0f || move.y != 0.0f)
+            gui->visualizer.mouse_just_moved = false;
+
+        // Digital gameplay actions
+        auto fire     = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_fire);
+        auto boost    = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_boost);
+        auto missiles = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_missiles);
+        auto alt_fire = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_alt_fire);
+
+        gui->visualizer.key_z_pressed    = fire.bState;
+        gui->visualizer.key_x_pressed    = boost.bState;
+        gui->visualizer.key_q_pressed    = missiles.bState;
+        gui->visualizer.key_ctrl_pressed = alt_fire.bState;
+
+        // Pause (rising-edge only — same behaviour as the SDL joystick path)
+        auto pause = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_pause);
+        if (pause.bState && pause.bActive) {
+            if (!gui->visualizer.comet_buster.game_over &&
+                !gui->visualizer.comet_buster.splash_screen_active &&
+                !gui->visualizer.comet_buster.finale_splash_active) {
+                gui->game_paused = !gui->game_paused;
+                if (gui->game_paused) {
+                    audio_stop_music(&gui->audio);
+                    SDL_Log("[Comet Busters] [STEAM INPUT] Game paused\n");
+                } else {
+#ifdef ExternalSound
+                    if (!gui->show_menu) audio_play_random_music(&gui->audio);
+#endif
+                    SDL_Log("[Comet Busters] [STEAM INPUT] Game resumed\n");
+                }
+            }
+        }
+    } else {
+        // ---- MENU NAVIGATION ----
+        // Rising-edge detection: only act on bActive (newly pressed this frame)
+
+        auto up      = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_menu_up);
+        auto down    = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_menu_down);
+        auto left    = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_menu_left);
+        auto right   = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_menu_right);
+        auto confirm = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_menu_confirm);
+        auto back    = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_menu_back);
+
+        if (up.bState    && up.bActive)      menu_move_up(gui);
+        if (down.bState  && down.bActive)    menu_move_down(gui);
+
+        if (left.bState  && left.bActive) {
+            if (gui->menu_state == 3)
+                menu_update_volume(gui, gui->menu_selection, -1);
+            else if (gui->menu_state == 4)
+                menu_update_language(gui, -1);
+        }
+        if (right.bState && right.bActive) {
+            if (gui->menu_state == 3)
+                menu_update_volume(gui, gui->menu_selection, 1);
+            else if (gui->menu_state == 4)
+                menu_update_language(gui, 1);
+        }
+
+        if (confirm.bState && confirm.bActive) {
+            // Synthesise a fake SDL joystick button-0 press so we reuse the
+            // existing menu-confirm logic without duplicating it.
+            SDL_Event fake = {};
+            fake.type              = SDL_JOYBUTTONDOWN;
+            fake.jbutton.button    = 0;
+            SDL_PushEvent(&fake);
+        }
+        if (back.bState && back.bActive) {
+            SDL_Event fake = {};
+            fake.type           = SDL_JOYBUTTONDOWN;
+            fake.jbutton.button = 1;
+            SDL_PushEvent(&fake);
+        }
+    }
+
+    // Menu toggle (Start) works in both action sets
+    auto menu_toggle = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_menu_toggle);
+    if (menu_toggle.bState && menu_toggle.bActive) {
+        if (!gui->show_menu) {
+            gui->show_menu = true;
+            menu_open_submenu(gui, 0);
+            SDL_Log("[Comet Busters] [STEAM INPUT] Menu opened via Start\n");
+        } else if (gui->menu_state == 0) {
+            if (gui->visualizer.comet_buster.ship_lives > 0) {
+                gui->show_menu = false;
+                SDL_Log("[Comet Busters] [STEAM INPUT] Menu closed (Continue)\n");
+            }
+        } else {
+            menu_open_submenu(gui, 0);
+        }
+    }
+}
+#endif  // STEAM_ENABLED
+
 // ============================================================
 // TOUCH INPUT HELPER FUNCTIONS
 // ============================================================
