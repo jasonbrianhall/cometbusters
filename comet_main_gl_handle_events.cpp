@@ -149,20 +149,10 @@ void handle_steam_input(CometGUI *gui) {
         InputAnalogActionData_t move = SteamInput()->GetAnalogActionData(controller, g_steamInput.act_move);
         const float MOVE_THRESHOLD = 0.25f;
 
-        // Clear Steam-managed movement flags once, then OR all sources in below.
-        // The old code used direct assignment (=) which stomped any true value
-        // set by another source (d-pad, or an SDL keyboard event in the same
-        // frame) the moment the analog stick read below threshold — causing the
-        // ship to stop accelerating even while the stick was held.
-        gui->visualizer.key_w_pressed = false;
-        gui->visualizer.key_s_pressed = false;
-        gui->visualizer.key_a_pressed = false;
-        gui->visualizer.key_d_pressed = false;
-
-        if (move.x < -MOVE_THRESHOLD) gui->visualizer.key_a_pressed = true;
-        if (move.x >  MOVE_THRESHOLD) gui->visualizer.key_d_pressed = true;
-        if (move.y >  MOVE_THRESHOLD) gui->visualizer.key_w_pressed = true;  // Steam Y+ = up
-        if (move.y < -MOVE_THRESHOLD) gui->visualizer.key_s_pressed = true;
+        gui->visualizer.key_a_pressed = (move.x < -MOVE_THRESHOLD);
+        gui->visualizer.key_d_pressed = (move.x >  MOVE_THRESHOLD);
+        gui->visualizer.key_w_pressed = (move.y >  MOVE_THRESHOLD);   // Steam Y+ = up
+        gui->visualizer.key_s_pressed = (move.y < -MOVE_THRESHOLD);
 
         // D-pad digital movement — OR with analog so either input source works.
         // bState (not bActive) keeps the flag true for the entire held duration.
@@ -1805,7 +1795,17 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                 } else {
                     // In-game joystick analog stick controls (no throttling needed for gameplay)
                     gui->visualizer.mouse_just_moved = false;  // Disable mouse following
-                    
+
+#ifdef STEAM_ENABLED
+                    // When Steam Input is active it owns the controller and writes
+                    // the key_*_pressed flags itself via handle_steam_input().
+                    // The SDL joystick device is still visible (Steam re-exposes it)
+                    // so SDL_JOYAXISMOTION events still arrive here -- but the
+                    // else-branches below write false and stomp Steam's values,
+                    // breaking held-direction acceleration.  Skip entirely; Steam's
+                    // poll (called each frame after handle_events) handles it.
+                    (void)axis; (void)value;
+#else
                     if (axis == 0) {
                         // Left stick X-axis
                         if (value < -AXIS_THRESHOLD) {
@@ -1835,6 +1835,7 @@ void handle_events(CometGUI *gui, HighScoreEntryUI *hs_entry, CheatMenuUI *cheat
                         // axis 2 = right stick X, axis 5 = right stick Y
                         // Currently not mapped, can be extended for right-stick aiming
                     }
+#endif
                 }
                 break;
             }
