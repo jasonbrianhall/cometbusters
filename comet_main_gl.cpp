@@ -34,9 +34,6 @@
 
 #ifdef STEAM_ENABLED
 #include "steam/steam_api.h"
-// Defined in comet_main_gl_handle_events.cpp
-void steam_input_init();
-void handle_steam_input(CometGUI *gui);
 #endif
 
 #ifdef _WIN32
@@ -849,15 +846,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         // Non-fatal: game continues without Steam features
     } else {
         SDL_Log("[Comet Busters] [STEAM] SteamAPI initialized OK (AppID: %u)\n", SteamUtils()->GetAppID());
-
-        // Soft ownership check — logs only, does not block gameplay
-        if (SteamApps()->BIsSubscribed()) {
-            SDL_Log("[Comet Busters] [STEAM] App ownership confirmed\n");
-        } else {
-            SDL_Log("[Comet Busters] [STEAM] WARNING: App not owned by this account\n");
-        }
-
-        steam_input_init();  // Set up Steam Input action handles
     }
 #endif
     
@@ -1056,12 +1044,11 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
 #endif
 
+        update_game(&gui, &hs_entry);
+
 #ifdef STEAM_ENABLED
         SteamAPI_RunCallbacks();
-        handle_steam_input(&gui);  // Poll Steam Input and write to abstract key flags
 #endif
-
-        update_game(&gui, &hs_entry);
         
         // ✅ UPDATE TOUCH INPUT - This makes ships follow your finger
         update_touch_input(&gui.visualizer, &gui.visualizer.comet_buster, gui.delta_time);
