@@ -75,6 +75,13 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+cp game_actions.vdf "$BUILD_DIR/game_actions.vdf"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}ERROR: Failed to copy game_actions.vdf to $BUILD_DIR/game_actions.vdf${NC}"
+    exit 1
+fi
+
+
 # Check steamcmd is available
 if ! command -v ~/.steam/steamcmd/steamcmd.sh &> /dev/null; then
     echo -e "${RED}ERROR: steamcmd not found.${NC}"
@@ -97,6 +104,8 @@ ls -lh "$BUILD_DIR"/*.exe 2>/dev/null
 ls -lh "$BUILD_DIR"/*.dll 2>/dev/null
 ls -lh "$BUILD_DIR"/*.wad 2>/dev/null
 ls -lh "$BUILD_DIR"/eula.txt 2>/dev/null
+ls -lh "$BUILD_DIR"/game_actions.vdf 2>/dev/null
+
 echo ""
 
 # Confirm
