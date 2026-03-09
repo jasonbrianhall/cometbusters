@@ -34,7 +34,29 @@
 
 #ifdef STEAM_ENABLED
 #include "steam/steam_api.h"
+
+class SteamOverlayWatcher {
+public:
+    bool overlay_active = false;
+
+private:
+    STEAM_CALLBACK(SteamOverlayWatcher, OnOverlayActivated, GameOverlayActivated_t);
+};
+
+void SteamOverlayWatcher::OnOverlayActivated(GameOverlayActivated_t* pParam) {
+    if (pParam->m_bActive) {
+        SDL_Log("[Comet Busters] Overlay OPENED");
+        overlay_active = true;
+    } else {
+        SDL_Log("[Comet Busters] Overlay CLOSED");
+        overlay_active = false;
+    }
+}
+
+static SteamOverlayWatcher g_SteamOverlayWatcher;
 #endif
+
+
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -1044,11 +1066,22 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
 #endif
 
-        update_game(&gui, &hs_entry);
 
 #ifdef STEAM_ENABLED
         SteamAPI_RunCallbacks();
 #endif
+
+
+#ifdef STEAM_ENABLED
+    if (!g_SteamOverlayWatcher.overlay_active) {
+        update_game(&gui, &hs_entry);
+    }
+
+#else
+    update_game(&gui, &hs_entry);
+#endif
+
+
         
         // ✅ UPDATE TOUCH INPUT - This makes ships follow your finger
         update_touch_input(&gui.visualizer, &gui.visualizer.comet_buster, gui.delta_time);

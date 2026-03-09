@@ -31,6 +31,10 @@
 #include "comet_main_gl_gui.h"
 #include "comet_main_gl_menu.h"
 
+#ifdef STEAM_ENABLED
+#include "steam/steam_api.h"
+#endif
+
 // ============================================================
 // TOUCH INPUT HELPER FUNCTIONS
 // ============================================================
