@@ -69,6 +69,12 @@ struct SteamInputHandles {
     InputDigitalActionHandle_t  act_menu_confirm;   // A           (menu)
     InputDigitalActionHandle_t  act_menu_back;      // B           (menu)
 
+    // Gameplay D-pad digital actions (for controllers where D-pad doesn't feed the analog action)
+    InputDigitalActionHandle_t  act_move_up;        // D-Pad Up    → key_w_pressed
+    InputDigitalActionHandle_t  act_move_down;      // D-Pad Down  → key_s_pressed
+    InputDigitalActionHandle_t  act_move_left;      // D-Pad Left  → key_a_pressed
+    InputDigitalActionHandle_t  act_move_right;     // D-Pad Right → key_d_pressed
+
     // Analog action
     InputAnalogActionHandle_t   act_move;           // Left stick  → WASD flags
 
@@ -104,6 +110,12 @@ void steam_input_init() {
 
     // Gameplay analog action
     g_steamInput.act_move = SteamInput()->GetAnalogActionHandle("move");
+
+    // Gameplay D-pad digital actions
+    g_steamInput.act_move_up    = SteamInput()->GetDigitalActionHandle("move_up");
+    g_steamInput.act_move_down  = SteamInput()->GetDigitalActionHandle("move_down");
+    g_steamInput.act_move_left  = SteamInput()->GetDigitalActionHandle("move_left");
+    g_steamInput.act_move_right = SteamInput()->GetDigitalActionHandle("move_right");
 
     g_steamInput.initialised = true;
     SDL_Log("[Comet Busters] [STEAM INPUT] Initialised action handles\n");
@@ -142,7 +154,20 @@ void handle_steam_input(CometGUI *gui) {
         gui->visualizer.key_w_pressed = (move.y >  MOVE_THRESHOLD);   // Steam Y+ = up
         gui->visualizer.key_s_pressed = (move.y < -MOVE_THRESHOLD);
 
-        if (move.x != 0.0f || move.y != 0.0f)
+        // D-pad digital movement — OR with analog so either input source works.
+        // bState (not bActive) keeps the flag true for the entire held duration.
+        auto dpad_up    = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_move_up);
+        auto dpad_down  = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_move_down);
+        auto dpad_left  = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_move_left);
+        auto dpad_right = SteamInput()->GetDigitalActionData(controller, g_steamInput.act_move_right);
+
+        if (dpad_up.bState)    gui->visualizer.key_w_pressed = true;
+        if (dpad_down.bState)  gui->visualizer.key_s_pressed = true;
+        if (dpad_left.bState)  gui->visualizer.key_a_pressed = true;
+        if (dpad_right.bState) gui->visualizer.key_d_pressed = true;
+
+        if (move.x != 0.0f || move.y != 0.0f ||
+            dpad_up.bState || dpad_down.bState || dpad_left.bState || dpad_right.bState)
             gui->visualizer.mouse_just_moved = false;
 
         // Digital gameplay actions
