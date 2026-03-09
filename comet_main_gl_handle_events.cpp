@@ -149,10 +149,20 @@ void handle_steam_input(CometGUI *gui) {
         InputAnalogActionData_t move = SteamInput()->GetAnalogActionData(controller, g_steamInput.act_move);
         const float MOVE_THRESHOLD = 0.25f;
 
-        gui->visualizer.key_a_pressed = (move.x < -MOVE_THRESHOLD);
-        gui->visualizer.key_d_pressed = (move.x >  MOVE_THRESHOLD);
-        gui->visualizer.key_w_pressed = (move.y >  MOVE_THRESHOLD);   // Steam Y+ = up
-        gui->visualizer.key_s_pressed = (move.y < -MOVE_THRESHOLD);
+        // Clear Steam-managed movement flags once, then OR all sources in below.
+        // The old code used direct assignment (=) which stomped any true value
+        // set by another source (d-pad, or an SDL keyboard event in the same
+        // frame) the moment the analog stick read below threshold — causing the
+        // ship to stop accelerating even while the stick was held.
+        gui->visualizer.key_w_pressed = false;
+        gui->visualizer.key_s_pressed = false;
+        gui->visualizer.key_a_pressed = false;
+        gui->visualizer.key_d_pressed = false;
+
+        if (move.x < -MOVE_THRESHOLD) gui->visualizer.key_a_pressed = true;
+        if (move.x >  MOVE_THRESHOLD) gui->visualizer.key_d_pressed = true;
+        if (move.y >  MOVE_THRESHOLD) gui->visualizer.key_w_pressed = true;  // Steam Y+ = up
+        if (move.y < -MOVE_THRESHOLD) gui->visualizer.key_s_pressed = true;
 
         // D-pad digital movement — OR with analog so either input source works.
         // bState (not bActive) keeps the flag true for the entire held duration.
