@@ -84,7 +84,7 @@ STATIC_FLAGS_LINUX = -static-libstdc++ -static-libgcc
 
 CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
 CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
-LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) $(STEAM_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -lGLEW $(STATIC_FLAGS_LINUX)
+LDFLAGS_LINUX_STATIC = $(SDL2_LIBS_LINUX) $(SDL2_MIXER_LIBS_LINUX) $(FREETYPE_LIBS_LINUX) $(STEAM_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -l:libGLEW.a $(STATIC_FLAGS_LINUX)
 
 # Optimization flags for normal build
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
@@ -189,7 +189,7 @@ windows: check-monospace cometbuster-create-wad cometbuster-windows cometbuster-
 linux: check-monospace cometbuster-create-wad cometbuster-linux cometbuster-copy-steam-linux
 
 .PHONY: linux-static
-linux-static: check-monospace cometbuster-create-wad cometbuster-linux-static cometbuster-copy-steam-linux-static
+linux-static: check-monospace check-glew-static cometbuster-create-wad cometbuster-linux-static cometbuster-copy-steam-linux-static
 
 # Debug targets
 .PHONY: debug
@@ -261,8 +261,26 @@ else
 	@echo "ℹ  Steam support not enabled (build with STEAM=1 to enable)"
 endif
 
-# ============================================================================
-# STEAM LIBRARY COPY TARGETS
+# Check that libGLEW.a is available (required for linux-static builds)
+.PHONY: check-glew-static
+check-glew-static:
+	@GLEW_STATIC=$$(ldconfig -p 2>/dev/null | grep -o '/.*libGLEW\.a' | head -1); \
+	if [ -z "$$GLEW_STATIC" ]; then \
+		GLEW_STATIC=$$(find /usr /usr/local 2>/dev/null -name "libGLEW.a" | head -1); \
+	fi; \
+	if [ -z "$$GLEW_STATIC" ]; then \
+		echo "❌ ERROR: libGLEW.a not found!"; \
+		echo ""; \
+		echo "linux-static requires the static GLEW library."; \
+		echo "  Ubuntu/Debian: sudo apt-get install libglew-dev"; \
+		echo "  Fedora:        libGLEW.a is not available — build on Ubuntu/Debian instead"; \
+		echo ""; \
+		exit 1; \
+	else \
+		echo "✓ libGLEW.a found: $$GLEW_STATIC"; \
+	fi
+
+
 # libsteam_api.so must sit next to the binary at runtime.
 # These are no-ops when STEAM=1 is not set.
 # ============================================================================
