@@ -298,13 +298,15 @@ void haptic_trigger_custom(HapticManager *hm, int left_intensity, int right_inte
     
     // Play rumble effect
     if (hm->rumble_supported) {
-        // SDL_HapticRumblePlay plays a rumble effect
+        // Stop any ongoing rumble first — without this, rapid effect triggers
+        // keep resetting the duration and the rumble never stops
+        SDL_HapticRumbleStop(hm->haptic);
+
         // For dual-motor control, we use the average strength
         // Note: True dual-motor control would require periodic effects
         float strength = (left + right) / 2.0f;
-        float duration = duration_ms / 1000.0f;
         
-        if (SDL_HapticRumblePlay(hm->haptic, strength, (uint32_t)(duration * 1000)) != 0) {
+        if (SDL_HapticRumblePlay(hm->haptic, strength, (uint32_t)duration_ms) != 0) {
             SDL_Log("[Comet Busters] [HAPTIC] Warning: Rumble play failed: %s\n", 
                     SDL_GetError());
         }
