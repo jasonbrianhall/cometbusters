@@ -285,6 +285,7 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     // This handles ALL game updates including collisions, audio, wave progression, etc.
     // (This is skipped during finale when we return above)
     update_comet_buster(&gui->visualizer, gui->delta_time);
+    haptic_update(&gui->visualizer.comet_buster.haptic_manager, gui->delta_time);
     
     // Check if current music track has finished and queue the next one
 #ifdef ExternalSound

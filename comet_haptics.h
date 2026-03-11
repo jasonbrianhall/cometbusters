@@ -47,6 +47,7 @@ typedef struct {
     int supported_axes;            // Number of vibration axes
     int rumble_supported;          // 1 if simple rumble supported
     int periodic_supported;        // 1 if periodic effects supported
+    uint32_t rumble_end_time;      // SDL_GetTicks() value when current rumble should stop (0 = idle)
 } HapticManager;
 
 // Initialize haptic system
