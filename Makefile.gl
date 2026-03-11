@@ -91,7 +91,7 @@ FREETYPE_STATIC_LIBS := -l:libfreetype.a
 
 CXXFLAGS_LINUX_STATIC = $(CXXFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX -DVERSION=\"$(VERSION)\" $(STATIC_FLAGS_LINUX)
 CFLAGS_LINUX_STATIC = $(CFLAGS_COMMON) $(SDL2_CFLAGS_LINUX) $(SDL2_MIXER_CFLAGS_LINUX) $(FREETYPE_CFLAGS_LINUX) $(STEAM_CFLAGS) -DGLSave -DExternalSound -DLINUX $(STATIC_FLAGS_LINUX)
-LDFLAGS_LINUX_STATIC = $(SDL2_STATIC_LIBS) $(SDL2_MIXER_STATIC_LIBS) $(FREETYPE_STATIC_LIBS) -lz $(STEAM_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -l:libGLEW.a $(STATIC_FLAGS_LINUX)
+LDFLAGS_LINUX_STATIC = $(SDL2_STATIC_LIBS) $(SDL2_MIXER_STATIC_LIBS) -lFLAC -lmpg123 -lvorbisfile -lvorbis -logg -lopusfile -lopus -lmodplug -lfluidsynth $(FREETYPE_STATIC_LIBS) -lpng -lbrotlidec -lbrotlicommon -lbz2 -lz $(STEAM_LIBS_LINUX) -lm -pthread -lstdc++ -lGL -l:libGLEW.a $(STATIC_FLAGS_LINUX)
 
 # Optimization flags for normal build
 CXXFLAGS_LINUX += -O2 -ffunction-sections -fdata-sections -flto
