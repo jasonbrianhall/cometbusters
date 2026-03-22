@@ -34,29 +34,10 @@
 
 #ifdef STEAM_ENABLED
 #include "steam/steam_api.h"
-
-class SteamOverlayWatcher {
-public:
-    bool overlay_active = false;
-
-private:
-    STEAM_CALLBACK(SteamOverlayWatcher, OnOverlayActivated, GameOverlayActivated_t);
-};
-
-void SteamOverlayWatcher::OnOverlayActivated(GameOverlayActivated_t* pParam) {
-    if (pParam->m_bActive) {
-        SDL_Log("[Comet Busters] Overlay OPENED");
-        overlay_active = true;
-    } else {
-        SDL_Log("[Comet Busters] Overlay CLOSED");
-        overlay_active = false;
-    }
-}
-
-static SteamOverlayWatcher g_SteamOverlayWatcher;
+// Defined in comet_main_gl_handle_events.cpp
+void steam_input_init();
+void handle_steam_input(CometGUI *gui);
 #endif
-
-
 
 #ifdef _WIN32
 std::string getExecutableDir() { 
@@ -160,7 +141,18 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_Log("[Comet Busters] [INIT] Creating GL context\n");
     gui->gl_context = SDL_GL_CreateContext(gui->window);
     if (!gui->gl_context) {
+        // Core profile fails on Raspberry Pi (GLXBadFBConfig). Retry with
+        // Compatibility profile — still GL 3.3, but the Pi's Mesa/VC4 driver
+        // will accept it.
+        SDL_Log("[Comet Busters] [INIT] Core profile failed (%s), retrying with Compatibility profile\n",
+                SDL_GetError());
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+        gui->gl_context = SDL_GL_CreateContext(gui->window);
+    }
+    if (!gui->gl_context) {
         SDL_Log("[Comet Busters] [ERROR] GL context creation failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] [HINT]  On Raspberry Pi ensure /boot/config.txt has 'dtoverlay=vc4-kms-v3d'\n");
+        SDL_Log("[Comet Busters] [HINT]  Or run with: MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330\n");
         SDL_DestroyWindow(gui->window);
         SDL_Quit();
         return false;
@@ -285,7 +277,6 @@ static void update_game(CometGUI *gui, HighScoreEntryUI *hs_entry) {
     // This handles ALL game updates including collisions, audio, wave progression, etc.
     // (This is skipped during finale when we return above)
     update_comet_buster(&gui->visualizer, gui->delta_time);
-    haptic_update(&gui->visualizer.comet_buster.haptic_manager, gui->delta_time);
     
     // Check if current music track has finished and queue the next one
 #ifdef ExternalSound
@@ -869,6 +860,7 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         // Non-fatal: game continues without Steam features
     } else {
         SDL_Log("[Comet Busters] [STEAM] SteamAPI initialized OK (AppID: %u)\n", SteamUtils()->GetAppID());
+        steam_input_init();  // Set up Steam Input action handles
     }
 #endif
     
@@ -1067,22 +1059,12 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
         }
 #endif
 
+        update_game(&gui, &hs_entry);
 
 #ifdef STEAM_ENABLED
         SteamAPI_RunCallbacks();
+        handle_steam_input(&gui);  // Poll Steam Input and write to abstract key flags
 #endif
-
-
-#ifdef STEAM_ENABLED
-    if (!g_SteamOverlayWatcher.overlay_active) {
-        update_game(&gui, &hs_entry);
-    }
-
-#else
-    update_game(&gui, &hs_entry);
-#endif
-
-
         
         // ✅ UPDATE TOUCH INPUT - This makes ships follow your finger
         update_touch_input(&gui.visualizer, &gui.visualizer.comet_buster, gui.delta_time);

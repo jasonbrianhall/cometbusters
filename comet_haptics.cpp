@@ -298,30 +298,23 @@ void haptic_trigger_custom(HapticManager *hm, int left_intensity, int right_inte
     
     // Play rumble effect
     if (hm->rumble_supported) {
-        // Stop any ongoing rumble first
-        SDL_HapticRumbleStop(hm->haptic);
-
+        // SDL_HapticRumblePlay plays a rumble effect
+        // For dual-motor control, we use the average strength
+        // Note: True dual-motor control would require periodic effects
         float strength = (left + right) / 2.0f;
+        float duration = duration_ms / 1000.0f;
         
-        if (SDL_HapticRumblePlay(hm->haptic, strength, (uint32_t)duration_ms) != 0) {
+        if (SDL_HapticRumblePlay(hm->haptic, strength, (uint32_t)(duration * 1000)) != 0) {
             SDL_Log("[Comet Busters] [HAPTIC] Warning: Rumble play failed: %s\n", 
                     SDL_GetError());
-        } else {
-            // Record when this effect should stop — Scout's SDL2 may not honour
-            // the duration parameter and run the rumble indefinitely
-            hm->rumble_end_time = SDL_GetTicks() + (uint32_t)duration_ms;
         }
     }
 }
 
-// Update haptic manager — enforces rumble duration for runtimes (e.g. Steam Scout)
-// that ignore the duration parameter passed to SDL_HapticRumblePlay
+// Update haptic manager (for timing-based effects in the future)
 void haptic_update(HapticManager *hm, float dt) {
-    if (!hm || !hm->haptic || !hm->haptic_supported) return;
-    if (hm->rumble_end_time > 0 && SDL_GetTicks() >= hm->rumble_end_time) {
-        SDL_HapticRumbleStop(hm->haptic);
-        hm->rumble_end_time = 0;
-    }
+    if (!hm || !hm->haptic) return;
+    // Reserved for future timing-based effects
 }
 
 // Check if haptic is available

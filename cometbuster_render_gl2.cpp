@@ -35,9 +35,24 @@ gboolean on_realize(GtkGLArea *area, gpointer data) {
     glClearColor(0.04f, 0.06f, 0.15f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_LINE_SMOOTH);
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glEnable(GL_MULTISAMPLE);
+
+    // GL_LINE_SMOOTH and GL_MULTISAMPLE are unsupported or broken on Mesa/VC4
+    // (Raspberry Pi), causing game-screen lines to render as garbage.
+    // Only enable them when the driver actually advertises smooth-line support.
+    // On desktop drivers this path is still taken, so no visual regression there.
+    const char *renderer = (const char *)glGetString(GL_RENDERER);
+    bool is_pi_mesa = renderer &&
+                      (strstr(renderer, "V3D")    != NULL ||
+                       strstr(renderer, "VC4")    != NULL ||
+                       strstr(renderer, "llvmpipe") != NULL ||   // software fallback
+                       strstr(renderer, "softpipe") != NULL);
+    if (!is_pi_mesa) {
+        glEnable(GL_LINE_SMOOTH);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+        glEnable(GL_MULTISAMPLE);
+    }
+    SDL_Log("[Comet Busters] [GL] Renderer: %s — line smooth: %s\n",
+            renderer ? renderer : "unknown", is_pi_mesa ? "DISABLED" : "enabled");
 
     gl_init();
     
