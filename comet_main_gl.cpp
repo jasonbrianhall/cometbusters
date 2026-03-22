@@ -141,7 +141,18 @@ static bool init_sdl_and_opengl(CometGUI *gui, int width, int height) {
     SDL_Log("[Comet Busters] [INIT] Creating GL context\n");
     gui->gl_context = SDL_GL_CreateContext(gui->window);
     if (!gui->gl_context) {
+        // Core profile fails on Raspberry Pi (GLXBadFBConfig). Retry with
+        // Compatibility profile — still GL 3.3, but the Pi's Mesa/VC4 driver
+        // will accept it.
+        SDL_Log("[Comet Busters] [INIT] Core profile failed (%s), retrying with Compatibility profile\n",
+                SDL_GetError());
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+        gui->gl_context = SDL_GL_CreateContext(gui->window);
+    }
+    if (!gui->gl_context) {
         SDL_Log("[Comet Busters] [ERROR] GL context creation failed: %s\n", SDL_GetError());
+        SDL_Log("[Comet Busters] [HINT]  On Raspberry Pi ensure /boot/config.txt has 'dtoverlay=vc4-kms-v3d'\n");
+        SDL_Log("[Comet Busters] [HINT]  Or run with: MESA_GL_VERSION_OVERRIDE=3.3 MESA_GLSL_VERSION_OVERRIDE=330\n");
         SDL_DestroyWindow(gui->window);
         SDL_Quit();
         return false;

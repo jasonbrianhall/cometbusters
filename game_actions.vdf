@@ -1,249 +1,32 @@
-"GameActions"
+// Add these four entries inside the "actions" block of your "GameControls"
+// action set in game_actions.vdf.  They sit alongside the existing "move",
+// "fire", "boost", etc. entries.
+
+"move_up"
 {
-    // ---------------------------------------------------------------
-    // Comet Busters - Steam Input Action Manifest
-    //
-    // Place this file in your game's root directory and register it
-    // in Steamworks > Steam Input > "Custom Configuration Default"
-    // ---------------------------------------------------------------
-
-    "title"     "#GameAction_SetTitle"
-    "developer" "Your Studio Name"
-
-    // ---------------------------------------------------------------
-    // ACTION SETS
-    // ---------------------------------------------------------------
-
-    "ActionSets"
-    {
-        "GameControls"
-        {
-            "title"         "#GameAction_Set_GameControls"
-        }
-        "MenuControls"
-        {
-            "title"         "#GameAction_Set_MenuControls"
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // ACTION SET LAYERS  (none currently — extend here if needed)
-    // ---------------------------------------------------------------
-
-    "ActionSetLayers"
-    {
-    }
-
-    // ---------------------------------------------------------------
-    // ACTIONS
-    // ---------------------------------------------------------------
-
-    "actions"
-    {
-        // ===========================================================
-        // GAMEPLAY ACTION SET
-        // ===========================================================
-        "GameControls"
-        {
-            "title" "#GameAction_Set_GameControls"
-
-            // --- Analog ---
-            "StickPadGyro"
-            {
-                "move"
-                {
-                    "title"         "#GameAction_Move"
-                    "input_mode"    "joystick_move"
-                }
-            }
-
-            // --- Digital ---
-            "Button"
-            {
-                "fire"
-                {
-                    "title"         "#GameAction_Fire"
-                }
-                "boost"
-                {
-                    "title"         "#GameAction_Boost"
-                }
-                "toggle_missiles"
-                {
-                    "title"         "#GameAction_ToggleMissiles"
-                }
-                "alt_fire"
-                {
-                    "title"         "#GameAction_AltFire"
-                }
-                "pause"
-                {
-                    "title"         "#GameAction_Pause"
-                }
-                "menu_toggle"
-                {
-                    "title"         "#GameAction_MenuToggle"
-                }
-            }
-        }
-
-        // ===========================================================
-        // MENU ACTION SET
-        // ===========================================================
-        "MenuControls"
-        {
-            "title" "#GameAction_Set_MenuControls"
-
-            "Button"
-            {
-                "menu_up"
-                {
-                    "title"         "#GameAction_MenuUp"
-                }
-                "menu_down"
-                {
-                    "title"         "#GameAction_MenuDown"
-                }
-                "menu_left"
-                {
-                    "title"         "#GameAction_MenuLeft"
-                }
-                "menu_right"
-                {
-                    "title"         "#GameAction_MenuRight"
-                }
-                "menu_confirm"
-                {
-                    "title"         "#GameAction_MenuConfirm"
-                }
-                "menu_back"
-                {
-                    "title"         "#GameAction_MenuBack"
-                }
-                "menu_toggle"
-                {
-                    "title"         "#GameAction_MenuToggle"
-                }
-            }
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // LOCALIZATION
-    // Matches the "#GameAction_*" tokens used above.
-    // Add more language blocks as needed.
-    // ---------------------------------------------------------------
-
-    "localization"
-    {
-        "english"
-        {
-            "GameAction_SetTitle"               "Comet Busters"
-
-            "GameAction_Set_GameControls"       "Gameplay"
-            "GameAction_Set_MenuControls"       "Menus"
-
-            // Gameplay
-            "GameAction_Move"                   "Move Ship"
-            "GameAction_Fire"                   "Fire"
-            "GameAction_Boost"                  "Boost / Speed"
-            "GameAction_ToggleMissiles"         "Toggle Missiles"
-            "GameAction_AltFire"                "Alternate Fire"
-            "GameAction_Pause"                  "Pause"
-            "GameAction_MenuToggle"             "Open / Close Menu"
-
-            // Menu
-            "GameAction_MenuUp"                 "Navigate Up"
-            "GameAction_MenuDown"               "Navigate Down"
-            "GameAction_MenuLeft"               "Navigate Left"
-            "GameAction_MenuRight"              "Navigate Right"
-            "GameAction_MenuConfirm"            "Confirm"
-            "GameAction_MenuBack"               "Back"
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // DEFAULT BINDINGS
-    //
-    // These are the out-of-the-box bindings shown in the Steam overlay
-    // configurator. Players can override them freely.
-    //
-    // Input sources: gamepad (Xbox / PS / Switch layout)
-    // ---------------------------------------------------------------
-
-    "DefaultGameActionBindings"
-    {
-        // --- Xbox / Generic Gamepad ---
-        "Controller"
-        {
-            "title"     "Gamepad"
-            "enabled"   "1"
-
-            "GameControls"
-            {
-                "Button_A"              "fire"
-                "Button_B"              "boost"
-                "Button_X"              "toggle_missiles"
-                "Button_Y"              "alt_fire"
-                "Button_Bumper_Left"    "pause"
-                "Button_Start"         "menu_toggle"
-                "Left_Stick"           "move"
-            }
-
-            "MenuControls"
-            {
-                "DPad_North"            "menu_up"
-                "DPad_South"            "menu_down"
-                "DPad_West"             "menu_left"
-                "DPad_East"             "menu_right"
-                "Button_A"              "menu_confirm"
-                "Button_B"             "menu_back"
-                "Button_Start"         "menu_toggle"
-                // Left stick also drives menu navigation (feels natural)
-                "Left_Stick"
-                {
-                    "menu_up"           "joystick_move_up"
-                    "menu_down"         "joystick_move_down"
-                    "menu_left"         "joystick_move_left"
-                    "menu_right"        "joystick_move_right"
-                }
-            }
-        }
-
-        // --- Steam Deck ---
-        "Steam_Deck"
-        {
-            "title"     "Steam Deck"
-            "enabled"   "1"
-
-            "GameControls"
-            {
-                "Button_A"              "fire"
-                "Button_B"              "boost"
-                "Button_X"              "toggle_missiles"
-                "Button_Y"              "alt_fire"
-                "Button_Bumper_Left"    "pause"
-                "Button_Start"         "menu_toggle"
-                "Left_Stick"           "move"
-            }
-
-            "MenuControls"
-            {
-                "DPad_North"            "menu_up"
-                "DPad_South"            "menu_down"
-                "DPad_West"             "menu_left"
-                "DPad_East"             "menu_right"
-                "Button_A"              "menu_confirm"
-                "Button_B"             "menu_back"
-                "Button_Start"         "menu_toggle"
-                "Left_Stick"
-                {
-                    "menu_up"           "joystick_move_up"
-                    "menu_down"         "joystick_move_down"
-                    "menu_left"         "joystick_move_left"
-                    "menu_right"        "joystick_move_right"
-                }
-            }
-        }
-    }
+    "type"  "digitalaction"
+    "title" "#move_up"
 }
+"move_down"
+{
+    "type"  "digitalaction"
+    "title" "#move_down"
+}
+"move_left"
+{
+    "type"  "digitalaction"
+    "title" "#move_left"
+}
+"move_right"
+{
+    "type"  "digitalaction"
+    "title" "#move_right"
+}
+
+// Then in each controller's default bindings block (e.g. "XBoxOneController",
+// "PS5Controller", etc.) bind the D-pad:
+//
+// "dpad_north" "move_up"
+// "dpad_south" "move_down"
+// "dpad_west"  "move_left"
+// "dpad_east"  "move_right"

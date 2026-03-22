@@ -50,6 +50,30 @@ if [ ! -f "$BUILD_DIR/libsteam_api.so" ]; then
     exit 1
 fi
 
+# Bundle libs for Steam Scout compatibility
+bundle_lib() {
+    local SONAME="$1"
+    local PACKAGE="$2"
+    local LIB=$(ldconfig -p | grep "$SONAME" | grep "x86-64" | awk '{print $NF}' | head -1)
+    if [ -z "$LIB" ]; then
+        echo -e "${RED}ERROR: $SONAME not found on this system.${NC}"
+        echo ""
+        echo "Install with: sudo dnf install $PACKAGE"
+        exit 1
+    fi
+    cp "$LIB" "$BUILD_DIR/$SONAME"
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}ERROR: Failed to copy $SONAME to $BUILD_DIR${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Bundled:${NC}    $SONAME (from $LIB)"
+}
+
+bundle_lib "libGLEW.so.2.2"   "glew"
+bundle_lib "libSDL2-2.0.so.0"  "SDL2"
+bundle_lib "libSDL2_mixer-2.0.so.0"  "SDL2_mixer"
+bundle_lib "libmpg123.so.0"  "mpg123"
+
 # Check LICENSE.md exists
 if [ ! -f "LICENSE.md" ]; then
     echo -e "${RED}ERROR: LICENSE.md not found in project root${NC}"
@@ -62,6 +86,12 @@ fi
 cp LICENSE.md "$BUILD_DIR/eula.txt"
 if [ $? -ne 0 ]; then
     echo -e "${RED}ERROR: Failed to copy LICENSE.md to $BUILD_DIR/eula.txt${NC}"
+    exit 1
+fi
+
+cp game_actions.vdf "$BUILD_DIR/game_actions.vdf"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}ERROR: Failed to copy game_actions.vdf to $BUILD_DIR/game_actions.vdf${NC}"
     exit 1
 fi
 
@@ -82,7 +112,7 @@ echo ""
 
 # Show what will be uploaded
 echo "Files to upload:"
-ls -lh "$BUILD_DIR/cometbuster-static" "$BUILD_DIR/libsteam_api.so" "$BUILD_DIR/cometbuster.wad" "$BUILD_DIR/eula.txt" 2>/dev/null
+ls -lh "$BUILD_DIR"/cometbuster-static "$BUILD_DIR"/cometbuster.wad "$BUILD_DIR"/lib*.so* "$BUILD_DIR"/eula.txt "$BUILD_DIR"/*.vdf 2>/dev/null
 echo ""
 
 # Confirm
@@ -152,6 +182,7 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "  1. Go to https://partner.steamgames.com/apps/builds/$APP_ID"
     echo "  2. Find your new build and set it live on the 'default' branch"
     echo "  3. Submit for review if you haven't already"
+    echo ""
 else
     echo -e "${RED}========================================"
     echo -e "  Upload failed (exit code: $EXIT_CODE)"
