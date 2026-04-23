@@ -19,14 +19,70 @@
 // FreeType font system globals
 FT_Library ft_library = NULL;
 FT_Face ft_face = NULL;
+FT_Face ft_face_cjk = NULL;
 unsigned char *ft_font_buffer = NULL;
 
 // ============================================================================
 // TEXT RENDERING - Dynamic TTF Rendering with FreeType and Base64 Font
 // ============================================================================
 
+#if defined(_WIN32)
+    #include <io.h>
+    #define access _access
+    #define R_OK 4
+#else
+    #include <unistd.h>
+    #include <fcntl.h>
+#endif
+
+
+static const char* CJK_FONT_PATHS[] = {
+    // Linux (Fedora / RHEL / CentOS)
+    "/usr/share/fonts/google-noto-sans-cjk-fonts/NotoSansCJK-Regular.ttc",
+
+    // Linux (Ubuntu / Debian / Arch)
+    "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+
+    // Windows
+    "C:\\Windows\\Fonts\\msyh.ttc",      // Microsoft YaHei
+    "C:\\Windows\\Fonts\\msyhbd.ttc",    // YaHei Bold
+    "C:\\Windows\\Fonts\\SimSun.ttc",    // Legacy fallback
+
+    NULL
+};
+
+void ft_try_load_cjk_font(void)
+{
+    if (!ft_library) {
+        SDL_Log("[Comet Busters] [FONT] ERROR: FreeType not initialized before CJK load");
+        return;
+    }
+
+    for (int i = 0; CJK_FONT_PATHS[i] != NULL; i++) {
+        const char* path = CJK_FONT_PATHS[i];
+
+        if (access(path, R_OK) == 0) {
+            SDL_Log("[Comet Busters] [FONT] Loading CJK font: %s", path);
+
+            FT_Error err = FT_New_Face(ft_library, path, 0, &ft_face_cjk);
+            if (!err) {
+                SDL_Log("[Comet Busters] [FONT] CJK font loaded successfully");
+                return;
+            } else {
+                SDL_Log("[Comet Busters] [FONT] Failed to load CJK font (%d)", err);
+            }
+        }
+    }
+
+    SDL_Log("[Comet Busters] [FONT] WARNING: No CJK font found on system");
+}
+
+
 void ft_init(void) {
     ft_init_from_base64();
+    ft_try_load_cjk_font();
 }
 
 // Initialize FreeType library and load base64-encoded TTF font

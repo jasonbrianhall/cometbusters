@@ -41,6 +41,7 @@ extern GLRenderState gl_state;
 
 void ft_init(void);
 void ft_init_from_base64(void);
+void ft_try_load_cjk_font(void);
 void ft_cleanup(void);
 unsigned int utf8_to_codepoint(const unsigned char *str, int *bytes_read);
 float gl_calculate_text_width(const char *text, int font_size);
