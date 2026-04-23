@@ -18,11 +18,11 @@
 
 // FreeType font system globals
 FT_Library ft_library = NULL;
-FT_Face ft_face = NULL;
+FT_Face ft_face_primary = NULL;
 FT_Face ft_face_cjk = NULL;
 unsigned char *ft_font_buffer = NULL;
 
-static inline bool is_cjk(unsigned int cp)
+static inline bool is_cjk_codepoint(unsigned int cp)
 {
     return (
         (cp >= 0x4E00 && cp <= 0x9FFF)   ||  // CJK Unified Ideographs
@@ -32,6 +32,25 @@ static inline bool is_cjk(unsigned int cp)
         (cp >= 0x3000 && cp <= 0x303F)   ||  // CJK punctuation
         (cp >= 0xFF00 && cp <= 0xFFEF)      // Fullwidth forms
     );
+}
+
+static bool text_contains_cjk(const char *text)
+{
+    for (int i = 0; text[i]; ) {
+        int bytes = 0;
+        unsigned int cp = utf8_to_codepoint((const unsigned char*)&text[i], &bytes);
+
+        if (bytes == 0) {
+            i++;
+            continue;
+        }
+
+        if (is_cjk_codepoint(cp))
+            return true;
+
+        i += bytes;
+    }
+    return false;
 }
 
 
@@ -131,7 +150,7 @@ void ft_init_from_base64(void) {
     SDL_Log("[Comet Busters] [FONT] Base64 decoded: %zu bytes -> %zu bytes\n", MONOSPACE_FONT_B64_SIZE, decoded_size);
     
     // Load the font face from memory
-    error = FT_New_Memory_Face(ft_library, ft_font_buffer, (FT_Long)decoded_size, 0, &ft_face);
+    error = FT_New_Memory_Face(ft_library, ft_font_buffer, (FT_Long)decoded_size, 0, &ft_face_primary);
     if (error) {
         SDL_Log("[Comet Busters] [FONT] ERROR: Failed to load TTF face: %d\n", error);
         free(ft_font_buffer);
@@ -142,18 +161,18 @@ void ft_init_from_base64(void) {
     }
     
     SDL_Log("[Comet Busters] [FONT] TTF font loaded successfully\n");
-    SDL_Log("[Comet Busters] [FONT] Font family: %s, style: %s\n", ft_face->family_name, ft_face->style_name);
+    SDL_Log("[Comet Busters] [FONT] Font family: %s, style: %s\n", ft_face_primary->family_name, ft_face_primary->style_name);
 }
 
 // Cleanup FreeType resources
 void ft_cleanup(void) {
-    if (ft_face) {
-        FT_Done_Face(ft_face);
-        ft_face = NULL;
+    if (ft_face_primary) {
+        FT_Done_Face(ft_face_primary);
+        ft_face_primary = NULL;
     }
     if (ft_face_cjk) {
         FT_Done_Face(ft_face_cjk);
-        ft_face = NULL;
+        ft_face_primary = NULL;
     }
     if (ft_library) {
         FT_Done_FreeType(ft_library);
@@ -229,10 +248,10 @@ unsigned int utf8_to_codepoint(const unsigned char *str, int *bytes_read) {
 // Calculate actual text width based on FreeType glyph metrics
 float gl_calculate_text_width(const char *text, int font_size) {
 
-    if (!text || !text[0] || !ft_face) return 0.0f;
-    
+    if (!text || !text[0] || !ft_face_primary) return 0.0f;
+
     // Set font size (in 1/64th of a point, so multiply by 64)
-    FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
+    FT_Error error = FT_Set_Pixel_Sizes(ft_face_primary, 0, font_size);
     if (error) {
         SDL_Log("[Comet Busters] [FONT] Warning: Failed to set font size\n");
         return 0.0f;
@@ -251,12 +270,12 @@ float gl_calculate_text_width(const char *text, int font_size) {
         }
         
         // Load the glyph and get metrics
-        FT_UInt glyph_index = FT_Get_Char_Index(ft_face, codepoint);
-        error = FT_Load_Glyph(ft_face, glyph_index, FT_LOAD_DEFAULT);
+        FT_UInt glyph_index = FT_Get_Char_Index(ft_face_primary, codepoint);
+        error = FT_Load_Glyph(ft_face_primary, glyph_index, FT_LOAD_DEFAULT);
         
         if (!error) {
             // Use advance width from the glyph slot
-            width += (float)(ft_face->glyph->advance.x >> 6);  // Convert from 1/64th pixel to pixels
+            width += (float)(ft_face_primary->glyph->advance.x >> 6);  // Convert from 1/64th pixel to pixels
         }
         
         i += bytes_read;
@@ -266,7 +285,14 @@ float gl_calculate_text_width(const char *text, int font_size) {
 }
 
 void gl_draw_text_simple(const char *text, int x, int y, int font_size) {
-    if (!text || !text[0] || !ft_face) return;
+    if (!text || !text[0] || !ft_face_primary) return;
+
+    FT_Face ft_face;
+
+    if (text_contains_cjk(text))
+        ft_face = ft_face_cjk;
+    else
+        ft_face = ft_face_primary;
     
     // Set font size
     FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
