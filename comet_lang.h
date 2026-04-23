@@ -28,7 +28,7 @@ static const char *wlanguage_intro_file[] = {
     "music/intro_fr.mp3", // French
     "music/intro_ru.mp3", // Russian
     "music/intro_de.mp3", // German
-    "music/intro_zh.mp3", // Chinese
+    "music/intro_sc.mp3", // Chinese
 };  
 
 static const char *wlanguage_finale_file[] = {
