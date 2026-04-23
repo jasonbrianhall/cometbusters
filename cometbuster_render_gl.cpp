@@ -6,6 +6,13 @@
 #include <string.h>
 #include <time.h>
 #include <vector>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
 #include "cometbuster.h"
 #include "visualization.h"
 #include "cometbuster_splashscreen.h"
@@ -333,8 +340,54 @@ void gl_set_color_alpha(float r, float g, float b, float a) {
 // TEXT RENDERING - Dynamic TTF Rendering with FreeType and Base64 Font
 // ============================================================================
 
+static FT_Face ft_face_primary = NULL;
+static FT_Face ft_face_cjk = NULL;
+
+static const char* CJK_FONT_PATHS[] = {
+    // Linux (Fedora / RHEL / CentOS)
+    "/usr/share/fonts/google-noto-sans-cjk-fonts/NotoSansCJK-Regular.ttc",
+
+    // Linux (Ubuntu / Debian / Arch)
+    "/usr/share/fonts/noto-cjk/NotoSansCJK-VF.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+
+    // Windows
+    "C:\\\\Windows\\\\Fonts\\\\msyh.ttc",      // Microsoft YaHei
+    "C:\\\\Windows\\\\Fonts\\\\msyhbd.ttc",   // YaHei Bold
+    "C:\\\\Windows\\\\Fonts\\\\SimSun.ttc",   // Legacy fallback
+
+    NULL
+};
+
+static void ft_try_load_cjk_font(void)
+{
+    for (int i = 0; CJK_FONT_PATHS[i] != NULL; i++) {
+        const char* path = CJK_FONT_PATHS[i];
+
+        if (access(path, R_OK) == 0) {
+            SDL_Log("[Comet Busters] [FONT] Loading CJK font: %s\n", path);
+
+            FT_Error err = FT_New_Face(ft_library, path, 0, &ft_face_cjk);
+            if (!err) {
+                SDL_Log("[Comet Busters] [FONT] CJK font loaded successfully\n");
+                return;
+            } else {
+                SDL_Log("[Comet Busters] [FONT] Failed to load CJK font: %d\n", err);
+            }
+        }
+    }
+
+    SDL_Log("[Comet Busters] [FONT] WARNING: No CJK font found on system");
+}
+
 // Initialize FreeType library and load base64-encoded TTF font
 static void ft_init_from_base64(void) {
+    // Load system CJK font
+     SDL_Log("[Comet Busters] [FONT] Trying to load an external font\n");
+
+
+
     if (ft_library) {
         SDL_Log("[Comet Busters] [FONT] FreeType already initialized\n");
         return;
@@ -347,6 +400,7 @@ static void ft_init_from_base64(void) {
         return;
     }
     
+    ft_try_load_cjk_font();
     SDL_Log("[Comet Busters] [FONT] FreeType initialized\n");
     
     // Decode base64 font data
@@ -378,7 +432,9 @@ static void ft_init_from_base64(void) {
     
     SDL_Log("[Comet Busters] [FONT] TTF font loaded successfully\n");
     SDL_Log("[Comet Busters] [FONT] Font family: %s, style: %s\n", ft_face->family_name, ft_face->style_name);
+
 }
+
 
 // Cleanup FreeType resources
 static void ft_cleanup(void) {
@@ -457,41 +513,51 @@ static unsigned int utf8_to_codepoint(const unsigned char *str, int *bytes_read)
     return 0;
 }
 
-// Calculate actual text width based on FreeType glyph metrics
 static float gl_calculate_text_width(const char *text, int font_size) {
-    if (!text || !text[0] || !ft_face) return 0.0f;
-    
-    // Set font size (in 1/64th of a point, so multiply by 64)
-    FT_Error error = FT_Set_Pixel_Sizes(ft_face, 0, font_size);
-    if (error) {
-        SDL_Log("[Comet Busters] [FONT] Warning: Failed to set font size\n");
-        return 0.0f;
-    }
-    
+    if (!text || !text[0] || !ft_face_primary) return 0.0f;
+
     float width = 0.0f;
-    
-    // Process UTF-8 text
+
     for (int i = 0; text[i]; ) {
         int bytes_read = 0;
         unsigned int codepoint = utf8_to_codepoint((const unsigned char*)&text[i], &bytes_read);
-        
+
         if (bytes_read == 0) {
             i++;
             continue;
         }
-        
-        // Load the glyph and get metrics
-        FT_UInt glyph_index = FT_Get_Char_Index(ft_face, codepoint);
-        error = FT_Load_Glyph(ft_face, glyph_index, FT_LOAD_DEFAULT);
-        
-        if (!error) {
-            // Use advance width from the glyph slot
-            width += (float)(ft_face->glyph->advance.x >> 6);  // Convert from 1/64th pixel to pixels
+
+        // --- FALLBACK LOGIC ---
+        FT_Face face = ft_face_primary;
+        FT_UInt glyph_index = FT_Get_Char_Index(face, codepoint);
+
+        if (glyph_index == 0 && ft_face_cjk) {
+            face = ft_face_cjk;
+            glyph_index = FT_Get_Char_Index(face, codepoint);
         }
-        
+
+        // If still missing, skip
+        if (glyph_index == 0) {
+            i += bytes_read;
+            continue;
+        }
+
+        // Set size on the correct face
+        FT_Error error = FT_Set_Pixel_Sizes(face, 0, font_size);
+        if (error) {
+            i += bytes_read;
+            continue;
+        }
+
+        // Load glyph
+        error = FT_Load_Glyph(face, glyph_index, FT_LOAD_DEFAULT);
+        if (!error) {
+            width += (float)(face->glyph->advance.x >> 6);
+        }
+
         i += bytes_read;
     }
-    
+
     return width;
 }
 
