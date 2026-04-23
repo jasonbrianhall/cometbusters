@@ -22,6 +22,19 @@ FT_Face ft_face = NULL;
 FT_Face ft_face_cjk = NULL;
 unsigned char *ft_font_buffer = NULL;
 
+static inline bool is_cjk(unsigned int cp)
+{
+    return (
+        (cp >= 0x4E00 && cp <= 0x9FFF)   ||  // CJK Unified Ideographs
+        (cp >= 0x3400 && cp <= 0x4DBF)   ||  // Extension A
+        (cp >= 0xF900 && cp <= 0xFAFF)   ||  // Compatibility Ideographs
+        (cp >= 0x20000 && cp <= 0x2EBEF) ||  // Extensions B–F
+        (cp >= 0x3000 && cp <= 0x303F)   ||  // CJK punctuation
+        (cp >= 0xFF00 && cp <= 0xFFEF)      // Fullwidth forms
+    );
+}
+
+
 // ============================================================================
 // TEXT RENDERING - Dynamic TTF Rendering with FreeType and Base64 Font
 // ============================================================================
@@ -138,6 +151,10 @@ void ft_cleanup(void) {
         FT_Done_Face(ft_face);
         ft_face = NULL;
     }
+    if (ft_face_cjk) {
+        FT_Done_Face(ft_face_cjk);
+        ft_face = NULL;
+    }
     if (ft_library) {
         FT_Done_FreeType(ft_library);
         ft_library = NULL;
@@ -211,6 +228,7 @@ unsigned int utf8_to_codepoint(const unsigned char *str, int *bytes_read) {
 
 // Calculate actual text width based on FreeType glyph metrics
 float gl_calculate_text_width(const char *text, int font_size) {
+
     if (!text || !text[0] || !ft_face) return 0.0f;
     
     // Set font size (in 1/64th of a point, so multiply by 64)
