@@ -37,7 +37,7 @@ static const char *wlanguage_finale_file[] = {
     "music/finale_fr.mp3", // French
     "music/finale_ru.mp3", // Russian
     "music/finale_de.mp3", // German
-    "music/finale_zh.mp3", // Chinese
+    "music/finale_sc.mp3", // Chinese
 };  
 
 
