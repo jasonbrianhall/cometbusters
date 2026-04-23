@@ -25,6 +25,10 @@ unsigned char *ft_font_buffer = NULL;
 // TEXT RENDERING - Dynamic TTF Rendering with FreeType and Base64 Font
 // ============================================================================
 
+void ft_init(void) {
+    ft_init_from_base64();
+}
+
 // Initialize FreeType library and load base64-encoded TTF font
 void ft_init_from_base64(void) {
     if (ft_library) {

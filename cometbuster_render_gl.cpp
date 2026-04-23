@@ -34,8 +34,6 @@ GLRenderState gl_state = {0};
 
 static int isGLInitialized = 0;
 
-static void ft_init_from_base64(void);
-
 static GLuint global_vao = 0;
 
 static Mat4 mat4_identity(void) {
@@ -221,7 +219,7 @@ void gl_init(void) {
     SDL_Log("[Comet Busters] [GL] Cached projection uniform location: %d\n", gl_state.proj_loc);
     
     // Initialize FreeType font system with base64-encoded TTF
-    ft_init_from_base64();
+    ft_init();
     
     SDL_Log("[Comet Busters] [GL] GL renderer initialized\n");
 }
