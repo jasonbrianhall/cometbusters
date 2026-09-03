@@ -97,7 +97,7 @@ SOURCES_CPP_COMMON = comet_main_qt5.cpp wad.cpp audio_wad.cpp cometbuster_spawn.
 	cometbuster_boss.cpp cometbuster_render.cpp cometbuster_starboss.cpp \
 	cometbuster_util.cpp cometbuster_splashscreen.cpp joystick.cpp \
 	cometbuster_bombs.cpp cometbuster_bossexplosion.cpp  \
-	cometbuster_render_gl.cpp
+	cometbuster_render_gl.cpp comet_haptics.cpp
 
 # Qt5 Headers that need MOC compilation
 # These are classes with Q_OBJECT macro

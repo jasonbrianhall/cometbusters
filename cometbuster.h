@@ -4,9 +4,9 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
-#ifdef CAIROBUILD
+//#ifdef CAIROBUILD
 #include <cairo.h>
-#endif
+//#endif
 #include "cometbuster_bossexplosion.h"
 #include "comet_haptics.h"
 
@@ -540,7 +540,7 @@ void comet_buster_update_canisters(CometBusterGame *game, double dt);
 bool comet_buster_check_ship_canister(CometBusterGame *game, Canister *c);
 
 // Drawing functions for Cairo
-#ifdef CAIROBUILD
+//#ifdef CAIROBUILD
 void draw_comet_buster_canisters(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_missile_pickups(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_missiles(CometBusterGame *game, cairo_t *cr, int width, int height);
@@ -566,7 +566,8 @@ void draw_singularity_boss(CometBusterGame *game, BossShip *boss, cairo_t *cr, i
 void comet_buster_draw_victory_scroll(CometBusterGame *game, cairo_t *cr, int width, int height);
 void draw_comet_buster_ufos(CometBusterGame *game, cairo_t *cr, int width, int height);
 void comet_buster_draw_splash_screen(CometBusterGame *game, cairo_t *cr, int width, int height);
-#endif
+void boss_explosion_draw(BossExplosion *explosion, cairo_t *cr);
+//#endif
 
 
 // Missile functions
