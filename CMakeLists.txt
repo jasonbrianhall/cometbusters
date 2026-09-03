@@ -34,7 +34,7 @@ find_package(OpenGL REQUIRED)
 
 if(WIN32)
   find_package(SDL2 CONFIG REQUIRED)
-  find_package(sdl2-mixer CONFIG REQUIRED)
+  find_package(SDL2_mixer CONFIG REQUIRED)
   set(SDL2_TARGET SDL2::SDL2)
   set(SDL2MAIN_TARGET SDL2::SDL2main)
   set(SDL2_MIXER_TARGET SDL2_mixer::SDL2_mixer)
