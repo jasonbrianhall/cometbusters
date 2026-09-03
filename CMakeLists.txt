@@ -138,7 +138,8 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_custom_command(
   OUTPUT "${CMAKE_SOURCE_DIR}/cometbuster.wad"
-  COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/createwad.py"
+  COMMAND ${CMAKE_COMMAND} -E env PYTHONIOENCODING=utf-8 PYTHONUTF8=1
+          "$<TARGET_FILE:Python3::Interpreter>" "${CMAKE_SOURCE_DIR}/createwad.py"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Building cometbuster.wad"
   VERBATIM
