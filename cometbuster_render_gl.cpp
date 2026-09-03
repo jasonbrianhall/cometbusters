@@ -325,13 +325,13 @@ void gl_draw_rect_outline(float x, float y, float width, float height, float lin
 
 void gl_draw_circle(float cx, float cy, float radius, int segments) {
     Vertex *verts = (Vertex *)malloc((segments + 2) * sizeof(Vertex));
-    verts[0] = (Vertex){cx, cy, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+    verts[0] = Vertex{cx, cy, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     
     for (int i = 0; i <= segments; i++) {
         float angle = 2.0f * M_PI * i / segments;
         float x = cx + radius * cosf(angle);
         float y = cy + radius * sinf(angle);
-        verts[i+1] = (Vertex){x, y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+        verts[i+1] = Vertex{x, y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
     
     draw_vertices(verts, segments + 2, GL_TRIANGLE_FAN);
@@ -346,7 +346,7 @@ void gl_draw_circle_outline(float cx, float cy, float radius, float line_width, 
         float angle = 2.0f * M_PI * i / segments;
         float x = cx + radius * cosf(angle);
         float y = cy + radius * sinf(angle);
-        verts[i] = (Vertex){x, y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+        verts[i] = Vertex{x, y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
     
     draw_vertices(verts, segments + 1, GL_LINE_STRIP);
@@ -356,7 +356,7 @@ void gl_draw_circle_outline(float cx, float cy, float radius, float line_width, 
 void gl_draw_polygon(float *points, int num_points, int filled) {
     Vertex *verts = (Vertex *)malloc(num_points * sizeof(Vertex));
     for (int i = 0; i < num_points; i++) {
-        verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+        verts[i] = Vertex{points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
     draw_vertices(verts, num_points, filled ? GL_TRIANGLES : GL_LINE_STRIP);
     free(verts);
@@ -366,7 +366,7 @@ void gl_draw_polyline(float *points, int num_points, float line_width) {
     glLineWidth(line_width);
     Vertex *verts = (Vertex *)malloc(num_points * sizeof(Vertex));
     for (int i = 0; i < num_points; i++) {
-        verts[i] = (Vertex){points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+        verts[i] = Vertex{points[i*2], points[i*2+1], gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
     draw_vertices(verts, num_points, GL_LINE_STRIP);
     free(verts);
@@ -430,7 +430,7 @@ static void draw_comet_polygon(Comet *c, double points[][2], int num_points, flo
         rotated_x += (float)c->x;
         rotated_y += (float)c->y;
         
-        verts[j] = (Vertex){rotated_x, rotated_y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
+        verts[j] = Vertex{rotated_x, rotated_y, gl_state.color[0], gl_state.color[1], gl_state.color[2], gl_state.color[3]};
     }
     
     // Close the polygon by repeating first vertex
@@ -694,7 +694,7 @@ void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width
             rotated_x += (float)ship->x;
             rotated_y += (float)ship->y;
             
-            ship_verts[j] = (Vertex){rotated_x, rotated_y, ship_r, ship_g, ship_b, 1.0f};
+            ship_verts[j] = Vertex{rotated_x, rotated_y, ship_r, ship_g, ship_b, 1.0f};
         }
         
         // Close the polygon
@@ -785,17 +785,17 @@ void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width
             // Left side
             double left_x = flame_base_x - flame_dir_y * flame_width;
             double left_y = flame_base_y + flame_dir_x * flame_width;
-            outer_flame_verts[0] = (Vertex){(float)left_x, (float)left_y, 1.0f, 0.4f, 0.0f, 1.0f};
+            outer_flame_verts[0] = Vertex{(float)left_x, (float)left_y, 1.0f, 0.4f, 0.0f, 1.0f};
             
             // Right side
             double right_x = flame_base_x + flame_dir_y * flame_width;
             double right_y = flame_base_y - flame_dir_x * flame_width;
-            outer_flame_verts[1] = (Vertex){(float)right_x, (float)right_y, 1.0f, 0.4f, 0.0f, 1.0f};
+            outer_flame_verts[1] = Vertex{(float)right_x, (float)right_y, 1.0f, 0.4f, 0.0f, 1.0f};
             
             // Tip
             double tip_x = flame_base_x + flame_dir_x * outer_flame_length;
             double tip_y = flame_base_y + flame_dir_y * outer_flame_length;
-            outer_flame_verts[2] = (Vertex){(float)tip_x, (float)tip_y, 1.0f, 0.2f, 0.0f, (float)flicker * 0.6f};
+            outer_flame_verts[2] = Vertex{(float)tip_x, (float)tip_y, 1.0f, 0.2f, 0.0f, (float)flicker * 0.6f};
             
             outer_flame_verts[3] = outer_flame_verts[0];
             
@@ -811,17 +811,17 @@ void draw_comet_buster_enemy_ships_gl(CometBusterGame *game, void *cr, int width
             // Left side (narrower)
             double inner_left_x = flame_base_x - flame_dir_y * flame_width * 0.4;
             double inner_left_y = flame_base_y + flame_dir_x * flame_width * 0.4;
-            inner_flame_verts[0] = (Vertex){(float)inner_left_x, (float)inner_left_y, 1.0f, 1.0f, 0.3f, 1.0f};
+            inner_flame_verts[0] = Vertex{(float)inner_left_x, (float)inner_left_y, 1.0f, 1.0f, 0.3f, 1.0f};
             
             // Right side (narrower)
             double inner_right_x = flame_base_x + flame_dir_y * flame_width * 0.4;
             double inner_right_y = flame_base_y - flame_dir_x * flame_width * 0.4;
-            inner_flame_verts[1] = (Vertex){(float)inner_right_x, (float)inner_right_y, 1.0f, 1.0f, 0.3f, 1.0f};
+            inner_flame_verts[1] = Vertex{(float)inner_right_x, (float)inner_right_y, 1.0f, 1.0f, 0.3f, 1.0f};
             
             // Inner tip
             double inner_tip_x = flame_base_x + flame_dir_x * inner_flame_length;
             double inner_tip_y = flame_base_y + flame_dir_y * inner_flame_length;
-            inner_flame_verts[2] = (Vertex){(float)inner_tip_x, (float)inner_tip_y, 1.0f, 1.0f, 0.6f, (float)flicker * 0.9f};
+            inner_flame_verts[2] = Vertex{(float)inner_tip_x, (float)inner_tip_y, 1.0f, 1.0f, 0.6f, (float)flicker * 0.9f};
             
             inner_flame_verts[3] = inner_flame_verts[0];
             
@@ -963,7 +963,7 @@ void draw_comet_buster_ufos_gl(CometBusterGame *game, void *cr, int width, int h
             double angle = M_PI + (j * M_PI / dome_segments);  // From PI to 2*PI (top half)
             float x = (float)(ufo->x + (dome_width / 2.0) * cos(angle));
             float y = (float)(ufo->y + (dome_width / 2.0) * sin(angle));
-            dome_verts[j] = (Vertex){x, y, ufo_r, ufo_g, ufo_b, 1.0f};
+            dome_verts[j] = Vertex{x, y, ufo_r, ufo_g, ufo_b, 1.0f};
         }
         draw_vertices(dome_verts, dome_segments + 1, GL_LINE_STRIP);
         
@@ -1199,7 +1199,7 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
             float y = flame_points_left[j*2+1];
             float rotated_x = x * cos_a - y * sin_a + (float)missile->x;
             float rotated_y = x * sin_a + y * cos_a + (float)missile->y;
-            flame_verts[j] = (Vertex){rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha * 0.6f};
+            flame_verts[j] = Vertex{rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha * 0.6f};
         }
         gl_set_color_alpha(flame_r, flame_g, flame_b, alpha * 0.6f);
         draw_vertices(flame_verts, 3, GL_TRIANGLES);
@@ -1233,7 +1233,7 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
             rotated_x += (float)missile->x;
             rotated_y += (float)missile->y;
             
-            verts[j] = (Vertex){rotated_x, rotated_y, fill_r, fill_g, fill_b, alpha};
+            verts[j] = Vertex{rotated_x, rotated_y, fill_r, fill_g, fill_b, alpha};
         }
         
         // Draw filled missile body
@@ -1272,7 +1272,7 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
             float y = nozzle_points[j*2+1];
             float rotated_x = x * cos_a - y * sin_a + (float)missile->x;
             float rotated_y = x * sin_a + y * cos_a + (float)missile->y;
-            thruster_verts[j] = (Vertex){rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha};
+            thruster_verts[j] = Vertex{rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha};
         }
         draw_vertices(thruster_verts, 3, GL_TRIANGLES);
         
@@ -1288,7 +1288,7 @@ void draw_comet_buster_missiles_gl(CometBusterGame *game, void *cr, int width, i
             float y = nozzle_points_lower[j*2+1];
             float rotated_x = x * cos_a - y * sin_a + (float)missile->x;
             float rotated_y = x * sin_a + y * cos_a + (float)missile->y;
-            thruster_verts[j] = (Vertex){rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha};
+            thruster_verts[j] = Vertex{rotated_x, rotated_y, flame_r, flame_g, flame_b, alpha};
         }
         draw_vertices(thruster_verts, 3, GL_TRIANGLES);
     }
@@ -1401,9 +1401,9 @@ void draw_comet_buster_particles_gl(CometBusterGame *game, void *cr, int width, 
             float y1 = (float)(p->y + p->size * sin(a1));
 
             // Triangle: center → v0 → v1
-            particle_buffer[vert_idx++] = (Vertex){cx, cy, r, g, b, alpha};
-            particle_buffer[vert_idx++] = (Vertex){x0, y0, r, g, b, alpha};
-            particle_buffer[vert_idx++] = (Vertex){x1, y1, r, g, b, alpha};
+            particle_buffer[vert_idx++] = Vertex{cx, cy, r, g, b, alpha};
+            particle_buffer[vert_idx++] = Vertex{x0, y0, r, g, b, alpha};
+            particle_buffer[vert_idx++] = Vertex{x1, y1, r, g, b, alpha};
         }
     }
 
@@ -1467,7 +1467,7 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
             a = flash;
         }
         
-        ship_verts[i] = (Vertex){rotated_x, rotated_y, r, g, b, a};
+        ship_verts[i] = Vertex{rotated_x, rotated_y, r, g, b, a};
     }
     
     // Close the polygon by repeating first vertex (like cairo_close_path)
@@ -1501,7 +1501,7 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
             rotated_x += (float)game->ship_x;
             rotated_y += (float)game->ship_y;
             
-            muzzle_verts[i] = (Vertex){rotated_x, rotated_y, 1.0f, 1.0f, 0.0f, alpha};
+            muzzle_verts[i] = Vertex{rotated_x, rotated_y, 1.0f, 1.0f, 0.0f, alpha};
         }
         
         gl_set_color_alpha(1.0f, 1.0f, 0.0f, alpha);
@@ -1546,7 +1546,7 @@ void draw_comet_buster_ship_gl(CometBusterGame *game, void *cr, int width, int h
             float color_g = 0.7f * (1.0f - (float)i / 3.0f);  // Fade orange
             float color_b = 0.0f;
             
-            burner_verts[i] = (Vertex){rotated_x, rotated_y, color_r, color_g, color_b, effective_intensity * 0.7f};
+            burner_verts[i] = Vertex{rotated_x, rotated_y, color_r, color_g, color_b, effective_intensity * 0.7f};
         }
         
         gl_set_color_alpha(1.0f, 0.7f, 0.0f, effective_intensity * 0.7f);
