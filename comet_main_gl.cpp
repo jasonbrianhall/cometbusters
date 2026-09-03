@@ -1,3 +1,5 @@
+// OpenGL version
+
 #ifdef ANDROID
 #include <SDL.h>
 #else
