@@ -6,8 +6,8 @@ on:
     paths:
       - '**.cpp'
       - '**.h'
-      - 'Makefile'
-      - '**/Makefile'
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
       - '**.yml'
       - '**.yaml'
   pull_request:
@@ -15,8 +15,8 @@ on:
     paths:
       - '**.cpp'
       - '**.h'
-      - 'Makefile'
-      - '**/Makefile'
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
       - '**.yml'
       - '**.yaml'
   workflow_dispatch:
@@ -26,113 +26,99 @@ env:
   UPGRADE_CODE: "A8F2B5C3-9D47-44E2-8B6A-7C3F1E9A2D5B"
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    container: 
-      image: fedora:43
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86
+            vcpkg_triplet: x86-windows
+            cmake_arch: Win32
+            artifact_name: cometbuster-build-x86
+            zip_name: CometBuster-Portable-x86.zip
+          - arch: arm64
+            vcpkg_triplet: arm64-windows
+            cmake_arch: ARM64
+            artifact_name: cometbuster-build-arm64
+            zip_name: CometBuster-Portable-arm64.zip
     outputs:
       version: ${{ env.PRODUCT_VERSION }}
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Dependencies
+    - name: Bootstrap vcpkg
       run: |
-        # Enable RPM Fusion repositories
-        dnf -y install \
-          https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-          https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+        git clone https://github.com/microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
 
-        # Install packages
-        dnf -y install \
-          gcc gcc-c++ make \
-          gtk3-devel gtkmm30-devel \
-          SDL2-devel SDL2_mixer-devel \
-          libvorbis-devel flac-devel \
-          gstreamer1-devel gstreamer1-plugins-base-devel \
-          pkg-config \
-          mingw64-gcc mingw64-gcc-c++ \
-          mingw64-gtk3 mingw64-gtkmm30 \
-          mingw64-SDL2 mingw64-SDL2_mixer \
-          mingw64-libvorbis mingw64-flac \
-          mingw64-opus mingw64-opusfile \
-          mingw64-taglib.noarch \
-          mingw64-glew \
-          wine wine-devel \
-          zip unzip \
-          opus-devel opusfile-devel \
-          ImageMagick \
-          ffmpeg-devel \
-          taglib-devel \
-          rpm-build rpmdevtools
-
-    - name: Build Windows GTK Version
+    - name: Install dependencies (${{ matrix.vcpkg_triplet }})
       run: |
-        make -f Makefile.gl windows
+        .\vcpkg\vcpkg.exe install --triplet ${{ matrix.vcpkg_triplet }} --x-manifest-root=. --x-install-root=vcpkg\installed
 
-    - name: Convert PNG Icon to ICO Format
-      working-directory: build/windows
+    - name: Configure
       run: |
-        # Convert icon.png to icon.ico for Windows installer
-        if [ -f "../../icon.png" ]; then
-          echo "Converting icon.png to icon.ico..."
-          convert ../../icon.png -resize 256x256 -colors 256 icon.ico
-          echo "✅ Icon converted successfully"
-          ls -lh icon.ico
-        else
-          echo "⚠️  icon.png not found at repo root"
-        fi
+        cmake -B build-${{ matrix.arch }} -A ${{ matrix.cmake_arch }} `
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" `
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} `
+          -DVCPKG_INSTALLED_DIR="${{ github.workspace }}\vcpkg\installed" `
+          -DCMAKE_BUILD_TYPE=Release
 
-    - name: Prepare Build Artifacts
-      working-directory: build/windows
+    - name: Build
       run: |
-        # Copy resources
-        cp ../../README.md .
-        cp ../../LICENSE.md .
-        
-        # Copy PNG icon
-        cp ../../icon.png . 2>/dev/null || true
-        
-        # Copy WAD file from repo root (game assets with sound)
-        if [ -f "../../cometbuster.wad" ]; then
-          cp ../../cometbuster.wad .
-          echo "✅ Copied cometbuster.wad"
-        else
-          echo "⚠️  Warning: cometbuster.wad not found at repo root"
-          # Search for it in case it's elsewhere
-          find ../.. -name "cometbuster.wad" -type f 2>/dev/null | head -1 | xargs -I {} cp {} . 2>/dev/null || true
-        fi
-        
-        # Copy DLLs explicitly
-        DLL_SOURCE="/usr/x86_64-w64-mingw32/sys-root/mingw/bin"
-        
-        for dll in \
-          libgcc_s_seh-1.dll \
-          libstdc++-6.dll \
-          libwinpthread-1.dll; do
-          if [ -f "$DLL_SOURCE/$dll" ]; then
-            cp "$DLL_SOURCE/$dll" .
-          fi
-        done
-        
-        # Create file list for MSI
-        echo "Creating file inventory..."
-        find . -name "*.dll" -type f | sort > dll_list.txt
-        find . -name "*.exe" -type f | sort > exe_list.txt
-        find . -name "*.wad" -type f | sort > wad_list.txt
-        
-        # Create portable ZIP
-        zip -r ../../CometBuster-GTK-Portable.zip ./*
+        cmake --build build-${{ matrix.arch }} --config Release --target cometbuster
+
+    - name: Convert PNG icon to ICO
+      run: |
+        if (Test-Path "icon.png") {
+          magick icon.png -resize 256x256 -colors 256 icon.ico
+        } else {
+          Write-Host "⚠️  icon.png not found at repo root"
+        }
+
+    - name: Package
+      run: |
+        New-Item -ItemType Directory -Force -Path "package" | Out-Null
+        Copy-Item "build-${{ matrix.arch }}\Release\cometbuster.exe" "package\"
+        Copy-Item "vcpkg\installed\${{ matrix.vcpkg_triplet }}\bin\*.dll" "package\" -ErrorAction SilentlyContinue
+        Copy-Item "README.md" "package\" -ErrorAction SilentlyContinue
+        Copy-Item "LICENSE.md" "package\" -ErrorAction SilentlyContinue
+        Copy-Item "icon.png" "package\" -ErrorAction SilentlyContinue
+        Copy-Item "icon.ico" "package\" -ErrorAction SilentlyContinue
+
+        if (Test-Path "build-${{ matrix.arch }}\Release\cometbuster.wad") {
+          Copy-Item "build-${{ matrix.arch }}\Release\cometbuster.wad" "package\"
+        } elseif (Test-Path "cometbuster.wad") {
+          Copy-Item "cometbuster.wad" "package\"
+        } else {
+          Write-Error "cometbuster.wad not found — CMake's WAD build step may have failed"
+          exit 1
+        }
+
+        if (-not (Test-Path "package\cometbuster.exe")) {
+          Write-Error "cometbuster.exe not found — build failed"
+          exit 1
+        }
+        if (-not (Test-Path "package\cometbuster.wad")) {
+          Write-Error "cometbuster.wad not found — packaging would produce a broken zip"
+          exit 1
+        }
+
+        $dllCount = (Get-ChildItem "package\*.dll" -ErrorAction SilentlyContinue).Count
+        Write-Host "📦 Packaged $dllCount DLL(s):"
+        Get-ChildItem "package\*.dll" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Length) bytes)" }
+
+        Compress-Archive -Path "package\*" -DestinationPath "${{ matrix.zip_name }}"
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: cometbuster-build
-        path: CometBuster-GTK-Portable.zip
+        name: ${{ matrix.artifact_name }}
+        path: ${{ matrix.zip_name }}
         retention-days: 7
 
   build-msi-windows:
-    needs: build-linux
+    needs: build-windows
     runs-on: windows-latest
     permissions:
       contents: write
@@ -140,104 +126,63 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download Build Artifacts
+    - name: Download Build Artifacts (x86)
       uses: actions/download-artifact@v4
       with:
-        name: cometbuster-build
+        name: cometbuster-build-x86
         path: .
 
     - name: Extract Build Files
       run: |
-        Expand-Archive -Path "CometBuster-GTK-Portable.zip" -DestinationPath "artifacts/build/windows/" -Force
+        Expand-Archive -Path "CometBuster-Portable-x86.zip" -DestinationPath "artifacts/build/windows/" -Force
 
     - name: Setup WiX Toolset
       run: |
-        # Download and install WiX Toolset v3
         Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip" -OutFile "wix.zip"
         Expand-Archive -Path "wix.zip" -DestinationPath "wix"
         echo "$env:GITHUB_WORKSPACE\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Create MIT License File
-      run: |
-        @"
-        MIT License
-        
-        Copyright (c) 2025 Jason Brian Hall
-        
-        Permission is hereby granted, free of charge, to any person obtaining a copy
-        of this software and associated documentation files (the "Software"), to deal
-        in the Software without restriction, including without limitation the rights
-        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-        copies of the Software, and to permit persons to whom the Software is
-        furnished to do so, subject to the following conditions:
-        
-        The above copyright notice and this permission notice shall be included in all
-        copies or substantial portions of the Software.
-        
-        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-        SOFTWARE.
-        "@ | Out-File -FilePath "artifacts\build\windows\LICENSE.txt" -Encoding UTF8
-
-    - name: Generate Advanced MSI Installer
+    - name: Generate MSI Installer
       working-directory: artifacts/build/windows
       run: |
+        $version = "${{ env.PRODUCT_VERSION }}"
+        $upgradeCode = "${{ env.UPGRADE_CODE }}"
+
         # Generate component entries for all DLLs
-        $dllEntries = Get-ChildItem -Name "*.dll" | ForEach-Object {
+        $dllEntries = Get-ChildItem -Name "*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
           $safeId = $_ -replace '[^a-zA-Z0-9]', '_'
           "                <File Id=`"$safeId`" Name=`"$_`" Source=`"$_`"/>"
         }
-        
-        # Generate WAD file entry if it exists
-        $wadEntry = ""
-        if (Test-Path "cometbuster.wad") {
-          $wadEntry = "                `n                <!-- Game assets -->`n                <File Id=`"CometBusterWAD`" Name=`"cometbuster.wad`" Source=`"cometbuster.wad`" />`n"
-          Write-Host "✅ WAD file found and will be included"
-        } else {
-          Write-Host "⚠️  Warning: cometbuster.wad not found"
-        }
-        
-        # Create advanced WXS installer
+
         @"
         <?xml version="1.0" encoding="UTF-8"?>
         <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-          
-          <Product Id="*" 
-                   Name="Comet Busters" 
-                   Language="1033" 
-                   Version="${{ needs.build-linux.outputs.version }}" 
-                   Manufacturer="Jason Brian Hall" 
-                   UpgradeCode="${{ env.UPGRADE_CODE }}"> 
-            
-            <Package InstallerVersion="500" 
-                     Compressed="yes" 
-                     InstallScope="perMachine" 
-                     Description="Comet Busters GTK - Action Arcade Game"
-                     Comments="Built with GitHub Actions"
+
+          <Product Id="*"
+                   Name="Comet Busters"
+                   Language="1033"
+                   Version="$version"
+                   Manufacturer="Jason Brian Hall"
+                   UpgradeCode="$upgradeCode">
+
+            <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine"
+                     Description="Comet Busters - Action Arcade Game"
                      Manufacturer="Jason Brian Hall" />
-            
-            <!-- Major upgrade configuration -->
-            <MajorUpgrade 
-              DowngradeErrorMessage="A newer version of Comet Busters is already installed. Please uninstall it first." 
-              Schedule="afterInstallInitialize" />
-            
+
+            <MajorUpgrade DowngradeErrorMessage="A newer version of Comet Busters is already installed. Please uninstall it first."
+                          Schedule="afterInstallInitialize" />
             <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
-            
-            <!-- License agreement -->
+
+            <Icon Id="CometBusterIcon" SourceFile="icon.ico" />
+            <Property Id="ARPPRODUCTICON" Value="CometBusterIcon" />
+            <Property Id="ARPHELPLINK" Value="https://github.com" />
+            <Property Id="ARPURLINFOABOUT" Value="https://github.com" />
+            <Property Id="ARPCOMMENTS" Value="An exciting asteroid-busting action arcade game" />
+
             <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
-            
-            <!-- Feature configuration -->
-            <Feature Id="ProductFeature" Title="Comet Busters" Level="1">
-              <ComponentRef Id="CometBusterExecutable" />
-              <ComponentRef Id="ApplicationShortcut" />
-              <ComponentRef Id="DesktopShortcut" />
-            </Feature>
-            
-            <!-- Directory structure -->
+            <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+            <Property Id="DESKTOP_SHORTCUT" Value="1" />
+
             <Directory Id="TARGETDIR" Name="SourceDir">
               <Directory Id="ProgramFilesFolder">
                 <Directory Id="INSTALLFOLDER" Name="Comet Busters" />
@@ -245,84 +190,80 @@ jobs:
               <Directory Id="ProgramMenuFolder">
                 <Directory Id="ApplicationProgramsFolder" Name="Comet Busters" />
               </Directory>
-              <Directory Id="DesktopFolder" Name="Desktop" />
+              <Directory Id="DesktopFolder" />
             </Directory>
-            
-            <!-- Main executable and all DLL dependencies in one component -->
-            <!-- FIXED: Using hardcoded GUID, registry KeyPath for shortcuts, Win64="no" for 32-bit -->
+
+            <!-- Main executable, WAD and all DLL dependencies -->
             <DirectoryRef Id="INSTALLFOLDER">
-              <Component Id="CometBusterExecutable" Guid="E5D4C8B7-9F2A-4C3D-8E1F-5A6B7C8D9E0F" Win64="no">
+              <Component Id="MainExecutable" Guid="E5D4C8B7-9F2A-4C3D-8E1F-5A6B7C8D9E0F" Win64="no">
                 <File Id="CometBusterEXE" Name="cometbuster.exe" Source="cometbuster.exe" />
-                $wadEntry
-                <!-- DLL dependencies -->
-                $($dllEntries -join "`r`n")
-                
-                <!-- Start Menu Shortcut (non-advertised) -->
-                <Shortcut Id="CometBusterStartMenuShortcut"
+                <File Id="CometBusterWAD" Name="cometbuster.wad" Source="cometbuster.wad" />
+
+                <Shortcut Id="StartMenuShortcut"
                           Directory="ApplicationProgramsFolder"
                           Name="Comet Busters"
+                          Description="Comet Busters - Action Arcade Game"
                           Target="[INSTALLFOLDER]cometbuster.exe"
                           WorkingDirectory="INSTALLFOLDER"
                           Icon="CometBusterIcon"
                           IconIndex="0" />
-                
-                <!-- Registry KeyPath for component (required for non-advertised shortcuts) -->
-                <RegistryValue Root="HKCU" Key="Software\Comet Busters" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+
+                <RegistryValue Root="HKCU" Key="Software\Comet Busters" Name="installed"
+                               Type="integer" Value="1" KeyPath="yes" />
+
+                <!-- DLL dependencies -->
+                $($dllEntries -join "`r`n")
               </Component>
             </DirectoryRef>
-            
-            <!-- Start Menu shortcut -->
+
             <DirectoryRef Id="ApplicationProgramsFolder">
-              <Component Id="ApplicationShortcut" Guid="A0B1C2D3-E4F5-4D6E-9F0A-7B8C9D0E1F2A" Win64="no">
+              <Component Id="StartMenuFolder" Guid="A0B1C2D3-E4F5-4D6E-9F0A-7B8C9D0E1F2A" Win64="no">
                 <RemoveFolder Id="ApplicationProgramsFolderRemove" On="uninstall" />
-                <RegistryValue Root="HKCU" Key="Software\Comet Busters\Shortcuts" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+                <RegistryValue Root="HKCU" Key="Software\Comet Busters\Shortcuts" Name="StartMenu"
+                               Type="integer" Value="1" KeyPath="yes" />
               </Component>
             </DirectoryRef>
-            
-            <!-- Desktop shortcut component (optional) -->
+
             <DirectoryRef Id="DesktopFolder">
               <Component Id="DesktopShortcut" Guid="B1C2D3E4-F5A6-4E7F-0A1B-8C9D0E1F2A3B" Win64="no">
                 <Condition>DESKTOP_SHORTCUT=1</Condition>
-                <Shortcut Id="DesktopShortcutCometBuster"
+                <Shortcut Id="DesktopShortcutMain"
                           Directory="DesktopFolder"
                           Name="Comet Busters"
+                          Description="Comet Busters - Action Arcade Game"
                           Target="[INSTALLFOLDER]cometbuster.exe"
                           WorkingDirectory="INSTALLFOLDER"
                           Icon="CometBusterIcon"
                           IconIndex="0" />
-                <RegistryValue Root="HKCU" Key="Software\Comet Busters\Shortcuts" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+                <RegistryValue Root="HKCU" Key="Software\Comet Busters\Shortcuts" Name="Desktop"
+                               Type="integer" Value="1" KeyPath="yes" />
               </Component>
             </DirectoryRef>
-            
-            <!-- Icon definition - use icon.ico from repo root -->
-            <Icon Id="CometBusterIcon" SourceFile="icon.ico" />
-            
-            <!-- UI configuration -->
+
+            <Feature Id="MainFeature" Title="Comet Busters" Level="1">
+              <ComponentRef Id="MainExecutable" />
+              <ComponentRef Id="StartMenuFolder" />
+              <ComponentRef Id="DesktopShortcut" />
+            </Feature>
+
             <UIRef Id="WixUI_InstallDir" />
             <UIRef Id="WixUI_ErrorProgressText" />
-            <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-            <Property Id="DESKTOP_SHORTCUT" Value="1" />
-            
-            <!-- Add/Remove Programs configuration -->
-            <Property Id="ARPPRODUCTICON" Value="CometBusterIcon" />
-            <Property Id="ARPHELPLINK" Value="https://github.com" />
-            <Property Id="ARPURLINFOABOUT" Value="https://github.com" />
-            <Property Id="ARPURLUPDATEINFO" Value="https://github.com/releases" />
-            <Property Id="ARPCOMMENTS" Value="An exciting asteroid-busting action arcade game" />
-            
+
+            <InstallExecuteSequence>
+              <Custom Action="SetARPINSTALLLOCATION" After="InstallValidate" />
+            </InstallExecuteSequence>
+            <CustomAction Id="SetARPINSTALLLOCATION" Property="ARPINSTALLLOCATION" Value="[INSTALLFOLDER]" />
+
           </Product>
         </Wix>
-        "@ | Out-File -FilePath "product.wxs" -Encoding UTF8
-        
-        # Convert RTF license (create a simple one if License.rtf doesn't exist)
+        "@ | Out-File -FilePath "cometbuster.wxs" -Encoding UTF8
+
         if (-not (Test-Path "License.rtf")) {
           @"
-        {\rtf1\ansi\ansicpg1252\cocoartf2\cuc
+        {\rtf1\ansi\ansicpg1252
         {\colortbl;\red255\green255\blue255;}
-        {\*\expandedcolortbl;;}
-        \margl1440\margr1440\margtsxn1440\margbsxn1440\mghdr720\mgft720\vieww11900\viewh8605\viewkind0
-        \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor100
-        
+        \margl1440\margr1440\vieww11900\viewh8605\viewkind0
+        \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\pardirnatural\partightenfactor0
         \f0\fs20 \cf0 MIT License\
         \
         Copyright (c) 2025 Jason Brian Hall\
@@ -334,46 +275,42 @@ jobs:
         THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.}
         "@ | Out-File -FilePath "License.rtf" -Encoding ASCII
         }
-        
-        # Compile the WXS file
-        Write-Host "Compiling WXS to WIX object file..."
-        & candle.exe -out "product.wixobj" -arch x64 "product.wxs"
-        
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Candle compilation failed with exit code $LASTEXITCODE"
-          exit 1
-        }
-        
-        # Link to create MSI
-        Write-Host "Linking to create MSI..."
-        & light.exe -out "CometBuster-GTK.msi" -ext WixUIExtension -ext WixUtilExtension "product.wixobj"
-        
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Light linking failed with exit code $LASTEXITCODE"
-          exit 1
-        }
-        
-        # Verify MSI was created
-        if (Test-Path "CometBuster-GTK.msi") {
-          Write-Host "✅ MSI created successfully: CometBuster-GTK.msi"
-          $msiSize = (Get-Item "CometBuster-GTK.msi").Length
-          Write-Host "MSI file size: $msiSize bytes"
+
+        Write-Host "Compiling WXS..."
+        & candle.exe -out "cometbuster.wixobj" -arch x86 "cometbuster.wxs"
+        if ($LASTEXITCODE -ne 0) { Write-Error "Candle failed"; exit 1 }
+
+        Write-Host "Linking MSI..."
+        & light.exe -out "CometBuster.msi" -ext WixUIExtension -ext WixUtilExtension "cometbuster.wixobj"
+        if ($LASTEXITCODE -ne 0) { Write-Error "Light failed"; exit 1 }
+
+        if (Test-Path "CometBuster.msi") {
+          Write-Host "✅ MSI created: CometBuster.msi ($((Get-Item 'CometBuster.msi').Length) bytes)"
         } else {
-          Write-Error "❌ MSI file was not created!"
-          exit 1
+          Write-Error "❌ MSI not created"; exit 1
         }
 
-    - name: Upload MSI Package
+    - name: Upload MSI
       uses: actions/upload-artifact@v4
       with:
-        name: CometBuster-GTK.msi
-        path: artifacts/build/windows/CometBuster-GTK.msi
+        name: CometBuster.msi
+        path: artifacts/build/windows/CometBuster.msi
+        retention-days: 7
 
   build-msix-windows:
-    needs: build-linux
+    needs: build-windows
     runs-on: windows-latest
     permissions:
       contents: write
+    strategy:
+      matrix:
+        include:
+          - arch: x86
+            artifact_name: cometbuster-build-x86
+            zip_name: CometBuster-Portable-x86.zip
+          - arch: arm64
+            artifact_name: cometbuster-build-arm64
+            zip_name: CometBuster-Portable-arm64.zip
 
     steps:
     - uses: actions/checkout@v4
@@ -381,67 +318,66 @@ jobs:
     - name: Download Build Artifacts
       uses: actions/download-artifact@v4
       with:
-        name: cometbuster-build
+        name: ${{ matrix.artifact_name }}
         path: .
 
     - name: Extract Build Files
       run: |
-        Expand-Archive -Path "CometBuster-GTK-Portable.zip" -DestinationPath "msix-source\" -Force
+        Expand-Archive -Path "${{ matrix.zip_name }}" -DestinationPath "msix-source\" -Force
 
     - name: Prepare MSIX Package Structure
       run: |
-        mkdir -p "msix-package/Assets"
-        mkdir -p "msix-package/Files"
-        
-        # Copy executable, DLLs, and all assets from extracted source
+        New-Item -ItemType Directory -Force -Path "msix-package/Assets"
+        New-Item -ItemType Directory -Force -Path "msix-package/Files"
+
         Copy-Item "msix-source/*" -Destination "msix-package/Files/" -Recurse -Force
-        
-        # Verify executable exists
+
         if (-not (Test-Path "msix-package/Files/cometbuster.exe")) {
           Write-Error "cometbuster.exe not found in package!"
           exit 1
         }
-        
-        # Verify files
-        Write-Host "📦 MSIX package contents:"
-        Get-ChildItem "msix-package/Files/" -File | ForEach-Object { Write-Host "  - $_" }
+        if (-not (Test-Path "msix-package/Files/cometbuster.wad")) {
+          Write-Error "cometbuster.wad not found in package!"
+          exit 1
+        }
+
+        Write-Host "📦 MSIX Files directory contents:"
+        Get-ChildItem "msix-package/Files/" -File | ForEach-Object {
+          $size = "{0:N0}" -f $_.Length
+          Write-Host "  - $($_.Name) ($size bytes)"
+        }
 
     - name: Create MSIX Store Compliant Assets
       run: |
         $iconPath = "msix-source/icon.png"
-        
-        # Verify icon exists
+
         if (-not (Test-Path $iconPath)) {
           Write-Error "icon.png not found - cannot create Store assets"
           exit 1
         }
-        
+
         Write-Host "Creating Microsoft Store compliant assets..."
-        
-        # Store Logo (50x50) - Required in Properties
-        & magick "$iconPath" -resize 50x50 "msix-package/Assets/StoreLogo.scale-100.png"
-        & magick "$iconPath" -resize 63x63 "msix-package/Assets/StoreLogo.scale-125.png"
-        & magick "$iconPath" -resize 75x75 "msix-package/Assets/StoreLogo.scale-150.png"
+
+        & magick "$iconPath" -resize 50x50   "msix-package/Assets/StoreLogo.scale-100.png"
+        & magick "$iconPath" -resize 63x63   "msix-package/Assets/StoreLogo.scale-125.png"
+        & magick "$iconPath" -resize 75x75   "msix-package/Assets/StoreLogo.scale-150.png"
         & magick "$iconPath" -resize 100x100 "msix-package/Assets/StoreLogo.scale-200.png"
-        
-        # Square 44x44 Logo (small tile)
+
         & magick "$iconPath" -resize 44x44 "msix-package/Assets/CometBuster44x44.scale-100.png"
         & magick "$iconPath" -resize 55x55 "msix-package/Assets/CometBuster44x44.scale-125.png"
         & magick "$iconPath" -resize 66x66 "msix-package/Assets/CometBuster44x44.scale-150.png"
         & magick "$iconPath" -resize 88x88 "msix-package/Assets/CometBuster44x44.scale-200.png"
-        
-        # Square 150x150 Logo (main tile)
+
         & magick "$iconPath" -resize 150x150 "msix-package/Assets/CometBusterLogo.scale-100.png"
         & magick "$iconPath" -resize 188x188 "msix-package/Assets/CometBusterLogo.scale-125.png"
         & magick "$iconPath" -resize 225x225 "msix-package/Assets/CometBusterLogo.scale-150.png"
         & magick "$iconPath" -resize 300x300 "msix-package/Assets/CometBusterLogo.scale-200.png"
-        
-        # Wide 310x150 Logo (wide tile)
+
         & magick "$iconPath" -resize 150x150 -background "#1a1a2e" -gravity center -extent 310x150 "msix-package/Assets/CometBusterWide.scale-100.png"
         & magick "$iconPath" -resize 188x188 -background "#1a1a2e" -gravity center -extent 388x188 "msix-package/Assets/CometBusterWide.scale-125.png"
         & magick "$iconPath" -resize 225x225 -background "#1a1a2e" -gravity center -extent 465x225 "msix-package/Assets/CometBusterWide.scale-150.png"
         & magick "$iconPath" -resize 300x300 -background "#1a1a2e" -gravity center -extent 620x300 "msix-package/Assets/CometBusterWide.scale-200.png"
-        
+
         Write-Host "✅ All Microsoft Store assets created successfully"
 
     - name: Create MSIX Manifest
@@ -452,32 +388,28 @@ jobs:
         <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
                  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
                  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
-          
+
           <Identity
             Name="JasonBrianHall.15700415EB853"
             Publisher="CN=7A3CF65F-504C-42F2-BABD-6A0512A0A017"
-            Version="${{ needs.build-linux.outputs.version }}"
-            ProcessorArchitecture="x86" />
-          
+            Version="${{ env.PRODUCT_VERSION }}"
+            ProcessorArchitecture="${{ matrix.arch }}" />
+
           <Properties>
             <DisplayName>CometBusters</DisplayName>
             <PublisherDisplayName>Jason Brian Hall</PublisherDisplayName>
             <Description>Blast asteroids and comets in this action-packed arcade game!</Description>
             <Logo>Assets\StoreLogo.scale-100.png</Logo>
           </Properties>
-          
+
           <Dependencies>
             <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
           </Dependencies>
-          
+
           <Resources>
             <Resource Language="en-us" />
-            <Resource Language="fr-fr" />
-            <Resource Language="es-es" />
-            <Resource Language="ru-ru" />
-            <Resource Language="de-de" />
           </Resources>
-          
+
           <Applications>
             <Application Id="CometBuster" Executable="Files\cometbuster.exe" EntryPoint="Windows.FullTrustApplication">
               <uap:VisualElements DisplayName="CometBusters"
@@ -496,7 +428,7 @@ jobs:
               </uap:VisualElements>
             </Application>
           </Applications>
-          
+
           <Capabilities>
             <rescap:Capability Name="runFullTrust" />
           </Capabilities>
@@ -505,86 +437,85 @@ jobs:
 
     - name: Build MSIX Package
       run: |
-        # Use Windows SDK MakeAppx tool to create MSIX
         $makeAppxPath = "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.0.22621.0\x64\makeappx.exe"
-        
-        # Try different SDK versions if the specific one doesn't exist
+
         if (-not (Test-Path $makeAppxPath)) {
-          $sdkVersions = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\" | Where-Object { $_.Name -match "10\.0\.\d+\.\d+" } | Sort-Object Name -Descending
+          $sdkVersions = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\" |
+            Where-Object { $_.Name -match "10\.0\.\d+\.\d+" } |
+            Sort-Object Name -Descending
           foreach ($version in $sdkVersions) {
             $testPath = "${env:ProgramFiles(x86)}\Windows Kits\10\bin\$($version.Name)\x64\makeappx.exe"
-            if (Test-Path $testPath) {
-              $makeAppxPath = $testPath
-              break
-            }
+            if (Test-Path $testPath) { $makeAppxPath = $testPath; break }
           }
         }
-        
+
         if (-not (Test-Path $makeAppxPath)) {
-          Write-Error "MakeAppx.exe not found. Windows SDK may not be installed."
+          Write-Error "MakeAppx.exe not found."
           exit 1
         }
-        
+
         Write-Host "Using MakeAppx at: $makeAppxPath"
-        
-        # Create the MSIX package (unsigned for Store submission)
-        & "$makeAppxPath" pack /d "msix-package" /p "CometBuster-GTK.msix" /o
-        
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "MSIX package creation failed with exit code $LASTEXITCODE"
-          exit 1
-        }
-        
-        # Verify MSIX was created
-        if (Test-Path "CometBuster-GTK.msix") {
-          Write-Host "✅ MSIX package created successfully: CometBuster-GTK.msix"
-          $msixSize = (Get-Item "CometBuster-GTK.msix").Length
-          Write-Host "MSIX file size: $msixSize bytes"
+        $msixName = "CometBuster-${{ matrix.arch }}.msix"
+        & "$makeAppxPath" pack /d "msix-package" /p "$msixName" /o
+
+        if ($LASTEXITCODE -ne 0) { Write-Error "MSIX creation failed"; exit 1 }
+
+        if (Test-Path $msixName) {
+          Write-Host "✅ MSIX created: $msixName ($((Get-Item $msixName).Length) bytes)"
           Write-Host "Package is unsigned and ready for Microsoft Store submission"
         } else {
-          Write-Error "❌ MSIX file was not created!"
-          exit 1
+          Write-Error "❌ MSIX not created"; exit 1
         }
 
-    - name: Upload MSIX Package
+    - name: Upload MSIX
       uses: actions/upload-artifact@v4
       with:
-        name: CometBuster-GTK.msix
-        path: CometBuster-GTK.msix
+        name: CometBuster-${{ matrix.arch }}.msix
+        path: CometBuster-${{ matrix.arch }}.msix
+        retention-days: 7
 
   create-release:
-    needs: [build-linux, build-msi-windows, build-msix-windows]
+    needs: [build-windows, build-msi-windows, build-msix-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     if: github.event_name == 'push'
-    
+
     steps:
     - name: Download MSI Artifact
       uses: actions/download-artifact@v4
       with:
-        name: CometBuster-GTK.msi
+        name: CometBuster.msi
         path: release
 
-    - name: Download MSIX Artifact
+    - name: Download MSIX Artifacts
       uses: actions/download-artifact@v4
       with:
-        name: CometBuster-GTK.msix
+        pattern: CometBuster-*.msix
+        path: release
+        merge-multiple: true
+
+    - name: Download Portable Artifact (x86)
+      uses: actions/download-artifact@v4
+      with:
+        name: cometbuster-build-x86
         path: release
 
-    - name: Download Portable Artifact
+    - name: Download Portable Artifact (arm64)
       uses: actions/download-artifact@v4
       with:
-        name: cometbuster-build
+        name: cometbuster-build-arm64
         path: release
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          release/CometBuster-GTK.msi
-          release/CometBuster-GTK.msix
-          release/CometBuster-GTK-Portable.zip
+          release/CometBuster.msi
+          release/CometBuster-x86.msix
+          release/CometBuster-arm64.msix
+          release/CometBuster-Portable-x86.zip
+          release/CometBuster-Portable-arm64.zip
         tag_name: ${{ github.ref == 'refs/heads/main' && format('v{0}', github.run_number) || format('dev-v{0}', github.run_number) }}
         name: ${{ github.ref == 'refs/heads/main' && format('Release v{0}', github.run_number) || format('Dev Build v{0}', github.run_number) }}
         draft: false
@@ -592,77 +523,29 @@ jobs:
         make_latest: ${{ github.ref == 'refs/heads/main' }}
         body: |
           ## ${{ github.ref == 'refs/heads/main' && 'Stable Release' || 'Development Build' }}
-          
-          **Version:** ${{ needs.build-linux.outputs.version }}  
-          **Commit:** ${{ github.sha }}  
-          **Build:** #${{ github.run_number }}  
-          
+
+          **Version:** ${{ env.PRODUCT_VERSION }}
+          **Commit:** ${{ github.sha }}
+          **Build:** #${{ github.run_number }}
+
           ### 🌠 Comet Busters
-          An exciting asteroid-busting action arcade game with classic gameplay and modern GTK interface.
-          
+          An exciting asteroid-busting action arcade game, built natively with MSVC for x86 and ARM64.
+
           ### 📦 Downloads
-          - **CometBuster-GTK.msi** - Windows installer with uninstall support
-          - **CometBuster-GTK.msix** - Unsigned package ready for Microsoft Store submission
-          - **CometBuster-GTK-Portable.zip** - Portable version (no installation required)
-          
-          ### 🎮 Game Features
-          - 🎯 Destroy incoming comets and asteroids
-          - 🚀 Power-ups and special weapons
-          - ⭐ Progressive difficulty levels
-          - 🏆 High score tracking
-          
-          ### ✨ Installer Features (MSI)
-          - ✅ User/Machine installation scope choice
-          - ✅ Custom installation directory
-          - ✅ Start menu shortcut with game icon
-          - ✅ Optional desktop shortcut
-          - ✅ Proper uninstall support with registry cleanup
-          - ✅ MIT License agreement
-          - ✅ Add/Remove Programs integration
-          - ✅ Uninstall shortcut in Start Menu
-          
+          - **CometBuster.msi** — Windows installer (x86) with Start Menu and optional desktop shortcuts
+          - **CometBuster-x86.msix / CometBuster-arm64.msix** — Unsigned packages ready for Microsoft Store submission
+          - **CometBuster-Portable-x86.zip / CometBuster-Portable-arm64.zip** — Portable, no installation required
+
           ### 🏪 Microsoft Store Submission
-          The MSIX package in this release is **unsigned** and ready for Microsoft Store submission through Partner Center. Before uploading:
-          1. Update the Identity Name and Publisher in the manifest with values from Partner Center
-          2. Upload the unsigned MSIX file - Microsoft handles signing during certification
-          
-          ### 📦 Package Comparison
-          | Feature | MSI | MSIX | Portable |
-          |---------|-----|------|----------|
-          | Installation Required | Yes | Yes | No |
-          | Start Menu Integration | ✅ | ✅ | ❌ |
-          | Auto-Update Support | ❌ | ✅ | ❌ |
-          | Microsoft Store Ready | ❌ | ✅ | ❌ |
-          | Enterprise Deployment | ✅ | ✅ | ✅ |
-          | Sandboxed | ❌ | ✅ | ❌ |
-          | Traditional Uninstall | ✅ | ✅ | ❌ |
-          | Code Signing Required | ✅ | Store | ❌ |
-          
-          ### 🛠️ Technical Details
-          - Built on: Linux (Fedora 41 container)
-          - MSI compiled on: Windows Latest
-          - MSIX compiled on: Windows Latest
-          - **Store-Compliant Assets**: Multiple scale factors (100%, 125%, 150%, 200%)
-          - GTK3 runtime included
-          - All dependencies bundled
-          - Game assets and audio included
-          
-          ### 🎯 Silent Installation (MSI only)
-          **For enterprise and automated deployments:**
+          MSIX packages are **unsigned**. Before uploading via Partner Center:
+          1. Update `Identity Name` and `Publisher` in the manifest with your Partner Center values
+          2. Upload the unsigned MSIX — Microsoft handles signing during certification
+
+          ### 🎯 Silent Installation (MSI, x86 only)
           ```cmd
-          # Silent install with desktop shortcut
-          msiexec /i CometBuster-GTK.msi /quiet /norestart DESKTOP_SHORTCUT=1
-          
-          # Silent install without desktop shortcut
-          msiexec /i CometBuster-GTK.msi /quiet /norestart DESKTOP_SHORTCUT=0
-          
-          # Silent uninstall
-          msiexec /x CometBuster-GTK.msi /quiet /norestart
+          msiexec /i CometBuster.msi /quiet /norestart DESKTOP_SHORTCUT=1
+          msiexec /x CometBuster.msi /quiet /norestart
           ```
-          
-          **Command-line Properties:**
-          - `DESKTOP_SHORTCUT=1` - Create desktop shortcut (default: 1)
-          - `INSTALLFOLDER="C:\Program Files\Comet Busters"` - Custom install path
-          
+
           ---
-          *Built with ❤️ using GitHub Actions*
+          *Built with ❤️ using GitHub Actions and MSVC*
