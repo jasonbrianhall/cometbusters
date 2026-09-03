@@ -722,7 +722,7 @@ static void cleanup(CometGUI *gui) {
 // MAIN
 // ============================================================
 
-int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused))) {
+int main(int argc, char *argv[]) {
     SDL_Log("[Comet Busters] === Comet Busters ===\n");
     
     CometGUI gui;
